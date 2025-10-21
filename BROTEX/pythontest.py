@@ -28,6 +28,6 @@ def linkrun(json_str):
 if __name__ == "__main__":
     print("Starting ...")
 
-    json_str = '{"A": 3, "B": 4, "Value": [1, 2, 3, 4],}'
+    json_str = '{"A": 3, "B": 4, "Value": [1, 2, 3, 4]}'
     result = linkrun(json_str)
     print(result)    

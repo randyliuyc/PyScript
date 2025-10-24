@@ -48,18 +48,18 @@ def mix_cotton_layout(data, num_cols=4, iterations=2000, verbose=False):
     # 2. 评估函数
     # ======================
     def evaluate(matrix):
-        """计算方案的均匀性得分和重复惩罚"""
+        """计算方案的均匀性得分、重复惩罚和全局空间分布均匀性"""
         row_scores = []
         col_scores = []
         
-        # 行均衡
+        # 1. 行均衡
         for i in range(len(matrix)):
             row = [x for x in matrix[i] if x is not None]
             row_mean = {k: np.mean([x[k] for x in row]) for k in ["P1","P2","P3","P4"]}
             diff = sum(abs(row_mean[k] - global_mean[k]) for k in row_mean)
             row_scores.append(diff)
         
-        # 列均衡
+        # 2. 列均衡
         for j in range(num_cols):
             col = [matrix[i][j] for i in range(len(matrix)) if j < len(matrix[i]) and matrix[i][j] is not None]
             if not col:
@@ -70,7 +70,7 @@ def mix_cotton_layout(data, num_cols=4, iterations=2000, verbose=False):
         
         balance_score = np.mean(row_scores + col_scores)
         
-        # 相邻重复惩罚
+        # 3. 相邻重复惩罚
         penalty = 0
         for i in range(len(matrix)):
             for j in range(num_cols):
@@ -81,8 +81,38 @@ def mix_cotton_layout(data, num_cols=4, iterations=2000, verbose=False):
                 if i > 0 and j < len(matrix[i-1]) and matrix[i-1][j] is not None and matrix[i][j]["group"] == matrix[i-1][j]["group"]:
                     penalty += 1
         
-        return balance_score + 0.5 * penalty
-
+        # 4. 全局空间分布均匀性（新增）
+        regions = {
+            "upper": lambda i, j: i < num_rows // 3,
+            "lower": lambda i, j: i >= 2 * num_rows // 3,
+            "left": lambda i, j: j < num_cols // 3,
+            "right": lambda i, j: j >= 2 * num_cols // 3,
+            "center": lambda i, j: (num_rows // 3 <= i < 2 * num_rows // 3) and (num_cols // 3 <= j < 2 * num_cols // 3)
+        }
+        
+        group_region_counts = {}
+        for i in range(len(matrix)):
+            for j in range(num_cols):
+                if matrix[i][j] is not None:
+                    group = matrix[i][j]["group"]
+                    if group not in group_region_counts:
+                        group_region_counts[group] = {region: 0 for region in regions}
+                    for region, condition in regions.items():
+                        if condition(i, j):
+                            group_region_counts[group][region] += 1
+        
+        distribution_score = 0
+        for group, counts in group_region_counts.items():
+            total = sum(counts.values())
+            if total == 0:
+                continue
+            proportions = [count / total for count in counts.values()]
+            distribution_score += np.std(proportions)
+        
+        # 综合得分
+        total_score = balance_score + 0.5 * penalty + 0.5 * distribution_score
+        return total_score
+    
     # ======================
     # 3. 初始布局（蛇形）
     # ======================

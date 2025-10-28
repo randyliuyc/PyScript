@@ -14,22 +14,31 @@ import itertools, time, math, json
 # ======================
 # 从 JSON 数据中提取 MATRATCALC
 json_data = [
-    {"MFMLIN": 10, "MATRATCALC": 5.7, "PRIORITY": False, "POSITION": ""},
-    {"MFMLIN": 20, "MATRATCALC": 24.5, "PRIORITY": False, "POSITION": ""},
-    {"MFMLIN": 30, "MATRATCALC": 19, "PRIORITY": False, "POSITION": ""},
-    {"MFMLIN": 40, "MATRATCALC": 35.5, "PRIORITY": True, "POSITION": ""},
-    {"MFMLIN": 50, "MATRATCALC": 15.3, "PRIORITY": False, "POSITION": ""}
+    {"MFMLIN": 10, "MATRATCALC": 1.5, "PRIORITY": False, "POSITION": "B"},
+    {"MFMLIN": 20, "MATRATCALC": 6.43, "PRIORITY": False, "POSITION": ""},
+    {"MFMLIN": 30, "MATRATCALC": 5, "PRIORITY": False, "POSITION": ""},
+    {"MFMLIN": 40, "MATRATCALC": 9.32, "PRIORITY": False, "POSITION": ""},
+    {"MFMLIN": 50, "MATRATCALC": 4, "PRIORITY": False, "POSITION": ""}
 ]
+
+# 归一化函数
+def normalize_targets(targets):
+    total = sum(targets)
+    if total == 100:
+        return targets
+    else:
+        factor = 100.0 / total
+        return [round(p * factor, 2) for p in targets]
+
+# 提取并归一化目标百分比
 targets_pct = [item["MATRATCALC"] for item in json_data]
+targets_pct = normalize_targets(targets_pct)
+print("Normalized targets_pct:", targets_pct)
+
+# 转换为小数形式
 targets = [p / 100.0 for p in targets_pct]
 tol = 0.015
 top_n = 10
-
-# 归一化 targets_pct
-total_pct = sum(targets_pct)
-if total_pct != 100:
-    targets_pct = [p / total_pct * 100 for p in targets_pct]
-print("Normalized targets_pct:", targets_pct)
 
 # 定义三个阶段的搜索范围
 search_stages = [
@@ -297,7 +306,7 @@ def main():
     results = []
     
     for s in top:
-        # 处理assign部分 - 修正牵伸比例x的计算
+        # 处理assign部分
         assign_list = []
         for bucket_idx, color_idx in enumerate(s['assign']):
             # 根据桶位确定对应的牵伸比例
@@ -315,19 +324,20 @@ def main():
             assign_list.append({
                 'bucket': buckets[bucket_idx],
                 'color': json_data[color_idx]['MFMLIN'],
-                'x': round(x_value, 2),  # 使用实际牵伸比例
+                'x': round(x_value, 2),
                 'speed': round(s['speeds'][bucket_idx], 6)
             })
         
-        # 处理colors部分保持不变
+        # 处理colors部分 - 使用归一化后的targets_pct
         colors_list = []
         for color_idx in range(len(json_data)):
-            target_pct = json_data[color_idx]['MATRATCALC']
+            # 使用归一化后的目标比例
+            target_pct = targets_pct[color_idx]
             final_pct = s['final_pcts'][color_idx]
             error = abs(final_pct - target_pct)
             colors_list.append({
                 'color': json_data[color_idx]['MFMLIN'],
-                'target': target_pct,
+                'target': round(target_pct, 2),  # 使用归一化后的值
                 'final': round(final_pct, 2),
                 'error': round(error, 2)
             })

@@ -31,7 +31,7 @@ REFINE_DELTAS = [-REFINE_DELTA, -0.02, -0.01, 0, 0.01, 0.02, REFINE_DELTA]
 # 搜索限制
 MAX_X_CHECKS = 200000        # 最大检查组合数
 MAX_ASSIGN_PER_X = 1000      # 每个 X 组合的最大分配尝试数
-MAX_SOLUTIONS_COLLECT = 2000 # 最大收集解数量
+MAX_SOLUTIONS_COLLECT = 1000 # 最大收集解数量
 
 # 桶位定义
 BUCKETS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
@@ -347,7 +347,8 @@ def linkrun(json_data):
         'refine_step': REFINE_STEP,
         'returned': len(results)
     }
-    print(json.dumps({'meta': meta, 'results': results}, indent=2, ensure_ascii=False))
+    # print(json.dumps({'meta': meta, 'results': results}, indent=2, ensure_ascii=False))
+    return(json.dumps(results, indent=2, ensure_ascii=False))
 
 # 程序启动
 if __name__ == "__main__":
@@ -358,4 +359,5 @@ if __name__ == "__main__":
         {"MFMLIN": 40, "MATRATCALC": 9.32, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 50, "MATRATCALC": 4, "PRIORITY": False, "POSITION": ""}
     ]
-    linkrun(json_data)
+    result = linkrun(json_data)
+    print(result)   

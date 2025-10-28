@@ -16,7 +16,8 @@ import itertools, time, math, json
 TOL = 0.015                  # 允许的误差阈值
 TOP_N = 10                   # 输出的最优解数量
 MAX_SOLUTIONS_TO_STOP = 200  # 找到足够解时停止搜索的阈值
-PRIORITY_ERROR_THRESHOLD = 0.0005  # 优先级颜色误差阈值
+PRIORITY_ERROR_THRESHOLD = 0.0005  # 优先级颜色误差阈值（0.05%）
+NON_PRIORITY_ERROR_THRESHOLD = 0.01  # 非优先级颜色误差阈值（1%）
 D_RANGE = (0.5, 10)          # 牵伸比例 D 的有效范围
 X4_RATIO_LIMIT = 4           # X4/X1 和 X4/X3 的最大允许比值
 MIN_X4 = 1.1                 # X4 的最小值
@@ -97,6 +98,9 @@ def evaluate_assignment(assign, contribs, targets, json_data):
     # 检查优先级误差
     for i, item in enumerate(json_data):
         if item["PRIORITY"] and devs[i] >= PRIORITY_ERROR_THRESHOLD:
+            return sums, devs, float('inf'), final_pcts
+        # 检查非优先级误差
+        elif not item["PRIORITY"] and devs[i] >= NON_PRIORITY_ERROR_THRESHOLD:
             return sums, devs, float('inf'), final_pcts
     
     # 检查位置约束
@@ -314,7 +318,7 @@ def linkrun(json_data):
             assign_list.append({
                 'bucket': BUCKETS[bucket_idx],
                 'color': json_data[color_idx]['MFMLIN'],
-                'stretch': round(x_value, 2),
+                'x': round(x_value, 2),
                 'speed': round(s['speeds'][bucket_idx], 6)
             })
         
@@ -347,24 +351,15 @@ def linkrun(json_data):
         'refine_step': REFINE_STEP,
         'returned': len(results)
     }
-    # print(json.dumps({'meta': meta, 'results': results}, indent=2, ensure_ascii=False))
-    return(json.dumps({'meta': meta, 'results': results}, indent=2, ensure_ascii=False))
+    print(json.dumps({'meta': meta, 'results': results}, indent=2, ensure_ascii=False))
 
 # 程序启动
 if __name__ == "__main__":
-    json_data1 = [
+    json_data = [
         {"MFMLIN": 10, "MATRATCALC": 1.5, "PRIORITY": False, "POSITION": "B"},
         {"MFMLIN": 20, "MATRATCALC": 6.43, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 30, "MATRATCALC": 5, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 40, "MATRATCALC": 9.32, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 50, "MATRATCALC": 4, "PRIORITY": False, "POSITION": ""}
     ]
-    json_data = [
-        {"MFMLIN": 10, "MATRATCALC": 17, "PRIORITY": False, "POSITION": ""},
-        {"MFMLIN": 20, "MATRATCALC": 18, "PRIORITY": False, "POSITION": ""},
-        {"MFMLIN": 30, "MATRATCALC": 19, "PRIORITY": False, "POSITION": ""},
-        {"MFMLIN": 40, "MATRATCALC": 20, "PRIORITY": False, "POSITION": ""},
-        {"MFMLIN": 50, "MATRATCALC": 26, "PRIORITY": False, "POSITION": ""}
-    ]
-    result = linkrun(json_data)
-    print(result)   
+    linkrun(json_data)

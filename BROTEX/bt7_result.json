@@ -1,0 +1,105 @@
+{
+  "meta": {
+    "targets_pct": [
+      17,
+      18,
+      19.0,
+      20,
+      26
+    ],
+    "tol": 0.015,
+    "refine_step": 0.01,
+    "returned": 10
+  },
+  "results": [
+    {
+      "X1": 1.81,
+      "X2": 2.11,
+      "X3": 1.11,
+      "X4": 3.37,
+      "cum_error": 0.001211,
+      "total_feed_speed_D": 4.994726,
+      "assign": [
+        {
+          "bucket": "A",
+          "color": "10",
+          "x": 1.81,
+          "speed": 0.552486
+        },
+        {
+          "bucket": "B",
+          "color": "20",
+          "x": 1.81,
+          "speed": 0.552486
+        },
+        {
+          "bucket": "C",
+          "color": "20",
+          "x": 1.81,
+          "speed": 0.552486
+        },
+        {
+          "bucket": "D",
+          "color": "20",
+          "x": 1.81,
+          "speed": 0.552486
+        },
+        {
+          "bucket": "E",
+          "color": "20",
+          "x": 1.81,
+          "speed": 0.552486
+        },
+        {
+          "bucket": "F",
+          "color": "20",
+          "x": 1.81,
+          "speed": 0.552486
+        },
+        {
+          "bucket": "G",
+          "x": 1.81,
+          "speed": 0.552486
+        },
+        {
+          "bucket": "H",
+          "color": "20",
+          "x": 1.81,
+          "speed": 0.552486
+        }
+      ],
+      "colors": [
+        {
+          "color": "10",
+          "target": 17,
+          "final": 17.03,
+          "error": 0.03
+        },
+        {
+          "color": "20",
+          "target": 17,
+          "final": 17.03,
+          "error": 0.03
+        },
+        {
+          "color": "30",
+          "target": 17,
+          "final": 17.03,
+          "error": 0.03
+        },
+        {
+          "color": "40",
+          "target": 17,
+          "final": 17.03,
+          "error": 0.03
+        },
+        {
+          "color": "50",
+          "target": 17,
+          "final": 17.03,
+          "error": 0.03
+        }
+      ]
+    }
+  ]
+}

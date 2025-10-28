@@ -1,0 +1,32 @@
+[
+  {
+    "MFMLIN": 10,
+    "MATRATCALC": 17,
+    "PRIORITY": false,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 20,
+    "MATRATCALC": 18,
+    "PRIORITY": false,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 30,
+    "MATRATCALC": 19.00,
+    "PRIORITY": false,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 40,
+    "MATRATCALC": 20,
+    "PRIORITY": false,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 50,
+    "MATRATCALC": 26,
+    "PRIORITY": false,
+    "POSITION": ""
+  }
+]

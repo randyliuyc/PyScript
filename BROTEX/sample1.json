@@ -1,0 +1,67 @@
+[
+  {
+    "MFMLIN": 10,
+    "CPNITMNO": "RSM",
+    "ITMNAM": "染色棉",
+    "CPNITMVER": "ER004",
+    "CPNLOT": "VE-9804A",
+    "CPNSUBLOT": "",
+    "MATRAT": 2.30,
+    "REMARK": "",
+    "MATRATCALC": 2.30,
+    "PRIORITY": false,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 20,
+    "CPNITMNO": "RSM",
+    "ITMNAM": "染色棉",
+    "CPNITMVER": "ER006",
+    "CPNLOT": "VE-6786M",
+    "CPNSUBLOT": "V1",
+    "MATRAT": 6.80,
+    "REMARK": "",
+    "MATRATCALC": 6.80,
+    "PRIORITY": false,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 40,
+    "CPNITMNO": "RSM",
+    "ITMNAM": "染色棉",
+    "CPNITMVER": "ER023",
+    "CPNLOT": "VE-10285A",
+    "CPNSUBLOT": "",
+    "MATRAT": 68.00,
+    "REMARK": "",
+    "MATRATCALC": 5.00,
+    "PRIORITY": false,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 70,
+    "CPNITMNO": "JW",
+    "ITMNAM": "精网 ",
+    "CPNITMVER": "WP 白棉",
+    "CPNLOT": "UCE045M-4",
+    "CPNSUBLOT": "",
+    "MATRAT": 15.10,
+    "REMARK": "",
+    "MATRATCALC": 15.10,
+    "PRIORITY": false,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 90,
+    "CPNITMNO": "MT",
+    "ITMNAM": "棉条 ",
+    "CPNITMVER": "BCW50",
+    "CPNLOT": "RD001",
+    "CPNSUBLOT": "",
+    "MATRAT": 7.80,
+    "REMARK": "",
+    "MATRATCALC": 7.80,
+    "PRIORITY": false,
+    "POSITION": ""
+  }
+]

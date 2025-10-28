@@ -81,13 +81,11 @@ def mix_cotton_layout(data, num_cols=4, iterations=2000, verbose=False):
                 if i > 0 and j < len(matrix[i-1]) and matrix[i-1][j] is not None and matrix[i][j]["group"] == matrix[i-1][j]["group"]:
                     penalty += 1
         
-        # 4. 全局空间分布均匀性（新增）
+        # 4. 全局空间分布均匀性（按上中下划分）
         regions = {
             "upper": lambda i, j: i < num_rows // 3,
-            "lower": lambda i, j: i >= 2 * num_rows // 3,
-            "left": lambda i, j: j < num_cols // 3,
-            "right": lambda i, j: j >= 2 * num_cols // 3,
-            "center": lambda i, j: (num_rows // 3 <= i < 2 * num_rows // 3) and (num_cols // 3 <= j < 2 * num_cols // 3)
+            "middle": lambda i, j: (num_rows // 3 <= i < 2 * num_rows // 3),
+            "lower": lambda i, j: i >= 2 * num_rows // 3
         }
         
         group_region_counts = {}

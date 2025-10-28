@@ -314,7 +314,7 @@ def linkrun(json_data):
             assign_list.append({
                 'bucket': BUCKETS[bucket_idx],
                 'color': json_data[color_idx]['MFMLIN'],
-                'x': round(x_value, 2),
+                'stretch': round(x_value, 2),
                 'speed': round(s['speeds'][bucket_idx], 6)
             })
         
@@ -348,16 +348,23 @@ def linkrun(json_data):
         'returned': len(results)
     }
     # print(json.dumps({'meta': meta, 'results': results}, indent=2, ensure_ascii=False))
-    return(json.dumps(results, indent=2, ensure_ascii=False))
+    return(json.dumps({'meta': meta, 'results': results}, indent=2, ensure_ascii=False))
 
 # 程序启动
 if __name__ == "__main__":
-    json_data = [
+    json_data1 = [
         {"MFMLIN": 10, "MATRATCALC": 1.5, "PRIORITY": False, "POSITION": "B"},
         {"MFMLIN": 20, "MATRATCALC": 6.43, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 30, "MATRATCALC": 5, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 40, "MATRATCALC": 9.32, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 50, "MATRATCALC": 4, "PRIORITY": False, "POSITION": ""}
+    ]
+    json_data = [
+        {"MFMLIN": 10, "MATRATCALC": 17, "PRIORITY": False, "POSITION": ""},
+        {"MFMLIN": 20, "MATRATCALC": 18, "PRIORITY": False, "POSITION": ""},
+        {"MFMLIN": 30, "MATRATCALC": 19, "PRIORITY": False, "POSITION": ""},
+        {"MFMLIN": 40, "MATRATCALC": 20, "PRIORITY": False, "POSITION": ""},
+        {"MFMLIN": 50, "MATRATCALC": 26, "PRIORITY": False, "POSITION": ""}
     ]
     result = linkrun(json_data)
     print(result)   

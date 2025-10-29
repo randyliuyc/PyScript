@@ -17,22 +17,30 @@ TOL = 0.015                  # 允许的误差阈值
 TOP_N = 10                   # 输出的最优解数量
 MAX_SOLUTIONS_TO_STOP = 200  # 找到足够解时停止搜索的阈值
 PRIORITY_ERROR_THRESHOLD = 0.0005  # 优先级颜色误差阈值（0.05%）
-NON_PRIORITY_ERROR_THRESHOLD = 0.01  # 非优先级颜色误差阈值（1%）
+NON_PRIORITY_ERROR_THRESHOLD = 0.005  # 非优先级颜色误差阈值（0.5%）
 D_RANGE = (0.5, 10)          # 牵伸比例 D 的有效范围
 X4_RATIO_LIMIT = 4           # X4/X1 和 X4/X3 的最大允许比值
 MIN_X4 = 1.1                 # X4 的最小值
 MAX_X4 = 6.0                 # X4 的最大值
 EPSILON = 1e-12              # 浮点数比较的容差
 
+# ======================
+# 辅助函数
+# ======================
+def frange(start, stop, step):
+    """生成从 start 到 stop 的浮点数列表，步长为 step"""
+    return [round(start + i * step, 10) for i in range(int((stop - start) / step) + 1)]
+
 # 微调补偿参数
-REFINE_DELTA = 0.03
-REFINE_STEP = 0.01
-REFINE_DELTAS = [-REFINE_DELTA, -0.02, -0.01, 0, 0.01, 0.02, REFINE_DELTA]
+REFINE_TOP_N = 1000          # 仅对误差最小的前500个解进行微调
+REFINE_DELTA = 0.03          # 微调范围可以考虑覆盖步长的一半，用0.05
+REFINE_STEP = 0.01           # 微调步长
+REFINE_DELTAS = [round(x, 2) for x in frange(-REFINE_DELTA, REFINE_DELTA, REFINE_STEP)]
 
 # 搜索限制
 MAX_X_CHECKS = 200000        # 最大检查组合数
 MAX_ASSIGN_PER_X = 1000      # 每个 X 组合的最大分配尝试数
-MAX_SOLUTIONS_COLLECT = 1000 # 最大收集解数量
+MAX_SOLUTIONS_COLLECT = 2000 # 最大收集解数量
 
 # 桶位定义
 BUCKETS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
@@ -65,21 +73,16 @@ SEARCH_STAGES = [
 # ======================
 # 辅助函数
 # ======================
-def frange(start, stop, step):
-    vals = []
-    v = start
-    while v <= stop + EPSILON:
-        vals.append(round(v, 10))
-        v += step
-    return vals
-
 def speeds_from_X(X1, X2, X3, X4):
+    """根据 X1, X2, X3, X4 计算各桶位的速度"""
     return [1/X1, 1/X4, 1, 1, 1/X2, 1/X2, 1/X4, 1/X3]
 
 def compute_D(X1, X2, X3, X4):
+    """计算牵伸比例 D（各桶位速度之和）"""
     return sum(speeds_from_X(X1, X2, X3, X4))
 
 def canonical_signature(assign, speeds):
+    """生成分配方案的唯一签名，用于去重"""
     groups = {}
     for i, s in enumerate(speeds):
         key = round(s, 8)
@@ -87,6 +90,7 @@ def canonical_signature(assign, speeds):
     return tuple(sorted((k, tuple(sorted(v))) for k, v in groups.items()))
 
 def evaluate_assignment(assign, contribs, targets, json_data):
+    """评估分配方案的误差"""
     K = len(targets)
     sums = [0] * K
     for i, c in enumerate(assign):
@@ -98,10 +102,10 @@ def evaluate_assignment(assign, contribs, targets, json_data):
     # 检查优先级误差
     for i, item in enumerate(json_data):
         if item["PRIORITY"] and devs[i] >= PRIORITY_ERROR_THRESHOLD:
-            return sums, devs, float('inf'), final_pcts
+            return sums, devs, float('inf'), final_pcts # 优先级误差超限
         # 检查非优先级误差
         elif not item["PRIORITY"] and devs[i] >= NON_PRIORITY_ERROR_THRESHOLD:
-            return sums, devs, float('inf'), final_pcts
+            return sums, devs, float('inf'), final_pcts # 非优先级误差超限
     
     # 检查位置约束
     for i, item in enumerate(json_data):
@@ -112,30 +116,32 @@ def evaluate_assignment(assign, contribs, targets, json_data):
                     found = True
                     break
             if not found:
-                return sums, devs, float('inf'), final_pcts
+                return sums, devs, float('inf'), final_pcts # 位置约束未满足
     
-    return sums, devs, sum(devs), final_pcts
+    return sums, devs, sum(devs), final_pcts # 返回误差总和
 
 def backtracking_find(contribs, targets, json_data):
+    """回溯算法搜索满足条件的分配方案"""
     n = len(contribs)
     K = len(targets)
     priority_order = sorted(range(K), key=lambda i: (
-        -json_data[i]["PRIORITY"],
+        -json_data[i]["PRIORITY"], # 按优先级排序
         json_data[i]["POSITION"] != ""
     ))
     suffix = [0] * (n + 1)
     for i in range(n - 1, -1, -1):
         suffix[i] = suffix[i + 1] + contribs[i]
     
-    assign = [None] * n
-    curr = [0] * K
-    lower = [t - TOL for t in targets]
-    upper = [t + TOL for t in targets]
-    res = []
-    
+    assign = [None] * n  # 当前分配方案
+    curr = [0] * K       # 当前各颜色的总和
+    lower = [t - TOL for t in targets]  # 目标下限
+    upper = [t + TOL for t in targets]  # 目标上限
+    res = []             # 存储结果
+
     def dfs(pos):
+        """深度优先搜索"""
         if len(res) >= MAX_ASSIGN_PER_X:
-            return True
+            return True # 达到最大尝试数，停止搜索
         if pos == n:
             s, d, c, final_pcts = evaluate_assignment(assign, contribs, targets, json_data)
             if c <= TOL:
@@ -143,16 +149,16 @@ def backtracking_find(contribs, targets, json_data):
             return False
         
         v = contribs[pos]
-        rem = suffix[pos + 1]
+        rem = suffix[pos + 1]  # 剩余未分配的总和
         
         for k in range(K):
             if curr[k] + v > upper[k] + EPSILON:
-                continue
+                continue  # 超过上限，跳过
             
             feas = True
             for j in range(K):
                 if curr[j] + rem + (v if j == k else 0) < lower[j] - EPSILON:
-                    feas = False
+                    feas = False  # 无法满足下限，不可行
                     break
             
             if not feas:
@@ -160,7 +166,7 @@ def backtracking_find(contribs, targets, json_data):
             
             assign[pos] = k
             curr[k] += v
-            stop = dfs(pos + 1)
+            stop = dfs(pos + 1) # 递归搜索
             curr[k] -= v
             assign[pos] = None
             
@@ -175,9 +181,10 @@ def backtracking_find(contribs, targets, json_data):
 # 主搜索函数
 # ======================
 def search_stage1(json_data, targets):
-    sols = []
-    sigs = set()
-    checked = 0
+    """主搜索函数，分阶段搜索最优解"""
+    sols = []      # 存储所有解
+    sigs = set()   # 用于去重的签名集合
+    checked = 0    # 已检查的组合数
     start = time.time()
 
     for stage in SEARCH_STAGES:
@@ -191,6 +198,7 @@ def search_stage1(json_data, targets):
         stage_sols = []
 
         for X1, X2, X3, X4 in itertools.product(X1_vals, X2_vals, X3_vals, X4_vals):
+            # 检查 X4 的有效性
             checked += 1
             stage_checked += 1
 
@@ -198,10 +206,13 @@ def search_stage1(json_data, targets):
                 continue
             if X4 / X1 >= X4_RATIO_LIMIT or X4 / X3 >= X4_RATIO_LIMIT:
                 continue
+            
+            # 计算牵伸比例 D
             D = compute_D(X1, X2, X3, X4)
             if not (D_RANGE[0] < D < D_RANGE[1]):
                 continue
 
+            # 搜索分配方案
             sp = speeds_from_X(X1, X2, X3, X4)
             contrib = [s / D for s in sp]
             assigns = backtracking_find(contrib, targets, json_data)
@@ -222,7 +233,10 @@ def search_stage1(json_data, targets):
                 sigs.add(sig)
                 stage_sols.append({
                     'X1': X1, 'X2': X2, 'X3': X3, 'X4': X4,
-                    'assign': af, 'dev': c, 'speeds': sp, 'D': D,
+                    'assign': af, 
+                    'dev': c, 
+                    'speeds': sp, 
+                    'D': D,
                     'final_pcts': final_pcts
                 })
 
@@ -246,35 +260,51 @@ def search_stage1(json_data, targets):
 # 微调阶段
 # ======================
 def refine_solutions(base_sols, json_data, targets):
-    refined = []
-    for sol in base_sols:
+    """对误差最小的前 REFINE_TOP_N 个解进行微调"""
+    # 1. 按误差排序并截取前 REFINE_TOP_N 个解
+    base_sorted = sorted(base_sols, key=lambda s: s['dev'])[:REFINE_TOP_N]
+    refined = []    
+
+    # 2. 仅对选中的解进行微调
+    for sol in base_sorted:
         best = sol.copy()
         best_dev = sol['dev']
+
+        # 遍历所有微调偏移组合
         for d1, d2, d3, d4 in itertools.product(REFINE_DELTAS, REFINE_DELTAS, REFINE_DELTAS, REFINE_DELTAS):
             X1 = sol['X1'] + d1
             X2 = sol['X2'] + d2
             X3 = sol['X3'] + d3
             X4 = sol['X4'] + d4
+            
+            # 检查有效性（范围约束和比例约束）
             if not (1.0 <= X1 <= 4.0 and 1.0 <= X2 <= 4.0 and 1.0 <= X3 <= 4.0 and MIN_X4 <= X4 <= MAX_X4):
                 continue
             if not (X4 > X1 and X4 > X3):
                 continue
             if X4 / X1 >= X4_RATIO_LIMIT or X4 / X3 >= X4_RATIO_LIMIT:
                 continue
+            
+            # 计算新参数下的牵伸比例和速度
             D = compute_D(X1, X2, X3, X4)
             if not (D_RANGE[0] < D < D_RANGE[1]):
                 continue
+                
             sp = speeds_from_X(X1, X2, X3, X4)
             contrib = [s / D for s in sp]
+            
+            # 评估新解
             s, d, c, final_pcts = evaluate_assignment(sol['assign'], contrib, targets, json_data)
             if c < best_dev:
                 best = {
                     'X1': X1, 'X2': X2, 'X3': X3, 'X4': X4,
-                    'assign': sol['assign'], 'dev': c, 'speeds': sp, 'D': D,
+                    'assign': sol['assign'], 'dev': c,
+                    'speeds': sp, 'D': D,
                     'final_pcts': final_pcts
                 }
                 best_dev = c
-        refined.append(best)
+                
+        refined.append(best)    
     return refined
 
 # ======================
@@ -351,15 +381,28 @@ def linkrun(json_data):
         'refine_step': REFINE_STEP,
         'returned': len(results)
     }
-    print(json.dumps({'meta': meta, 'results': results}, indent=2, ensure_ascii=False))
+    # print(json.dumps({'meta': meta, 'results': results}, indent=2, ensure_ascii=False))
+    return(json.dumps({'meta': meta, 'results': results}, indent=2, ensure_ascii=False))
 
 # 程序启动
 if __name__ == "__main__":
-    json_data = [
+    json_data2 = [
         {"MFMLIN": 10, "MATRATCALC": 1.5, "PRIORITY": False, "POSITION": "B"},
         {"MFMLIN": 20, "MATRATCALC": 6.43, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 30, "MATRATCALC": 5, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 40, "MATRATCALC": 9.32, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 50, "MATRATCALC": 4, "PRIORITY": False, "POSITION": ""}
     ]
-    linkrun(json_data)
+    json_data1 = [
+        {"MFMLIN": 10, "MATRATCALC": 17, "PRIORITY": False, "POSITION": ""},
+        {"MFMLIN": 20, "MATRATCALC": 18, "PRIORITY": False, "POSITION": ""},
+        {"MFMLIN": 30, "MATRATCALC": 19, "PRIORITY": False, "POSITION": ""},
+        {"MFMLIN": 40, "MATRATCALC": 20, "PRIORITY": False, "POSITION": ""},
+        {"MFMLIN": 50, "MATRATCALC": 26, "PRIORITY": False, "POSITION": ""}
+    ]
+    json_data = [
+        {"MFMLIN": 10, "MATRATCALC": 80, "PRIORITY": False, "POSITION": ""},
+        {"MFMLIN": 20, "MATRATCALC": 20, "PRIORITY": False, "POSITION": ""}
+    ]
+    result = linkrun(json_data)
+    print(result)   

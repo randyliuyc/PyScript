@@ -316,4 +316,13 @@ if __name__ == "__main__":
     print("Starting server...")
     mcp.settings.host='0.0.0.0'
     mcp.settings.port = 7077
-    mcp.run(transport="sse")
+    
+    try:
+        mcp.run(transport="sse")
+    except KeyboardInterrupt:
+        print("Received KeyboardInterrupt — shutting down gracefully.")
+    except Exception as e:
+        # 记录并退出
+        print("Server stopped with error:", e)
+    finally:
+        print("Server process exiting.")

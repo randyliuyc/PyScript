@@ -386,7 +386,7 @@ def linkrun(json_data):
 
 # 程序启动
 if __name__ == "__main__":
-    json_data2 = [
+    json_data = [
         {"MFMLIN": 10, "MATRATCALC": 1.5, "PRIORITY": False, "POSITION": "B"},
         {"MFMLIN": 20, "MATRATCALC": 6.43, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 30, "MATRATCALC": 5, "PRIORITY": False, "POSITION": ""},
@@ -400,7 +400,7 @@ if __name__ == "__main__":
         {"MFMLIN": 40, "MATRATCALC": 20, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 50, "MATRATCALC": 26, "PRIORITY": False, "POSITION": ""}
     ]
-    json_data = [
+    json_data2 = [
         {"MFMLIN": 10, "MATRATCALC": 80, "PRIORITY": False, "POSITION": ""},
         {"MFMLIN": 20, "MATRATCALC": 20, "PRIORITY": False, "POSITION": ""}
     ]

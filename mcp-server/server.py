@@ -21,7 +21,8 @@ def get_sales_data(
     enddate: str, 
     company: str = "",  
     cus: str = "", 
-    item: str = ""
+    item: str = "",
+    username: str = "DINA"
 ) -> Dict[str, Any]:
     """
     获取销售数据，提问包含具体的公司、客户、产品信息时，明确使用对应的参数值，否则保持参数值为空白
@@ -45,7 +46,7 @@ def get_sales_data(
         "para": [startdate, enddate, company, cus, item]    # 字符串数组参数
     }
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"])
+    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
     return result
 
 # 采购数据
@@ -55,7 +56,8 @@ def get_pur_data(
     enddate: str, 
     company: str, 
     sup: str, 
-    item: str
+    item: str,
+    username: str = "DINA"
 ) -> Dict[str, Any]:
     """
     获取采购数据，提问包含具体的公司、供应商、产品信息时，明确使用对应的参数值，否则保持参数值为空白
@@ -75,7 +77,7 @@ def get_pur_data(
         "para": [startdate, enddate, company, sup, item]    # 字符串数组参数
     }
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"])
+    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
     return result
 
 # 库存数据
@@ -83,7 +85,8 @@ def get_pur_data(
 def get_inv_data(
     site: str, 
     loc: str, 
-    item: str
+    item: str,
+    username: str = "DINA"
 ) -> Dict[str, Any]:
     """
     获取库存数据，提问包含具体的地点、仓库、产品信息时，明确使用对应的参数值，否则保持参数值为空白
@@ -101,14 +104,15 @@ def get_inv_data(
         "para": [site, loc, item]     # 字符串数组参数
     }
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"])
+    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
     return result
 
 # 库存明细数据
 @mcp.tool()
 def get_inv_detail(
     site: str, 
-    warehouse: str
+    warehouse: str,
+    username: str = "DINA"
 ) -> Dict[str, Any]:
     """
     按地点、仓库获取产品库存明细数据
@@ -126,7 +130,7 @@ def get_inv_detail(
         "para": [site, warehouse]               # 字符串数组参数
     }
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"])
+    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
     return result
 
 # 库存明细变动记录
@@ -135,7 +139,8 @@ def get_item_trx(
     site: str, 
     item: str,
     startdate: str,
-    enddate: str
+    enddate: str,
+    username: str = "DINA"
 ) -> Dict[str, Any]:
     """
     按地点、产品编码和时间范围获取产品库存交易变动记录
@@ -155,7 +160,7 @@ def get_item_trx(
         "para": [site, item, startdate, enddate]     # 字符串数组参数
     }
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"])
+    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
     return result
 
 # ===============================================================================
@@ -163,7 +168,8 @@ def get_item_trx(
 def get_ai_result(
     code: str,          # 模型代码（必填）
     num: int,           # 模型编号（必填）
-    para: List[str]     # 字符串数组参数（必填）
+    para: List[str],    # 字符串数组参数（必填）
+    username: str = "DINA"
 ) -> Dict[str, Any]:
     """
     获取指定模型的结果
@@ -177,7 +183,7 @@ def get_ai_result(
     try:
         # print(para)
         # 1. 构造请求参数
-        linktoken = "DINA" + " " + calc_value()
+        linktoken = username + " " + calc_value()
 
         payload = {
             "loginID": linktoken,
@@ -226,15 +232,6 @@ def calc_value():
     I = int(now.strftime("%S%M%H%y%m%d"))
     result = (I - 12251) * 12253 - 31321
     return str(result)
-
-def deep_flatten(para: dict) -> list:
-    result = []
-    for v in para.values():
-        if isinstance(v, (list, tuple)):
-            result.extend(v)
-        else:
-            result.append(v)
-    return result
 
 # Add a dynamic greeting resource
 @mcp.resource("greeting://{name}")
@@ -304,15 +301,16 @@ def test_get_sales_data():
     company = ""
     cus = ""
     item = ""
+    username = "RANDY"
     try:
-        result = get_sales_data(startdate, enddate, company, cus, item)
+        result = get_sales_data(startdate, enddate, company, cus, item, username)
         print("[TEST] get_sales_data 返回:", result)
     except Exception as e:
         print("[TEST] get_sales_data 异常:", e)
     print("[TEST] get_sales_data 测试结束\n")
 
 if __name__ == "__main__":
-    # test_get_sales_data()
+    test_get_sales_data()
     print("Starting server...")
     mcp.settings.host='0.0.0.0'
     mcp.settings.port = 7077

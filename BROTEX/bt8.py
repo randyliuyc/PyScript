@@ -298,7 +298,8 @@ def refine_solutions(base_sols, json_data, targets):
             if c < best_dev:
                 best = {
                     'X1': X1, 'X2': X2, 'X3': X3, 'X4': X4,
-                    'assign': sol['assign'], 'dev': c,
+                    'assign': sol['assign'], 
+                    'dev': c,
                     'speeds': sp, 'D': D,
                     'final_pcts': final_pcts
                 }

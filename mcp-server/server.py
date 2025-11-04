@@ -310,7 +310,7 @@ def test_get_sales_data():
     print("[TEST] get_sales_data 测试结束\n")
 
 if __name__ == "__main__":
-    # test_get_sales_data()
+    test_get_sales_data()
     print("Starting server...")
     mcp.settings.host='0.0.0.0'
     mcp.settings.port = 7077

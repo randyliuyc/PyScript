@@ -333,7 +333,10 @@ def linkrun(json_data):
     results = []
     
     for s in top:
-        assign_list = []
+        assign_data = {
+            "schema": ["bucket", "color", "x", "speed"],
+            "data": []
+        }
         for bucket_idx, color_idx in enumerate(s['assign']):
             if bucket_idx == 0:
                 x_value = s['X1']
@@ -346,24 +349,27 @@ def linkrun(json_data):
             else:
                 x_value = 1.0
                 
-            assign_list.append({
-                'bucket': BUCKETS[bucket_idx],
-                'color': json_data[color_idx]['MFMLIN'],
-                'x': round(x_value, 2),
-                'speed': round(s['speeds'][bucket_idx], 6)
-            })
-        
-        colors_list = []
+            assign_data["data"].append([
+                BUCKETS[bucket_idx],
+                json_data[color_idx]['MFMLIN'],
+                round(x_value, 2),
+                round(s['speeds'][bucket_idx], 6)
+            ])
+
+        colors_data = {
+            "schema": ["color", "target", "final", "error"],
+            "data": []
+        }
         for color_idx in range(len(json_data)):
             target_pct = targets_pct[color_idx]
             final_pct = s['final_pcts'][color_idx]
             error = abs(final_pct - target_pct)
-            colors_list.append({
-                'color': json_data[color_idx]['MFMLIN'],
-                'target': round(target_pct, 2),
-                'final': round(final_pct, 2),
-                'error': round(error, 2)
-            })
+            colors_data["data"].append([
+                json_data[color_idx]['MFMLIN'],
+                round(target_pct, 2),
+                round(final_pct, 2),
+                round(error, 2)
+            ])
         
         results.append({
             'X1': round(s['X1'], 4),
@@ -372,8 +378,8 @@ def linkrun(json_data):
             'X4': round(s['X4'], 4),
             'cum_error': round(s['dev'], 6),
             'total_feed_speed_D': round(s['D'], 6),
-            'assign': assign_list,
-            'colors': colors_list
+            'assign_data': assign_data,
+            'colors_data': colors_data
         })
     
     meta = {

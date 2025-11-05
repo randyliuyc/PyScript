@@ -36,18 +36,23 @@ def get_sales_data(
     Returns:
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
-    # 1. 构造请求参数
-    company = company or ""
-    cus = cus or ""
-    item = item or ""
+    # # 1. 构造请求参数
+    # company = company or ""
+    # cus = cus or ""
+    # item = item or ""
 
-    payload = {
-        "dmCode": "LINKAIMCP10X.SALES", # 模型代码
-        "dmNum": 10,                    # 模型编号
-        "para": [startdate, enddate, company, cus, item]    # 字符串数组参数
-    }
+    # 调用模型
+    dmCode = "LINKAIMCP10X.SALES"
+    dmNum = 10
+    para = [startdate, enddate, company, cus, item]
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
+    # payload = {
+    #     "dmCode": "LINKAIMCP10X.SALES", # 模型代码
+    #     "dmNum": 10,                    # 模型编号
+    #     "para": [startdate, enddate, company, cus, item]    # 字符串数组参数
+    # }
+
+    result = get_ai_result(dmCode, dmNum, para, username)
     return result
 
 # 采购数据
@@ -55,9 +60,9 @@ def get_sales_data(
 def get_pur_data(
     startdate: str, 
     enddate: str, 
-    company: str, 
-    sup: str, 
-    item: str,
+    company: str = "", 
+    sup: str = "", 
+    item: str = "",
     username: str = "DINA"
 ) -> Dict[str, Any]:
     """
@@ -72,21 +77,25 @@ def get_pur_data(
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
     # 1. 构造请求参数
-    payload = {
-        "dmCode": "LINKAIMCP10X.PUR", # 模型代码
-        "dmNum": 10,           # 模型编号
-        "para": [startdate, enddate, company, sup, item]    # 字符串数组参数
-    }
+    dmCode = "LINKAIMCP10X.PUR"
+    dmNum = 10
+    para = [startdate, enddate, company, sup, item]
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
+    # payload = {
+    #     "dmCode": "LINKAIMCP10X.PUR", # 模型代码
+    #     "dmNum": 10,           # 模型编号
+    #     "para": [startdate, enddate, company, sup, item]    # 字符串数组参数
+    # }
+
+    result = get_ai_result(dmCode, dmNum, para, username)
     return result
 
 # 库存数据
 @mcp.tool()
 def get_inv_data(
-    site: str, 
-    loc: str, 
-    item: str,
+    site: str = "", 
+    loc: str = "", 
+    item: str = "",
     username: str = "DINA"
 ) -> Dict[str, Any]:
     """
@@ -99,13 +108,17 @@ def get_inv_data(
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
     # 1. 构造请求参数
-    payload = {
-        "dmCode": "LINKAIMCP10X.INV",           # 模型代码
-        "dmNum": 10,                            # 模型编号
-        "para": [site, loc, item]     # 字符串数组参数
-    }
+    dmCode = "LINKAIMCP10X.INV"
+    dmNum = 10
+    para = [site, loc, item]
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
+    # payload = {
+    #     "dmCode": "LINKAIMCP10X.INV",           # 模型代码
+    #     "dmNum": 10,                            # 模型编号
+    #     "para": [site, loc, item]     # 字符串数组参数
+    # }
+
+    result = get_ai_result(dmCode, dmNum, para, username)
     return result
 
 # 库存明细数据
@@ -125,13 +138,17 @@ def get_inv_detail(
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
     # 1. 构造请求参数
-    payload = {
-        "dmCode": "LINKAIMCP10X.INV",           # 模型代码
-        "dmNum": 20,                            # 模型编号
-        "para": [site, warehouse]               # 字符串数组参数
-    }
+    dmCode = "LINKAIMCP10X.INV"
+    dmNum = 20
+    para = [site, warehouse]
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
+    # payload = {
+    #     "dmCode": "LINKAIMCP10X.INV",           # 模型代码
+    #     "dmNum": 20,                            # 模型编号
+    #     "para": [site, warehouse]               # 字符串数组参数
+    # }
+
+    result = get_ai_result(dmCode, dmNum, para, username)
     return result
 
 # 库存明细变动记录
@@ -155,20 +172,24 @@ def get_item_trx(
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
     # 1. 构造请求参数
-    payload = {
-        "dmCode": "LINKAIMCP10X.INV",                # 模型代码
-        "dmNum": 30,                                 # 模型编号
-        "para": [site, item, startdate, enddate]     # 字符串数组参数
-    }
+    dmCode = "LINKAIMCP10X.INV"
+    dmNum = 30
+    para = [site, item, startdate, enddate]
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
+    # payload = {
+    #     "dmCode": "LINKAIMCP10X.INV",                # 模型代码
+    #     "dmNum": 30,                                 # 模型编号
+    #     "para": [site, item, startdate, enddate]     # 字符串数组参数
+    # }
+
+    result = get_ai_result(dmCode, dmNum, para, username)
     return result
 
 # 车间的设备列表
 @mcp.tool()
 def get_dev_list(
     dept: str, 
-    devdes: str,
+    devdes: str = "",
     username: str = "DINA"
 ) -> Dict[str, Any]:
     """
@@ -180,25 +201,22 @@ def get_dev_list(
     Returns:
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
-    # 1. 构造请求参数
-    devdes = devdes or ""
 
-    payload = {
-        "dmCode": "LINKAIMCP20X.DEVLIST", # 模型代码
-        "dmNum": 10,                      # 模型编号
-        "para": [dept, devdes]            # 字符串数组参数
-    }
+    # 调用模型
+    dmCode = "LINKAIMCP20X.DEVLIST"
+    dmNum = 10
+    para = [dept, devdes]
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
+    result = get_ai_result(dmCode, dmNum, para, username)
     return result
 
 # 设备维保记录
 @mcp.tool()
 def get_dev_mnt_list(
     dept: str, 
-    devdes: str,
     startdate: str,
     enddate: str,
+    devdes: str = "",
     username: str = "DINA"
 ) -> Dict[str, Any]:
     """
@@ -212,20 +230,24 @@ def get_dev_mnt_list(
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
     # 1. 构造请求参数
-    payload = {
-        "dmCode": "LINKAIMCP20X.DEVMNT",                # 模型代码
-        "dmNum": 10,                                 # 模型编号
-        "para": [dept, devdes, startdate, enddate]     # 字符串数组参数
-    }
+    dmCode = "LINKAIMCP20X.DEVMNT"
+    dmNum = 10
+    para = [dept, devdes, startdate, enddate]
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
+    # payload = {
+    #     "dmCode": "LINKAIMCP20X.DEVMNT",                # 模型代码
+    #     "dmNum": 10,                                 # 模型编号
+    #     "para": [dept, devdes, startdate, enddate]     # 字符串数组参数
+    # }
+
+    result = get_ai_result(dmCode, dmNum, para, username)
     return result
 
 # 待处理设备维保记录
 @mcp.tool()
 def get_dev_mnt_remain(
     dept: str, 
-    devdes: str,
+    devdes: str = "",
     username: str = "DINA"
 ) -> Dict[str, Any]:
     """
@@ -237,13 +259,17 @@ def get_dev_mnt_remain(
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
     # 1. 构造请求参数
-    payload = {
-        "dmCode": "LINKAIMCP20X.DEVMNT",              # 模型代码
-        "dmNum": 20,                                  # 模型编号
-        "para": [dept, devdes]                        # 字符串数组参数
-    }
+    dmCode = "LINKAIMCP20X.DEVMNT"
+    dmNum = 20
+    para = [dept, devdes]
 
-    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
+    # payload = {
+    #     "dmCode": "LINKAIMCP20X.DEVMNT",              # 模型代码
+    #     "dmNum": 20,                                  # 模型编号
+    #     "para": [dept, devdes]                        # 字符串数组参数
+    # }
+
+    result = get_ai_result(dmCode, dmNum, para, username)
     return result
 
 # 登记设备维保记录
@@ -266,23 +292,23 @@ def dev_mnt_reg(
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False
     """
     # 1. 构造请求参数
-    payload = {
-        "dmCode": "LINKAIMCP20X.DEVLIST",               # 模型代码
-        "dmNum": 10,                                    # 模型编号
-        "action": 501,                                  # 附加模型
-        "para": ["", "", mnttyp, mntdes],               # 字符串数组参数
-        # 参数与模型对应，前面两个参数是主模型使用的，501的动作不用
-        "rowdata": {"车间": dept, "设备编号": devno}    # 引用记录的数据
-    }
+    dmCode = "LINKAIMCP20X.DEVMNT"
+    dmNum = 10
+    action = 501
+    # 参数与模型对应，前面两个参数是主模型使用的，501的动作不用
+    para = ["", "", mnttyp, mntdes]
+    rowdata = {"车间": dept, "设备编号": devno}
 
-    actionresult = get_ai_action(payload["dmCode"], payload["dmNum"],payload["action"], payload["para"], payload["rowdata"], username)
+    # payload = {
+    #     "dmCode": "LINKAIMCP20X.DEVLIST",               # 模型代码
+    #     "dmNum": 10,                                    # 模型编号
+    #     "action": 501,                                  # 附加模型
+    #     "para": ["", "", mnttyp, mntdes],               # 字符串数组参数
+    #     "rowdata": {"车间": dept, "设备编号": devno}    # 引用记录的数据
+    # }
 
+    actionresult = get_ai_action(dmCode, dmNum, action, para, rowdata, username)
     return actionresult
-    # if actionresult["status"] == "success":
-    #   result = get_dev_mnt_remain(dept, "", username)
-    #   return result
-    # else:
-    #   return actionresult 
 
 # ===============================================================================
 def get_ai_result(
@@ -332,12 +358,11 @@ def get_ai_result(
         response.raise_for_status()
         result = response.json()
         
-        # 4. 返回标准化结果
-        return {
-            # "para": payload,
-            "status": "success",
-            "json": result
-        }
+        # print(f"原始响应: {result}")
+        
+        # 4. 简化返回逻辑 - 直接返回解析后的JSON对象
+        # 不再进行额外的data字段提取，避免重复转义
+        return result
         
     except requests.exceptions.RequestException as e:
         # 错误处理
@@ -402,12 +427,11 @@ def get_ai_action(
         response.raise_for_status()
         result = response.json()
         
-        # 4. 返回标准化结果
-        return {
-            # "para": payload,
-            "status": "success",
-            "json": result
-        }
+        # print(f"原始响应: {result}")
+        
+        # 4. 简化返回逻辑 - 直接返回解析后的JSON对象
+        # 不再进行额外的data字段提取，避免重复转义
+        return result
         
     except requests.exceptions.RequestException as e:
         # 错误处理

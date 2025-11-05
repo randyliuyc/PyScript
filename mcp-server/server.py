@@ -32,6 +32,7 @@ def get_sales_data(
         company: 公司编码或公司名称，如果未明确参数值，则使用空字符串
         cus: 客户编码或客户名称，如果未明确参数值，则使用空字符串
         item: 产品编码或产品名称，如果未明确参数值，则使用空字符串
+        username: 用户名，默认为 "DINA"
     Returns:
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
@@ -163,8 +164,125 @@ def get_item_trx(
     result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
     return result
 
+# 车间的设备列表
+@mcp.tool()
+def get_dev_list(
+    dept: str, 
+    devdes: str,
+    username: str = "DINA"
+) -> Dict[str, Any]:
+    """
+    获取车间的设备列表
+    Args:
+        dept: 车间编码，必填
+        devdes: 设备名称，如果未明确参数值，则使用空字符串
+        username: 用户名，默认为 "DINA"
+    Returns:
+        JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
+    """
+    # 1. 构造请求参数
+    devdes = devdes or ""
+
+    payload = {
+        "dmCode": "LINKAIMCP20X.DEVLIST", # 模型代码
+        "dmNum": 10,                      # 模型编号
+        "para": [dept, devdes]            # 字符串数组参数
+    }
+
+    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
+    return result
+
+# 设备维保记录
+@mcp.tool()
+def get_dev_mnt_list(
+    dept: str, 
+    devdes: str,
+    startdate: str,
+    enddate: str,
+    username: str = "DINA"
+) -> Dict[str, Any]:
+    """
+    按照车间、设备名称、日期范围获取设备维保记录
+    Args:
+        dept: 车间编码，必填
+        devdes: 设备名称，如果未明确参数值，则使用空字符串
+        startdate: 起始日期，格式为 "YYYY-MM-DD"，必填
+        enddate: 结束日期，格式为 "YYYY-MM-DD"，必填
+    Returns:
+        JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
+    """
+    # 1. 构造请求参数
+    payload = {
+        "dmCode": "LINKAIMCP20X.DEVMNT",                # 模型代码
+        "dmNum": 10,                                 # 模型编号
+        "para": [dept, devdes, startdate, enddate]     # 字符串数组参数
+    }
+
+    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
+    return result
+
+# 待处理设备维保记录
+@mcp.tool()
+def get_dev_mnt_remain(
+    dept: str, 
+    devdes: str,
+    username: str = "DINA"
+) -> Dict[str, Any]:
+    """
+    等待处理的设备维保记录，已经创建维保记录，尚未完成处理的记录
+    Args:
+        dept: 车间编码，必填
+        devdes: 设备名称，如果未明确参数值，则使用空字符串
+    Returns:
+        JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
+    """
+    # 1. 构造请求参数
+    payload = {
+        "dmCode": "LINKAIMCP20X.DEVMNT",              # 模型代码
+        "dmNum": 20,                                  # 模型编号
+        "para": [dept, devdes]                        # 字符串数组参数
+    }
+
+    result = get_ai_result(payload["dmCode"], payload["dmNum"], payload["para"], username)
+    return result
+
+# 登记设备维保记录
+@mcp.tool()
+def dev_mnt_reg(
+    dept: str, 
+    devno: str,
+    mnttyp: str,
+    mntdes: str,
+    username: str = "DINA"
+) -> Dict[str, Any]:
+    """
+    等待处理的设备维保记录，已经创建维保记录，尚未完成处理的记录
+    Args:
+        dept: 车间编码，必填
+        devno: 设备编码，必填
+        mnttyp: 维保类型，必填
+        mntdes: 维保描述，必填
+    Returns:
+        JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False
+    """
+    # 1. 构造请求参数
+    payload = {
+        "dmCode": "LINKAIMCP20X.DEVLIST",               # 模型代码
+        "dmNum": 10,                                    # 模型编号
+        "action": 501,                                  # 附加模型
+        "para": [mnttyp, mntdes],                       # 字符串数组参数
+        "rowdata": {"车间": dept, "设备编号": devno}    # 引用记录的数据
+    }
+
+    actionresult = get_ai_action(payload["dmCode"], payload["dmNum"],payload["action"], payload["para"], payload["rowdata"], username)
+
+    if actionresult["status"] == "success":
+      result = get_dev_mnt_remain(dept, "", username)
+      return result
+    else:
+      return actionresult 
+
 # ===============================================================================
-# @mcp.tool()
 def get_ai_result(
     code: str,          # 模型代码（必填）
     num: int,           # 模型编号（必填）
@@ -214,7 +332,77 @@ def get_ai_result(
         
         # 4. 返回标准化结果
         return {
-            "para": payload,
+            # "para": payload,
+            "status": "success",
+            "json": result
+        }
+        
+    except requests.exceptions.RequestException as e:
+        # 错误处理
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
+def get_ai_action(
+    code: str,                # 模型代码（必填）
+    num: int,                 # 模型编号（必填）
+    action: int,              # 模型动作（必填）
+    para: List[str],          # 字符串数组参数（必填）
+    rowdata: Dict[str, str],  # 字符串数组参数（必填）
+    username: str = "DINA"
+) -> Dict[str, Any]:
+    """
+    执行AI模型动作操作
+    Args:
+        code: 模型代码（如 "TMES10"、"TMES20"）
+        num: 模型编号（如 10, 20, 30）
+        action: 模型动作（如 501, 502）
+        para: 数组列表（如 ["p1","p2","p3"]）
+        rowdata: 行数据字典，包含具体的操作数据
+            - MNTTYP: 维保类型代码
+            - MNTDES: 维保描述信息
+        username: 用户名，默认为 "DINA"
+    """
+    try:
+        # print(para)
+        # 1. 构造请求参数
+        linktoken = username + " " + calc_value()
+
+        payload = {
+            "loginID": linktoken,
+            "par": {
+              "dm": {
+                "dmCode": code,
+                "dmNum": num,
+                "Para": para,
+              },
+              "contextMenuNo": action,
+              "rowData": rowdata
+            }
+        }
+        
+        print(payload)
+        
+        # 2. 发送POST请求（替换为你的模型API地址）
+        response = requests.post(
+            "http://124.71.144.80:8088/api/DataModel/linkDMContextFunBack",  # 替换为实际地址
+            json = payload,
+            headers = {
+                "User-Agent": "MCP-Model-Client/1.0",
+                "Accept": "application/json",
+                "X-Token": ""
+            },
+            timeout = 60  # 超时时间（秒）
+        )
+        
+        # 3. 检查响应状态
+        response.raise_for_status()
+        result = response.json()
+        
+        # 4. 返回标准化结果
+        return {
+            # "para": payload,
             "status": "success",
             "json": result
         }
@@ -310,7 +498,11 @@ def test_get_sales_data():
     print("[TEST] get_sales_data 测试结束\n")
 
 if __name__ == "__main__":
-    test_get_sales_data()
+    # test_get_sales_data()
+    # result = get_dev_list("AC", "")
+    result = dev_mnt_reg("AC", "CS02", "维修", "皮带断裂")
+    print(result)
+
     print("Starting server...")
     mcp.settings.host='0.0.0.0'
     mcp.settings.port = 7077

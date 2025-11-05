@@ -389,7 +389,7 @@ def linkrun(json_data):
         'returned': len(results)
     }
     # print(json.dumps({'meta': meta, 'results': results}, indent=2, ensure_ascii=False))
-    return(json.dumps({'meta': meta, 'results': results}, indent=2, ensure_ascii=False))
+    return(json.dumps({'meta': meta, 'results': results}, ensure_ascii=False))
 
 # 程序启动
 if __name__ == "__main__":

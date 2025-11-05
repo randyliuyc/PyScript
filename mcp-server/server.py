@@ -270,17 +270,19 @@ def dev_mnt_reg(
         "dmCode": "LINKAIMCP20X.DEVLIST",               # 模型代码
         "dmNum": 10,                                    # 模型编号
         "action": 501,                                  # 附加模型
-        "para": [mnttyp, mntdes],                       # 字符串数组参数
+        "para": ["", "", mnttyp, mntdes],               # 字符串数组参数
+        # 参数与模型对应，前面两个参数是主模型使用的，501的动作不用
         "rowdata": {"车间": dept, "设备编号": devno}    # 引用记录的数据
     }
 
     actionresult = get_ai_action(payload["dmCode"], payload["dmNum"],payload["action"], payload["para"], payload["rowdata"], username)
 
-    if actionresult["status"] == "success":
-      result = get_dev_mnt_remain(dept, "", username)
-      return result
-    else:
-      return actionresult 
+    return actionresult
+    # if actionresult["status"] == "success":
+    #   result = get_dev_mnt_remain(dept, "", username)
+    #   return result
+    # else:
+    #   return actionresult 
 
 # ===============================================================================
 def get_ai_result(
@@ -386,7 +388,7 @@ def get_ai_action(
         
         # 2. 发送POST请求（替换为你的模型API地址）
         response = requests.post(
-            "http://124.71.144.80:8088/api/DataModel/linkDMContextFunBack",  # 替换为实际地址
+            "http://124.71.144.80:8088/api/DataModel/linkDMAIAction",  # 替换为实际地址
             json = payload,
             headers = {
                 "User-Agent": "MCP-Model-Client/1.0",
@@ -500,8 +502,8 @@ def test_get_sales_data():
 if __name__ == "__main__":
     # test_get_sales_data()
     # result = get_dev_list("AC", "")
-    result = dev_mnt_reg("AC", "CS02", "维修", "皮带断裂")
-    print(result)
+    # result = dev_mnt_reg("AC", "CS02", "维修", "皮带断裂")
+    # print(result)
 
     print("Starting server...")
     mcp.settings.host='0.0.0.0'

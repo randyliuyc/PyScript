@@ -225,15 +225,20 @@ def dev_mnt_reg(
     devno: str,
     mnttyp: str,
     mntdes: str,
+    plnres: str,
+    plntim: datetime,
     username: str = "DINA"
 ) -> Dict[str, Any]:
     """
     等待处理的设备维保记录，已经创建维保记录，尚未完成处理的记录
     Args:
         dept: 车间编码，必填
-        devno: 设备编码，必填
+        devno: 设备编码，必填，要确保设备编码存在，根据get_dev_list获取当前车间的设备列表检查，明确取已经存在的设备编码
         mnttyp: 维保类型，必填
         mntdes: 维保描述，必填
+        plnres: 计划安排的人员
+        plntim: 计划维保时间，如果未明确参数值，则使用当前时间
+        username: 用户名，默认为 "DINA"
     Returns:
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False
     """
@@ -242,8 +247,37 @@ def dev_mnt_reg(
     dmNum = 10
     action = 501
     # 参数与模型对应，前面两个参数是主模型使用的，501的动作不用
-    para = ["", "", mnttyp, mntdes]
+    para = ["", "", mnttyp, mntdes, plntim, plnres]
     rowdata = {"车间": dept, "设备编号": devno}
+
+    return get_ai_action(dmCode, dmNum, action, para, rowdata, username)
+
+# 维保任务完成记录
+@mcp.tool()
+def dev_mnt_complete(
+    docnum: str, 
+    cplres: str,
+    remark: str,
+    username: str = "DINA"
+) -> Dict[str, Any]:
+    """
+    根据维保登记的单据号，进行维保完成登记，记录完成人、完成时间、备注
+    Args:
+        docnum: 维保单据编号，必填
+        cplres: 完成人，必填
+        remark: 备注，如果未明确参数值，则使用空字符串
+        username: 用户名，默认为 "DINA"
+    Returns:
+        JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False
+    """
+    # 1. 构造请求参数
+    dmCode = "LINKAIMCP20X.DEVMNT"
+    dmNum = 20
+    action = 501
+    # 参数与模型对应，改功能不使用参数
+    para = ["", ""]
+    # 通过行记录的模式传递数据
+    rowdata = {"DOCNUM": docnum, "CPLRES": cplres, "REMARK": remark}
 
     return get_ai_action(dmCode, dmNum, action, para, rowdata, username)
 

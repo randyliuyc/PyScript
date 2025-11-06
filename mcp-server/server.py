@@ -164,8 +164,30 @@ def get_dev_list(
     """
 
     # 调用模型
-    dmCode = "LINKAIMCP20X.DEVLIST"
-    dmNum = 10
+    dmCode = "LINKAIMCP"
+    dmNum = 110
+    para = [dept, devdes]
+
+    return get_ai_result(dmCode, dmNum, para, username)
+
+# 待处理设备维保记录
+@mcp.tool()
+def get_dev_mnt_remain(
+    dept: str, 
+    devdes: str = "",
+    username: str = "DINA"
+) -> Dict[str, Any]:
+    """
+    等待处理的设备维保记录，已经创建维保记录，尚未完成处理的记录
+    Args:
+        dept: 车间编码，必填
+        devdes: 设备名称，如果未明确参数值，则使用空字符串
+    Returns:
+        JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
+    """
+    # 1. 构造请求参数
+    dmCode = "LINKAIMCP"
+    dmNum = 120
     para = [dept, devdes]
 
     return get_ai_result(dmCode, dmNum, para, username)
@@ -190,31 +212,9 @@ def get_dev_mnt_list(
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
     # 1. 构造请求参数
-    dmCode = "LINKAIMCP20X.DEVMNT"
-    dmNum = 10
+    dmCode = "LINKAIMCP"
+    dmNum = 130
     para = [dept, devdes, startdate, enddate]
-
-    return get_ai_result(dmCode, dmNum, para, username)
-
-# 待处理设备维保记录
-@mcp.tool()
-def get_dev_mnt_remain(
-    dept: str, 
-    devdes: str = "",
-    username: str = "DINA"
-) -> Dict[str, Any]:
-    """
-    等待处理的设备维保记录，已经创建维保记录，尚未完成处理的记录
-    Args:
-        dept: 车间编码，必填
-        devdes: 设备名称，如果未明确参数值，则使用空字符串
-    Returns:
-        JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
-    """
-    # 1. 构造请求参数
-    dmCode = "LINKAIMCP20X.DEVMNT"
-    dmNum = 20
-    para = [dept, devdes]
 
     return get_ai_result(dmCode, dmNum, para, username)
 
@@ -243,8 +243,8 @@ def dev_mnt_reg(
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False
     """
     # 1. 构造请求参数
-    dmCode = "LINKAIMCP20X.DEVLIST"
-    dmNum = 10
+    dmCode = "LINKAIMCP"
+    dmNum = 110
     action = 501
     # 参数与模型对应，前面两个参数是主模型使用的，501的动作不用
     para = ["", "", mnttyp, mntdes, plntim, plnres]
@@ -271,8 +271,8 @@ def dev_mnt_complete(
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False
     """
     # 1. 构造请求参数
-    dmCode = "LINKAIMCP20X.DEVMNT"
-    dmNum = 20
+    dmCode = "LINKAIMCP"
+    dmNum = 120
     action = 501
     # 参数与模型对应，改功能不使用参数
     para = ["", ""]

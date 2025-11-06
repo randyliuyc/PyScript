@@ -42,8 +42,7 @@ def get_sales_data(
     dmNum = 10
     para = [startdate, enddate, company, cus, item]
 
-    result = get_ai_result(dmCode, dmNum, para, username)
-    return result
+    return get_ai_result(dmCode, dmNum, para, username)
 
 # 采购数据
 @mcp.tool()
@@ -71,8 +70,7 @@ def get_pur_data(
     dmNum = 10
     para = [startdate, enddate, company, sup, item]
 
-    result = get_ai_result(dmCode, dmNum, para, username)
-    return result
+    return get_ai_result(dmCode, dmNum, para, username)
 
 # 库存数据
 @mcp.tool()
@@ -96,8 +94,7 @@ def get_inv_data(
     dmNum = 10
     para = [site, loc, item]
 
-    result = get_ai_result(dmCode, dmNum, para, username)
-    return result
+    return get_ai_result(dmCode, dmNum, para, username)
 
 # 库存明细数据
 @mcp.tool()
@@ -120,14 +117,7 @@ def get_inv_detail(
     dmNum = 20
     para = [site, warehouse]
 
-    # payload = {
-    #     "dmCode": "LINKAIMCP10X.INV",           # 模型代码
-    #     "dmNum": 20,                            # 模型编号
-    #     "para": [site, warehouse]               # 字符串数组参数
-    # }
-
-    result = get_ai_result(dmCode, dmNum, para, username)
-    return result
+    return get_ai_result(dmCode, dmNum, para, username)
 
 # 库存明细变动记录
 @mcp.tool()
@@ -154,8 +144,7 @@ def get_item_trx(
     dmNum = 30
     para = [site, item, startdate, enddate]
 
-    result = get_ai_result(dmCode, dmNum, para, username)
-    return result
+    return get_ai_result(dmCode, dmNum, para, username)
 
 # 车间的设备列表
 @mcp.tool()
@@ -179,8 +168,7 @@ def get_dev_list(
     dmNum = 10
     para = [dept, devdes]
 
-    result = get_ai_result(dmCode, dmNum, para, username)
-    return result
+    return get_ai_result(dmCode, dmNum, para, username)
 
 # 设备维保记录
 @mcp.tool()
@@ -206,8 +194,7 @@ def get_dev_mnt_list(
     dmNum = 10
     para = [dept, devdes, startdate, enddate]
 
-    result = get_ai_result(dmCode, dmNum, para, username)
-    return result
+    return get_ai_result(dmCode, dmNum, para, username)
 
 # 待处理设备维保记录
 @mcp.tool()
@@ -229,8 +216,7 @@ def get_dev_mnt_remain(
     dmNum = 20
     para = [dept, devdes]
 
-    result = get_ai_result(dmCode, dmNum, para, username)
-    return result
+    return get_ai_result(dmCode, dmNum, para, username)
 
 # 登记设备维保记录
 @mcp.tool()
@@ -252,15 +238,14 @@ def dev_mnt_reg(
         JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False
     """
     # 1. 构造请求参数
-    dmCode = "LINKAIMCP20X.DEVMNT"
+    dmCode = "LINKAIMCP20X.DEVLIST"
     dmNum = 10
     action = 501
     # 参数与模型对应，前面两个参数是主模型使用的，501的动作不用
     para = ["", "", mnttyp, mntdes]
     rowdata = {"车间": dept, "设备编号": devno}
 
-    actionresult = get_ai_action(dmCode, dmNum, action, para, rowdata, username)
-    return actionresult
+    return get_ai_action(dmCode, dmNum, action, para, rowdata, username)
 
 # ===============================================================================
 def get_ai_result(
@@ -279,7 +264,6 @@ def get_ai_result(
         JSON 格式的模型结果
     """
     try:
-        # print(para)
         # 1. 构造请求参数
         linktoken = username + " " + calc_value()
 
@@ -296,7 +280,7 @@ def get_ai_result(
         
         # 2. 发送POST请求（替换为你的模型API地址）
         response = requests.post(
-            "http://124.71.144.80:8088/api/DataModel/linkDMAIResult",  # 替换为实际地址
+            "http://124.71.144.80:8088/api/DataModel/linkDMAIResult",  
             json = payload,
             headers = {
                 "User-Agent": "MCP-Model-Client/1.0",
@@ -308,9 +292,7 @@ def get_ai_result(
         
         # 3. 检查响应状态
         response.raise_for_status()
-        result = response.json()
-        
-        return result
+        return response.json()
         
     except requests.exceptions.RequestException as e:
         # 错误处理
@@ -340,7 +322,6 @@ def get_ai_action(
         username: 用户名，默认为 "DINA"
     """
     try:
-        # print(para)
         # 1. 构造请求参数
         linktoken = username + " " + calc_value()
 
@@ -373,9 +354,7 @@ def get_ai_action(
         
         # 3. 检查响应状态
         response.raise_for_status()
-        result = response.json()
-
-        return result
+        return response.json()
         
     except requests.exceptions.RequestException as e:
         # 错误处理

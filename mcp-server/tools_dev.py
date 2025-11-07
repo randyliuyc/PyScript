@@ -78,7 +78,7 @@ def register_dev_tools(mcp):
     mnttyp: str,
     mntdes: str,
     plnres: str,
-    plntim: datetime.datetime
+    plntim: str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
   ) -> Dict[str, Any]:
     """
     等待处理的设备维保记录，已经创建维保记录，尚未完成处理的记录
@@ -89,7 +89,7 @@ def register_dev_tools(mcp):
       mnttyp: 维保类型，必填
       mntdes: 维保描述，必填
       plnres: 计划安排的人员
-      plntim: 计划维保时间，如果未明确参数值，则使用当前时间
+      plntim: 计划维保时间，如果未明确参数值，则使用当前时间，时间格式类似 2025-06-23 12:00:00
     Returns:
       JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False
     """

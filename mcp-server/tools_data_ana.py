@@ -1,7 +1,7 @@
 # tools.py
 from typing import Dict, Any
 import datetime
-from utils import get_ai_result, get_ai_action
+from utils import get_ai_result, ai_action, ai_row_submit
 from mcp.server.fastmcp import FastMCP
 
 def register_data_ana_tools(mcp: FastMCP):

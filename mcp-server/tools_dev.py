@@ -1,7 +1,7 @@
 # tools.py
 from typing import Dict, Any
 import datetime
-from utils import get_ai_result, get_ai_action
+from utils import get_ai_result, ai_action, ai_row_submit
 
 def register_dev_tools(mcp):
   @mcp.tool()
@@ -99,7 +99,7 @@ def register_dev_tools(mcp):
     # 参数与模型对应，前面两个参数是主模型使用的，501的动作不用
     para = ["", "", mnttyp, mntdes, plntim, plnres]
     rowdata = {"车间": dept, "设备编号": devno}
-    return await get_ai_action(dmCode, dmNum, action, para, rowdata, username)
+    return await ai_action(dmCode, dmNum, action, para, rowdata, username)
 
   @mcp.tool()
   async def dev_mnt_complete(
@@ -120,9 +120,9 @@ def register_dev_tools(mcp):
     """
     dmCode = "LINKAIMCP"
     dmNum = 120
-    action = 501
+    scriptType = 2  # 2 模型的记录编辑脚本
     # 参数与模型对应，改功能不使用参数
     para = ["", ""]
     # 通过行记录的模式传递数据
     rowdata = {"DOCNUM": docnum, "CPLRES": cplres, "REMARK": remark}
-    return await get_ai_action(dmCode, dmNum, action, para, rowdata, username)
+    return await ai_row_submit(dmCode, dmNum, scriptType, para, rowdata, username)

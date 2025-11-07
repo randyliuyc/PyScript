@@ -22,3 +22,6 @@
 2025-11-07 15:54:42.089 | INFO     | utils:get_ai_result:56 - {'loginID': 'RANDY.LIU 5212612921671247', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 120, 'Para': ['AC', '']}}
 2025-11-07 16:03:50.251 | INFO     | utils:get_ai_result:58 - {'loginID': 'DINA 6130374874671247', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
 2025-11-07 16:12:55.625 | INFO     | utils:get_ai_result:58 - {'loginID': 'DINA 6754052574671247', 'par': {'dmCode': 'LINKAIMCP10X.SALES', 'dmNum': 10, 'Para': ['2021-03-01', '2021-03-07', '', '', '']}}
+2025-11-07 17:09:18.937 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 2216778927671247', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 120, 'Para': ['AC', '']}}
+2025-11-07 17:10:18.083 | INFO     | utils:ai_row_submit:165 - {'loginID': 'DINA 2218004227671247', 'par': {'dm': {'dmCode': 'LINKAIMCP', 'dmNum': 120, 'Para': ['', '']}, 'scriptType': 2, 'rowData': {'DOCNUM': 'MFH0000000034', 'CPLRES': '时达', 'REMARK': '更换了机油机滤'}}}
+2025-11-07 17:11:16.886 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 1974169527671247', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 120, 'Para': ['AC', '']}}

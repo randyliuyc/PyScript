@@ -27,6 +27,7 @@ client = httpx.AsyncClient(
 # 初始化日志记录器
 logger.add("server.log")
 
+# 定义异步函数，获取指定模型的结果
 async def get_ai_result(
   code: str,          # 模型代码（必填）
   num: int,           # 模型编号（必填）
@@ -70,7 +71,8 @@ async def get_ai_result(
   except httpx.RequestError as e:
     return {"status": "error", "error": str(e)}
 
-async def get_ai_action(
+# 定义异步函数，执行模型的附加模型动作
+async def ai_action(
   code: str,                # 模型代码（必填）
   num: int,                 # 模型编号（必填）
   action: int,              # 模型动作（必填）
@@ -122,7 +124,60 @@ async def get_ai_action(
   except httpx.RequestError as e:
     return {"status": "error", "error": str(e)}
 
-# 获取TotalLINK的AI调用令牌
+# 定义异步函数，执行模型的行数据提交处理
+async def ai_row_submit(
+  code: str,                # 模型代码（必填）
+  num: int,                 # 模型编号（必填）
+  scriptType: int,          # 模型动作（必填）
+  para: List[str],          # 字符串数组参数（必填）
+  rowdata: Dict[str, str],  # 字符串数组参数（必填）
+  username: str             # TotalLINK用户名
+) -> Dict[str, Any]:
+  """
+  执行AI模型动作操作
+  Args:
+    code: 模型代码（如 "TMES10"、"TMES20"）
+    num: 模型编号（如 10, 20, 30）
+    scriptType: 模型脚本类型（如 1-添加, 2-编辑, 3-删除, 4-数据处理）
+    para: 数组列表（如 ["p1","p2","p3"]）
+    rowdata: 行数据字典，包含具体的操作数据
+      - MNTTYP: 维保类型代码
+      - MNTDES: 维保描述信息
+    username: 用户名，默认为 "DINA"
+  """
+  try:
+    # 1. 构造请求参数
+    linktoken = username + " " + calc_value()
+
+    payload = {
+      "loginID": linktoken,
+      "par": {
+        "dm": {
+          "dmCode": code,
+          "dmNum": num,
+          "Para": para,
+        },
+        "scriptType": scriptType,
+        "rowData": rowdata
+      }
+    }
+
+    logger.info(payload)
+
+    # 2. 发送POST请求
+    response = await client.post(
+      f"{BASE_URL}/api/DataModel/linkDMAIRowSubmit",
+      json = payload
+    )
+
+    # 3. 检查响应状态
+    response.raise_for_status()
+    return response.json()
+
+  except httpx.RequestError as e:
+    return {"status": "error", "error": str(e)}
+
+# 获取 TotalLINK 的AI调用令牌
 def calc_value():
   now = datetime.datetime.now()
   I = int(now.strftime("%S%M%H%y%m%d"))

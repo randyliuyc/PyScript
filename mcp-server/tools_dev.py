@@ -19,7 +19,6 @@ def register_dev_tools(mcp):
     Returns:
       JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
-    # 调用模型
     dmCode = "LINKAIMCP"
     dmNum = 110
     para = [dept, devdes]
@@ -39,7 +38,6 @@ def register_dev_tools(mcp):
     Returns:
       JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
-    # 1. 构造请求参数
     dmCode = "LINKAIMCP"
     dmNum = 120
     para = [dept, devdes]
@@ -63,7 +61,6 @@ def register_dev_tools(mcp):
     Returns:
       JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
-    # 1. 构造请求参数
     dmCode = "LINKAIMCP"
     dmNum = 130
     para = [dept, devdes, startdate, enddate]
@@ -92,7 +89,6 @@ def register_dev_tools(mcp):
     Returns:
       JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False
     """
-    # 1. 构造请求参数
     dmCode = "LINKAIMCP"
     dmNum = 110
     action = 501
@@ -118,7 +114,6 @@ def register_dev_tools(mcp):
     Returns:
       JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False
     """
-    # 1. 构造请求参数
     dmCode = "LINKAIMCP"
     dmNum = 120
     action = 501

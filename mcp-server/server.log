@@ -11,3 +11,9 @@
 2025-11-07 15:17:45.994 | INFO     | utils:get_ai_action:107 - {'loginID': 'DINA 5534866821671247', 'par': {'dm': {'dmCode': 'LINKAIMCP', 'dmNum': 120, 'Para': ['', '']}, 'contextMenuNo': 501, 'rowData': {'DOCNUM': 'MFH0000000005', 'CPLRES': '陈明', 'REMARK': '维修完成'}}}
 2025-11-07 15:17:45.994 | INFO     | utils:get_ai_action:107 - {'loginID': 'DINA 5534866821671247', 'par': {'dm': {'dmCode': 'LINKAIMCP', 'dmNum': 120, 'Para': ['', '']}, 'contextMenuNo': 501, 'rowData': {'DOCNUM': 'MFH0000000005', 'CPLRES': '陈明', 'REMARK': '维修完成'}}}
 2025-11-07 15:17:45.994 | INFO     | utils:get_ai_action:107 - {'loginID': 'DINA 5534866821671247', 'par': {'dm': {'dmCode': 'LINKAIMCP', 'dmNum': 120, 'Para': ['', '']}, 'contextMenuNo': 501, 'rowData': {'DOCNUM': 'MFH0000000005', 'CPLRES': '陈明', 'REMARK': '维修完成'}}}
+2025-11-07 15:29:42.623 | INFO     | utils:get_ai_result:53 - {'loginID': 'DINA 5181980421671247', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-11-07 15:30:52.507 | INFO     | utils:get_ai_result:53 - {'loginID': 'DINA 6408505721671247', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-11-07 15:30:52.507 | INFO     | utils:get_ai_result:53 - {'loginID': 'DINA 6408505721671247', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-11-07 15:31:43.956 | INFO     | utils:get_ai_result:53 - {'loginID': 'DINA 5306961021671247', 'par': {'dmCode': 'LINKAIMCP10X.SALES', 'dmNum': 10, 'Para': ['2021-03-01', '2021-03-07', '', '', '']}}
+2025-11-07 15:31:43.956 | INFO     | utils:get_ai_result:53 - {'loginID': 'DINA 5306961021671247', 'par': {'dmCode': 'LINKAIMCP10X.SALES', 'dmNum': 10, 'Para': ['2021-03-01', '2021-03-07', '', '', '']}}
+2025-11-07 15:31:43.956 | INFO     | utils:get_ai_result:53 - {'loginID': 'DINA 5306961021671247', 'par': {'dmCode': 'LINKAIMCP10X.SALES', 'dmNum': 10, 'Para': ['2021-03-01', '2021-03-07', '', '', '']}}

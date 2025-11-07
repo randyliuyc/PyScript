@@ -8,13 +8,13 @@ from loguru import logger
 
 # 创建全局 HTTP 客户端（连接池，可复用）
 client = httpx.AsyncClient(
-  timeout=httpx.Timeout(
-    connect=5.0,
-    read=30.0,
-    write=30.0,
-    pool=30.0
+  timeout = httpx.Timeout(
+    connect = 5.0,
+    read = 30.0,
+    write = 30.0,
+    pool = 30.0
   ),
-    headers={
+    headers = {
         "User-Agent": "MCP-Model-Client/1.0",
         "Accept": "application/json",
         "X-Token": ""
@@ -52,7 +52,7 @@ async def get_ai_result(
     logger.add("server.log")
     logger.info(payload)
 
-    # 2. 发送POST请求（替换为你的模型API地址）
+    # 2. 发送POST请求
     response = await client.post(
       "http://124.71.144.80:8088/api/DataModel/linkDMAIResult",
       json = payload
@@ -61,7 +61,6 @@ async def get_ai_result(
     # 3. 检查响应状态
     response.raise_for_status()
     return response.json()
-
 
   except httpx.RequestError as e:
     return {"status": "error", "error": str(e)}
@@ -106,9 +105,9 @@ async def get_ai_action(
     logger.add("server.log")
     logger.info(payload)
 
-    # 2. 发送POST请求（替换为你的模型API地址）
+    # 2. 发送POST请求
     response = await client.post(
-      "http://124.71.144.80:8088/api/DataModel/linkDMAIAction",  # 替换为实际地址
+      "http://124.71.144.80:8088/api/DataModel/linkDMAIAction",  
       json = payload
     )
 

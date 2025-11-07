@@ -4,10 +4,6 @@ import datetime
 from utils import get_ai_result, get_ai_action
 from mcp.server.fastmcp import FastMCP
 
-# 注意：这里需要从 server.py 导入 mcp 实例
-# 我们将在 server.py 中导入这些工具函数并注册它们
-
-# 销售数据
 def register_data_ana_tools(mcp: FastMCP):
   @mcp.tool()
   async def get_sales_data(
@@ -30,7 +26,6 @@ def register_data_ana_tools(mcp: FastMCP):
     Returns:
       JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
-    # 调用模型
     dmCode = "LINKAIMCP10X.SALES"
     dmNum = 10
     para = [startdate, enddate, company, cus, item]
@@ -57,7 +52,6 @@ def register_data_ana_tools(mcp: FastMCP):
     Returns:
       JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
-    # 1. 构造请求参数
     dmCode = "LINKAIMCP10X.PUR"
     dmNum = 10
     para = [startdate, enddate, company, sup, item]
@@ -79,7 +73,6 @@ def register_data_ana_tools(mcp: FastMCP):
     Returns:
       JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
-    # 1. 构造请求参数
     dmCode = "LINKAIMCP10X.INV"
     dmNum = 10
     para = [site, loc, item]
@@ -100,7 +93,6 @@ def register_data_ana_tools(mcp: FastMCP):
     Returns:
       JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
-    # 1. 构造请求参数
     dmCode = "LINKAIMCP10X.INV"
     dmNum = 20
     para = [site, warehouse]
@@ -125,7 +117,6 @@ def register_data_ana_tools(mcp: FastMCP):
     Returns:
       JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
     """
-    # 1. 构造请求参数
     dmCode = "LINKAIMCP10X.INV"
     dmNum = 30
     para = [site, item, startdate, enddate]

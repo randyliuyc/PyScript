@@ -2,18 +2,19 @@
 from typing import Dict, Any
 import datetime
 from utils import get_ai_result, get_ai_action
+from mcp.server.fastmcp import FastMCP
 
 # 注意：这里需要从 server.py 导入 mcp 实例
 # 我们将在 server.py 中导入这些工具函数并注册它们
 
 # 销售数据
-def register_data_ana_tools(mcp):
+def register_data_ana_tools(mcp: FastMCP):
   @mcp.tool()
-  def get_sales_data(
-    startdate: str, 
-    enddate: str, 
-    company: str = "",  
-    cus: str = "", 
+  async def get_sales_data(
+    startdate: str,
+    enddate: str,
+    company: str = "",
+    cus: str = "",
     item: str = "",
     username: str = "DINA"
   ) -> Dict[str, Any]:
@@ -33,14 +34,14 @@ def register_data_ana_tools(mcp):
     dmCode = "LINKAIMCP10X.SALES"
     dmNum = 10
     para = [startdate, enddate, company, cus, item]
-    return get_ai_result(dmCode, dmNum, para, username)
+    return await get_ai_result(dmCode, dmNum, para, username)
 
   @mcp.tool()
-  def get_pur_data(
-    startdate: str, 
-    enddate: str, 
-    company: str = "", 
-    sup: str = "", 
+  async def get_pur_data(
+    startdate: str,
+    enddate: str,
+    company: str = "",
+    sup: str = "",
     item: str = "",
     username: str = "DINA"
   ) -> Dict[str, Any]:
@@ -60,12 +61,12 @@ def register_data_ana_tools(mcp):
     dmCode = "LINKAIMCP10X.PUR"
     dmNum = 10
     para = [startdate, enddate, company, sup, item]
-    return get_ai_result(dmCode, dmNum, para, username)
+    return await get_ai_result(dmCode, dmNum, para, username)
 
   @mcp.tool()
-  def get_inv_data(
-    site: str = "", 
-    loc: str = "", 
+  async def get_inv_data(
+    site: str = "",
+    loc: str = "",
     item: str = "",
     username: str = "DINA"
   ) -> Dict[str, Any]:
@@ -82,11 +83,11 @@ def register_data_ana_tools(mcp):
     dmCode = "LINKAIMCP10X.INV"
     dmNum = 10
     para = [site, loc, item]
-    return get_ai_result(dmCode, dmNum, para, username)
+    return await get_ai_result(dmCode, dmNum, para, username)
 
   @mcp.tool()
-  def get_inv_detail(
-    site: str, 
+  async def get_inv_detail(
+    site: str,
     warehouse: str,
     username: str = "DINA"
   ) -> Dict[str, Any]:
@@ -103,11 +104,11 @@ def register_data_ana_tools(mcp):
     dmCode = "LINKAIMCP10X.INV"
     dmNum = 20
     para = [site, warehouse]
-    return get_ai_result(dmCode, dmNum, para, username)
+    return await get_ai_result(dmCode, dmNum, para, username)
 
   @mcp.tool()
-  def get_item_trx(
-    site: str, 
+  async def get_item_trx(
+    site: str,
     item: str,
     startdate: str,
     enddate: str,
@@ -128,4 +129,4 @@ def register_data_ana_tools(mcp):
     dmCode = "LINKAIMCP10X.INV"
     dmNum = 30
     para = [site, item, startdate, enddate]
-    return get_ai_result(dmCode, dmNum, para, username)
+    return await get_ai_result(dmCode, dmNum, para, username)

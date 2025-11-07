@@ -3,14 +3,10 @@ from typing import Dict, Any
 import datetime
 from utils import get_ai_result, get_ai_action
 
-# 注意：这里需要从 server.py 导入 mcp 实例
-# 我们将在 server.py 中导入这些工具函数并注册它们
-
-# 销售数据
 def register_dev_tools(mcp):
   @mcp.tool()
-  def get_dev_list(
-    dept: str, 
+  async def get_dev_list(
+    dept: str,
     devdes: str = "",
     username: str = "DINA"
   ) -> Dict[str, Any]:
@@ -27,11 +23,11 @@ def register_dev_tools(mcp):
     dmCode = "LINKAIMCP"
     dmNum = 110
     para = [dept, devdes]
-    return get_ai_result(dmCode, dmNum, para, username)
+    return await get_ai_result(dmCode, dmNum, para, username)
 
   @mcp.tool()
-  def get_dev_mnt_remain(
-    dept: str, 
+  async def get_dev_mnt_remain(
+    dept: str,
     devdes: str = "",
     username: str = "DINA"
   ) -> Dict[str, Any]:
@@ -47,11 +43,11 @@ def register_dev_tools(mcp):
     dmCode = "LINKAIMCP"
     dmNum = 120
     para = [dept, devdes]
-    return get_ai_result(dmCode, dmNum, para, username)
+    return await get_ai_result(dmCode, dmNum, para, username)
 
   @mcp.tool()
-  def get_dev_mnt_list(
-    dept: str, 
+  async def get_dev_mnt_list(
+    dept: str,
     startdate: str,
     enddate: str,
     devdes: str = "",
@@ -71,16 +67,16 @@ def register_dev_tools(mcp):
     dmCode = "LINKAIMCP"
     dmNum = 130
     para = [dept, devdes, startdate, enddate]
-    return get_ai_result(dmCode, dmNum, para, username)
+    return await get_ai_result(dmCode, dmNum, para, username)
 
   @mcp.tool()
-  def dev_mnt_reg(
-    dept: str, 
+  async def dev_mnt_reg(
+    dept: str,
     devno: str,
     mnttyp: str,
     mntdes: str,
     plnres: str,
-    plntim: datetime,
+    plntim: datetime.datetime,
     username: str = "DINA"
   ) -> Dict[str, Any]:
     """
@@ -103,11 +99,11 @@ def register_dev_tools(mcp):
     # 参数与模型对应，前面两个参数是主模型使用的，501的动作不用
     para = ["", "", mnttyp, mntdes, plntim, plnres]
     rowdata = {"车间": dept, "设备编号": devno}
-    return get_ai_action(dmCode, dmNum, action, para, rowdata, username)
+    return await get_ai_action(dmCode, dmNum, action, para, rowdata, username)
 
   @mcp.tool()
-  def dev_mnt_complete(
-    docnum: str, 
+  async def dev_mnt_complete(
+    docnum: str,
     cplres: str,
     remark: str,
     username: str = "DINA"
@@ -130,4 +126,4 @@ def register_dev_tools(mcp):
     para = ["", ""]
     # 通过行记录的模式传递数据
     rowdata = {"DOCNUM": docnum, "CPLRES": cplres, "REMARK": remark}
-    return get_ai_action(dmCode, dmNum, action, para, rowdata, username)
+    return await get_ai_action(dmCode, dmNum, action, para, rowdata, username)

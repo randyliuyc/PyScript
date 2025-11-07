@@ -1,9 +1,27 @@
 # utils.py
-import requests
+from mcp.server.fastmcp import FastMCP
 import datetime
 from typing import Dict, Any, List
 
-def get_ai_result(
+import httpx
+from loguru import logger
+
+# 创建全局 HTTP 客户端（连接池，可复用）
+client = httpx.AsyncClient(
+  timeout=httpx.Timeout(
+    connect=5.0,
+    read=30.0,
+    write=30.0,
+    pool=30.0
+  ),
+    headers={
+        "User-Agent": "MCP-Model-Client/1.0",
+        "Accept": "application/json",
+        "X-Token": ""
+    }
+)
+
+async def get_ai_result(
   code: str,          # 模型代码（必填）
   num: int,           # 模型编号（必填）
   para: List[str],    # 字符串数组参数（必填）
@@ -30,33 +48,25 @@ def get_ai_result(
         "Para": para
       }
     }
-        
-    print(payload)
-        
+
+    logger.add("server.log")
+    logger.info(payload)
+
     # 2. 发送POST请求（替换为你的模型API地址）
-    response = requests.post(
-      "http://124.71.144.80:8088/api/DataModel/linkDMAIResult",  
-      json = payload,
-      headers = {
-        "User-Agent": "MCP-Model-Client/1.0",
-        "Accept": "application/json",
-        "X-Token": ""
-      },
-      timeout = 60  # 超时时间（秒）
+    response = await client.post(
+      "http://124.71.144.80:8088/api/DataModel/linkDMAIResult",
+      json = payload
     )
-        
+
     # 3. 检查响应状态
     response.raise_for_status()
     return response.json()
-        
-  except requests.exceptions.RequestException as e:
-    # 错误处理
-    return {
-      "status": "error",
-      "error": str(e)
-    }
 
-def get_ai_action(
+
+  except httpx.RequestError as e:
+    return {"status": "error", "error": str(e)}
+
+async def get_ai_action(
   code: str,                # 模型代码（必填）
   num: int,                 # 模型编号（必填）
   action: int,              # 模型动作（必填）
@@ -92,31 +102,22 @@ def get_ai_action(
         "rowData": rowdata
       }
     }
-        
-    print(payload)
-        
+
+    logger.add("server.log")
+    logger.info(payload)
+
     # 2. 发送POST请求（替换为你的模型API地址）
-    response = requests.post(
+    response = await client.post(
       "http://124.71.144.80:8088/api/DataModel/linkDMAIAction",  # 替换为实际地址
-      json = payload,
-      headers = {
-        "User-Agent": "MCP-Model-Client/1.0",
-        "Accept": "application/json",
-        "X-Token": ""
-      },
-      timeout = 60  # 超时时间（秒）
+      json = payload
     )
-        
+
     # 3. 检查响应状态
     response.raise_for_status()
     return response.json()
-        
-  except requests.exceptions.RequestException as e:
-    # 错误处理
-    return {
-      "status": "error",
-      "error": str(e)
-    }
+
+  except httpx.RequestError as e:
+    return {"status": "error", "error": str(e)}
 
 # 获取TotalLINK的AI调用令牌
 def calc_value():

@@ -17,3 +17,8 @@
 2025-11-07 15:31:43.956 | INFO     | utils:get_ai_result:53 - {'loginID': 'DINA 5306961021671247', 'par': {'dmCode': 'LINKAIMCP10X.SALES', 'dmNum': 10, 'Para': ['2021-03-01', '2021-03-07', '', '', '']}}
 2025-11-07 15:31:43.956 | INFO     | utils:get_ai_result:53 - {'loginID': 'DINA 5306961021671247', 'par': {'dmCode': 'LINKAIMCP10X.SALES', 'dmNum': 10, 'Para': ['2021-03-01', '2021-03-07', '', '', '']}}
 2025-11-07 15:31:43.956 | INFO     | utils:get_ai_result:53 - {'loginID': 'DINA 5306961021671247', 'par': {'dmCode': 'LINKAIMCP10X.SALES', 'dmNum': 10, 'Para': ['2021-03-01', '2021-03-07', '', '', '']}}
+2025-11-07 15:53:09.937 | INFO     | utils:get_ai_result:56 - {'loginID': 'DINA 1167897621671247', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-11-07 15:54:42.089 | INFO     | utils:get_ai_result:56 - {'loginID': 'RANDY.LIU 5212612921671247', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 120, 'Para': ['AC', '']}}
+2025-11-07 15:54:42.089 | INFO     | utils:get_ai_result:56 - {'loginID': 'RANDY.LIU 5212612921671247', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 120, 'Para': ['AC', '']}}
+2025-11-07 16:03:50.251 | INFO     | utils:get_ai_result:58 - {'loginID': 'DINA 6130374874671247', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-11-07 16:12:55.625 | INFO     | utils:get_ai_result:58 - {'loginID': 'DINA 6754052574671247', 'par': {'dmCode': 'LINKAIMCP10X.SALES', 'dmNum': 10, 'Para': ['2021-03-01', '2021-03-07', '', '', '']}}

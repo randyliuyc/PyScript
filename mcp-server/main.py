@@ -15,11 +15,13 @@ register_data_ana_tools(mcp)
 # 注册所有设备管理工具函数
 register_dev_tools(mcp)
 
+async def test_get_dev_list():
+    result = await mcp.call_tool("get_dev_list", {"username": "DINA", "dept": "AC", "devdes": ""})
+    print(result)
+
 if __name__ == "__main__":
-  # test_get_sales_data()
-  # result = get_dev_list("AC", "")
-  # result = dev_mnt_reg("AC", "CS02", "维修", "皮带断裂")
-  # print(result)
+  # 测试工具函数
+  asyncio.run(test_get_dev_list())
 
   print("Starting server...")
   mcp.settings.host='0.0.0.0'

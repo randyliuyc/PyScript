@@ -2,6 +2,8 @@
 from mcp.server.fastmcp import FastMCP
 import asyncio
 
+# 导入基础工具函数 - 获取通用模型数据
+from utils import register_ai_tools
 # 导入工具函数 - 数据分析
 from tools_data_ana import register_data_ana_tools
 # 导入工具函数 - 设备管理
@@ -10,13 +12,16 @@ from tools_dev import register_dev_tools
 # Create an MCP server
 mcp = FastMCP("TotalLINK")
 
+# 注册所有通用模型工具函数
+register_ai_tools(mcp)
 # 注册所有数据分析工具函数
 register_data_ana_tools(mcp)
 # 注册所有设备管理工具函数
 register_dev_tools(mcp)
 
 async def test_get_dev_list():
-    result = await mcp.call_tool("get_dev_list", {"username": "DINA", "dept": "AC", "devdes": ""})
+    # result = await mcp.call_tool("get_dev_list", {"username": "DINA", "dept": "AC", "devdes": ""})
+    result = await mcp.call_tool("get_linkdata", {"username": "DINA", "dmCode": "LINKAIMCP", "dmNum": 120, "para": ["AC", ""]})
     print(result)
 
 if __name__ == "__main__":

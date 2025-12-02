@@ -27,6 +27,25 @@ client = httpx.AsyncClient(
 # 初始化日志记录器
 logger.add("server.log")
 
+def register_ai_tools(mcp):
+  @mcp.tool()
+  async def get_linkdata(
+    username: str,
+    dmCode: str,
+    dmNum: int,
+    para: List[str]
+  ) -> Dict[str, Any]:
+    """
+    获取车间的设备列表
+
+    Args:
+      username: 用户名，必填，用于权限验证。
+
+    Returns:
+      JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
+    """
+    return await get_ai_result(dmCode, dmNum, para, username)
+
 # 定义异步函数，获取指定模型的结果
 async def get_ai_result(
   code: str,          # 模型代码（必填）

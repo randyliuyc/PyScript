@@ -39,3 +39,16 @@
 2025-11-07 17:45:13.890 | INFO     | utils:ai_action:112 - {'loginID': 'DINA 1648239727671247', 'par': {'dm': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['', '', '故障维修', '皮带磨损严重，需要调整皮带轮偏心', '2025-11-07 16:00:00', '张三']}, 'contextMenuNo': 501, 'rowData': {'车间': 'AC', '设备编号': 'CS03'}}}
 2025-11-27 15:04:02.786 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 250147921916307', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
 2025-11-27 15:05:44.828 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 5397633221916307', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-01 17:26:12.725 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 1502429028823029', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-01 17:27:28.288 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 3464134328823029', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-01 17:33:25.709 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 3103896128823029', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-01 17:57:32.945 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 3991013328823029', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-01 17:57:51.497 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 6319083328823029', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-01 17:58:50.365 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 6197778628823029', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-01 17:59:04.727 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 562623928823029', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-01 18:00:22.459 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 2695883481823029', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-01 18:06:43.525 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 5276365281823029', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-02 11:53:24.626 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 3005798610835282', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-02 13:07:20.658 | INFO     | utils:get_ai_result:59 - {'loginID': 'DINA 2459339316835282', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-02 13:24:34.630 | INFO     | utils:get_ai_result:78 - {'loginID': 'DINA 4195589416835282', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-02 13:25:57.871 | INFO     | utils:get_ai_result:78 - {'loginID': 'DINA 7015004716835282', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 120, 'Para': ['AC', '']}}

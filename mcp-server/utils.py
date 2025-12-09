@@ -42,7 +42,7 @@ def register_ai_tools(mcp):
       username: 用户名，必填，用于权限验证。
 
     Returns:
-      JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
+      JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, result 包含返回的实际数据
     """
     return await get_ai_result(dmCode, dmNum, para, username)
 

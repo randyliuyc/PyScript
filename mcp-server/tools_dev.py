@@ -19,7 +19,7 @@ def register_dev_tools(mcp):
       devdes: 设备名称，用于筛选特定设备。如果未提供，则返回所有设备。默认为空字符串。
 
     Returns:
-      JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
+      JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, result 包含返回的实际数据
     """
     dmCode = "LINKAIMCP"
     dmNum = 110
@@ -39,7 +39,7 @@ def register_dev_tools(mcp):
       dept: 车间编码，必填。例如："AC" 表示 AC 车间。
       devdes: 设备名称，用于筛选特定设备。如果未提供，则返回所有设备。默认为空字符串。
     Returns:
-      JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
+      JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, result 包含返回的实际数据
     """
     dmCode = "LINKAIMCP"
     dmNum = 120
@@ -63,7 +63,7 @@ def register_dev_tools(mcp):
       enddate: 结束日期，格式为 "YYYY-MM-DD"，必填
       devdes: 设备名称，用于筛选特定设备。如果未提供，则返回所有设备。默认为空字符串。
     Returns:
-      JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, data 包含返回的实际数据
+      JSON 格式的模型结果，其中 isSucess 为 True 表示成功，否则为 False, result 包含返回的实际数据
     """
     dmCode = "LINKAIMCP"
     dmNum = 130

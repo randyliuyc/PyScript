@@ -21,7 +21,7 @@ register_dev_tools(mcp)
 
 async def test_get_dev_list():
     # result = await mcp.call_tool("get_dev_list", {"username": "DINA", "dept": "AC", "devdes": ""})
-    result = await mcp.call_tool("get_linkdata", {"username": "DINA", "dmCode": "LINKAIMCP", "dmNum": 120, "para": ["AC", ""]})
+    result = await mcp.call_tool("get_linkdata", {"username": "DINA", "dmCode": "LINKAIMCP", "dmNum": 110, "para": ["AC", ""]})
     print(result)
 
 if __name__ == "__main__":

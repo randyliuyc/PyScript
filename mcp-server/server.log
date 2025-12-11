@@ -53,3 +53,15 @@
 2025-12-02 13:24:34.630 | INFO     | utils:get_ai_result:78 - {'loginID': 'DINA 4195589416835282', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
 2025-12-02 13:25:57.871 | INFO     | utils:get_ai_result:78 - {'loginID': 'DINA 7015004716835282', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 120, 'Para': ['AC', '']}}
 2025-12-03 11:22:32.804 | INFO     | utils:get_ai_result:78 - {'loginID': 'DINA 3948054310847535', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-11 11:37:30.232 | INFO     | utils:get_ai_result:78 - {'loginID': 'DINA 3721373810945559', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-11 13:22:00.531 | INFO     | utils:get_ai_result:78 - {'loginID': 'DINA 27118816945559', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-11 13:25:36.890 | INFO     | utils:get_ai_result:78 - {'loginID': 'user 4441874716945559', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-11 13:26:12.088 | INFO     | utils:get_ai_result:78 - {'loginID': 'DINA 1502380016945559', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-11 13:32:15.259 | INFO     | utils:get_ai_result:82 - {'loginID': '38B6C038654143F0898E9AC6967C0DF7', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-11 13:54:52.278 | INFO     | utils:get_ai_result:82 - {'loginID': '38B6C038654143F0898E9AC6967C0DF7', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-11 13:55:18.874 | INFO     | utils:get_ai_result:82 - {'loginID': '38B6C038654143F0898E9AC6967C0DF7', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-11 13:57:16.942 | INFO     | utils:get_ai_result:82 - {'loginID': '38B6C038654143F0898E9AC6967C0DF7', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-11 14:50:03.858 | INFO     | utils:get_ai_result:82 - {'loginID': '38B6C038654143F0898E9AC6967C0DF7', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-11 14:52:20.097 | INFO     | utils:get_ai_result:82 - {'loginID': '5AE518E4D2294EE1A58ABAC33213C4F3', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-11 14:52:44.162 | INFO     | utils:get_ai_result:82 - {'loginID': '93F8AFF693124D5B8B8A033B54C3B554', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}
+2025-12-11 14:53:09.249 | INFO     | utils:get_ai_result:82 - {'loginID': 'RANDY.LIU 1167885369945559', 'par': {'dmCode': 'LINKAIMCP', 'dmNum': 110, 'Para': ['AC', '']}}

@@ -64,8 +64,12 @@ async def get_ai_result(
   """
   try:
     # 1. 构造请求参数
-    linktoken = username + " " + calc_value()
-
+    # 判断 username 是否为32位字符（由字母和数字组成）
+    if len(username) == 32 and username.isalnum():
+      linktoken = username
+    else:
+      linktoken = username + " " + calc_value()
+      
     payload = {
       "loginID": linktoken,
       "par": {

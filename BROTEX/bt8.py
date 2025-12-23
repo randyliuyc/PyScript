@@ -311,9 +311,10 @@ def refine_solutions(base_sols, json_data, targets):
 # ======================
 # 主执行函数
 # ======================
-def linkrun(json_data_input):
+def linkrun(args):
     # 读取输入数据
-    json_data = json_data_input.get("data", [])
+    linkargs = json.loads(args)
+    json_data = linkargs["data"]
     
     def normalize_targets(targets):
         total = sum(targets)
@@ -404,7 +405,7 @@ if __name__ == "__main__":
     #     {"MFMLIN": 40, "MATRATCALC": 20, "PRIORITY": 0, "POSITION": ""},
     #     {"MFMLIN": 50, "MATRATCALC": 26, "PRIORITY": 0, "POSITION": ""}
     # ]
-    json_data_input = {
+    json_str = """{
     "pyFile": "bt8",
     "data": [
     {
@@ -451,8 +452,8 @@ if __name__ == "__main__":
     "resultSetValue":{
         "v1":"$.isSuccess",
         "v2":"$.message"
-    },
-    "resultAutoHide": True
     }
-    result = linkrun(json_data_input)
+    }"""
+
+    result = linkrun(json_str)
     print(result)   

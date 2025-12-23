@@ -311,7 +311,10 @@ def refine_solutions(base_sols, json_data, targets):
 # ======================
 # 主执行函数
 # ======================
-def linkrun(json_data):
+def linkrun(json_data_input):
+    # 读取输入数据
+    json_data = json_data_input.get("data", [])
+    
     def normalize_targets(targets):
         total = sum(targets)
         if total == 100:
@@ -387,56 +390,69 @@ def linkrun(json_data):
 
 # 程序启动
 if __name__ == "__main__":
-    json_data2 = [
-        {"MFMLIN": 10, "MATRATCALC": 1.5, "PRIORITY": 0, "POSITION": "B"},
-        {"MFMLIN": 20, "MATRATCALC": 6.43, "PRIORITY": 0, "POSITION": ""},
-        {"MFMLIN": 30, "MATRATCALC": 5, "PRIORITY": 0, "POSITION": ""},
-        {"MFMLIN": 40, "MATRATCALC": 9.32, "PRIORITY": 0, "POSITION": ""},
-        {"MFMLIN": 50, "MATRATCALC": 4, "PRIORITY": 0, "POSITION": ""}
-    ]
-    json_data1 = [
-        {"MFMLIN": 10, "MATRATCALC": 17, "PRIORITY": 0, "POSITION": ""},
-        {"MFMLIN": 20, "MATRATCALC": 18, "PRIORITY": 0, "POSITION": ""},
-        {"MFMLIN": 30, "MATRATCALC": 19, "PRIORITY": 0, "POSITION": ""},
-        {"MFMLIN": 40, "MATRATCALC": 20, "PRIORITY": 0, "POSITION": ""},
-        {"MFMLIN": 50, "MATRATCALC": 26, "PRIORITY": 0, "POSITION": ""}
-    ]
-    json_data = [
-        {
-            "MFMLIN": 10,
-            "MFMDES": "SPW ER007 UGOV-8666 V1",
-            "MATRATCALC": 1.500000,
-            "PRIORITY": 0,
-            "POSITION": ""
-        },
-        {
-            "MFMLIN": 40,
-            "MFMDES": "MT WP白棉 UCB196A-3 ",
-            "MATRATCALC": 6.430000,
-            "PRIORITY": 0,
-            "POSITION": ""
-        },
-        {
-            "MFMLIN": 50,
-            "MFMDES": "MT W白棉 VG054ABY ",
-            "MATRATCALC": 5.000000,
-            "PRIORITY": 1,
-            "POSITION": ""
-        },
-        {
-            "MFMLIN": 60,
-            "MFMDES": "MT SW本白 V-11388A ",
-            "MATRATCALC": 9.320000,
-            "PRIORITY": 0,
-            "POSITION": ""
-        },
-        {
-            "MFMLIN": 99999,
-            "MFMDES": "HY 条子",
-            "MATRATCALC": 4.000000,
-            "PRIORITY": 0,
-            "POSITION": ""
-        }
-    ]
-    result = linkrun(json_data)
+    # json_data_input2 = [
+    #     {"MFMLIN": 10, "MATRATCALC": 1.5, "PRIORITY": 0, "POSITION": "B"},
+    #     {"MFMLIN": 20, "MATRATCALC": 6.43, "PRIORITY": 0, "POSITION": ""},
+    #     {"MFMLIN": 30, "MATRATCALC": 5, "PRIORITY": 0, "POSITION": ""},
+    #     {"MFMLIN": 40, "MATRATCALC": 9.32, "PRIORITY": 0, "POSITION": ""},
+    #     {"MFMLIN": 50, "MATRATCALC": 4, "PRIORITY": 0, "POSITION": ""}
+    # ]
+    # json_data_input1 = [
+    #     {"MFMLIN": 10, "MATRATCALC": 17, "PRIORITY": 0, "POSITION": ""},
+    #     {"MFMLIN": 20, "MATRATCALC": 18, "PRIORITY": 0, "POSITION": ""},
+    #     {"MFMLIN": 30, "MATRATCALC": 19, "PRIORITY": 0, "POSITION": ""},
+    #     {"MFMLIN": 40, "MATRATCALC": 20, "PRIORITY": 0, "POSITION": ""},
+    #     {"MFMLIN": 50, "MATRATCALC": 26, "PRIORITY": 0, "POSITION": ""}
+    # ]
+    json_data_input = {
+    "pyFile": "bt8",
+    "data": [
+    {
+        "MFMLIN": 10,
+        "MFMDES": "SPW ER007 UGOV-8666 V1",
+        "MATRATCALC": 1.500000,
+        "PRIORITY": 0,
+        "POSITION": ""
+    },
+    {
+        "MFMLIN": 40,
+        "MFMDES": "MT WP白棉 UCB196A-3 ",
+        "MATRATCALC": 6.430000,
+        "PRIORITY": 0,
+        "POSITION": ""
+    },
+    {
+        "MFMLIN": 50,
+        "MFMDES": "MT W白棉 VG054ABY ",
+        "MATRATCALC": 5.000000,
+        "PRIORITY": 0,
+        "POSITION": ""
+    },
+    {
+        "MFMLIN": 60,
+        "MFMDES": "MT SW本白 V-11388A ",
+        "MATRATCALC": 9.320000,
+        "PRIORITY": 0,
+        "POSITION": ""
+    },
+    {
+        "MFMLIN": 99999,
+        "MFMDES": "HY 条子",
+        "MATRATCALC": 4.000000,
+        "PRIORITY": 0,
+        "POSITION": ""
+    }
+    ],
+    "resultFormula":"并条牵伸计算完成.",
+    "resultList":{
+        "colv1":"$.isSuccess",
+        "colv2":"$.message"
+    },
+    "resultSetValue":{
+        "v1":"$.isSuccess",
+        "v2":"$.message"
+    },
+    "resultAutoHide": True
+    }
+    result = linkrun(json_data_input)
     print(result)   

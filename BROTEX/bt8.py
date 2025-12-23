@@ -101,10 +101,10 @@ def evaluate_assignment(assign, contribs, targets, json_data):
     
     # 检查优先级误差
     for i, item in enumerate(json_data):
-        if item["PRIORITY"] and devs[i] >= PRIORITY_ERROR_THRESHOLD:
+        if item["PRIORITY"] == 1 and devs[i] >= PRIORITY_ERROR_THRESHOLD:
             return sums, devs, float('inf'), final_pcts # 优先级误差超限
         # 检查非优先级误差
-        elif not item["PRIORITY"] and devs[i] >= NON_PRIORITY_ERROR_THRESHOLD:
+        elif item["PRIORITY"] == 0 and devs[i] >= NON_PRIORITY_ERROR_THRESHOLD:
             return sums, devs, float('inf'), final_pcts # 非优先级误差超限
     
     # 检查位置约束
@@ -125,7 +125,7 @@ def backtracking_find(contribs, targets, json_data):
     n = len(contribs)
     K = len(targets)
     priority_order = sorted(range(K), key=lambda i: (
-        -json_data[i]["PRIORITY"], # 按优先级排序
+        -json_data[i]["PRIORITY"], # 按优先级排序 (1 > 0)
         json_data[i]["POSITION"] != ""
     ))
     suffix = [0] * (n + 1)
@@ -388,22 +388,55 @@ def linkrun(json_data):
 # 程序启动
 if __name__ == "__main__":
     json_data2 = [
-        {"MFMLIN": 10, "MATRATCALC": 1.5, "PRIORITY": False, "POSITION": "B"},
-        {"MFMLIN": 20, "MATRATCALC": 6.43, "PRIORITY": False, "POSITION": ""},
-        {"MFMLIN": 30, "MATRATCALC": 5, "PRIORITY": False, "POSITION": ""},
-        {"MFMLIN": 40, "MATRATCALC": 9.32, "PRIORITY": False, "POSITION": ""},
-        {"MFMLIN": 50, "MATRATCALC": 4, "PRIORITY": False, "POSITION": ""}
+        {"MFMLIN": 10, "MATRATCALC": 1.5, "PRIORITY": 0, "POSITION": "B"},
+        {"MFMLIN": 20, "MATRATCALC": 6.43, "PRIORITY": 0, "POSITION": ""},
+        {"MFMLIN": 30, "MATRATCALC": 5, "PRIORITY": 0, "POSITION": ""},
+        {"MFMLIN": 40, "MATRATCALC": 9.32, "PRIORITY": 0, "POSITION": ""},
+        {"MFMLIN": 50, "MATRATCALC": 4, "PRIORITY": 0, "POSITION": ""}
     ]
     json_data1 = [
-        {"MFMLIN": 10, "MATRATCALC": 17, "PRIORITY": False, "POSITION": ""},
-        {"MFMLIN": 20, "MATRATCALC": 18, "PRIORITY": False, "POSITION": ""},
-        {"MFMLIN": 30, "MATRATCALC": 19, "PRIORITY": False, "POSITION": ""},
-        {"MFMLIN": 40, "MATRATCALC": 20, "PRIORITY": False, "POSITION": ""},
-        {"MFMLIN": 50, "MATRATCALC": 26, "PRIORITY": False, "POSITION": ""}
+        {"MFMLIN": 10, "MATRATCALC": 17, "PRIORITY": 0, "POSITION": ""},
+        {"MFMLIN": 20, "MATRATCALC": 18, "PRIORITY": 0, "POSITION": ""},
+        {"MFMLIN": 30, "MATRATCALC": 19, "PRIORITY": 0, "POSITION": ""},
+        {"MFMLIN": 40, "MATRATCALC": 20, "PRIORITY": 0, "POSITION": ""},
+        {"MFMLIN": 50, "MATRATCALC": 26, "PRIORITY": 0, "POSITION": ""}
     ]
     json_data = [
-        {"MFMLIN": 10, "MATRATCALC": 80, "PRIORITY": False, "POSITION": ""},
-        {"MFMLIN": 20, "MATRATCALC": 20, "PRIORITY": False, "POSITION": ""}
+        {
+            "MFMLIN": 10,
+            "MFMDES": "SPW ER007 UGOV-8666 V1",
+            "MATRATCALC": 1.500000,
+            "PRIORITY": 0,
+            "POSITION": ""
+        },
+        {
+            "MFMLIN": 40,
+            "MFMDES": "MT WP白棉 UCB196A-3 ",
+            "MATRATCALC": 6.430000,
+            "PRIORITY": 0,
+            "POSITION": ""
+        },
+        {
+            "MFMLIN": 50,
+            "MFMDES": "MT W白棉 VG054ABY ",
+            "MATRATCALC": 5.000000,
+            "PRIORITY": 1,
+            "POSITION": ""
+        },
+        {
+            "MFMLIN": 60,
+            "MFMDES": "MT SW本白 V-11388A ",
+            "MATRATCALC": 9.320000,
+            "PRIORITY": 0,
+            "POSITION": ""
+        },
+        {
+            "MFMLIN": 99999,
+            "MFMDES": "HY 条子",
+            "MATRATCALC": 4.000000,
+            "PRIORITY": 0,
+            "POSITION": ""
+        }
     ]
     result = linkrun(json_data)
     print(result)   

@@ -14,7 +14,7 @@ import itertools, time, math, json
 # ======================
 # 算法核心参数
 TOL = 0.015                  # 允许的误差阈值
-TOP_N = 10                   # 输出的最优解数量
+TOP_N = 100                  # 输出的最优解数量
 MAX_SOLUTIONS_TO_STOP = 200  # 找到足够解时停止搜索的阈值
 PRIORITY_ERROR_THRESHOLD = 0.0005  # 优先级颜色误差阈值（0.05%）
 NON_PRIORITY_ERROR_THRESHOLD = 0.005  # 非优先级颜色误差阈值（0.5%）
@@ -353,6 +353,7 @@ def linkrun(args):
             assign_list.append({
                 'bucket': BUCKETS[bucket_idx],
                 'color': json_data[color_idx]['MFMLIN'],
+                'colordes': json_data[color_idx]['MFMDES'],
                 'x': round(x_value, 2),
                 'speed': round(s['speeds'][bucket_idx], 6)
             })

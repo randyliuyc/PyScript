@@ -14,7 +14,7 @@ import itertools, time, math, json
 # ======================
 # 算法核心参数
 TOL = 0.015                  # 允许的误差阈值
-TOP_N = 100                  # 输出的最优解数量
+TOP_N = 10                  # 输出的最优解数量
 MAX_SOLUTIONS_TO_STOP = 200  # 找到足够解时停止搜索的阈值
 PRIORITY_ERROR_THRESHOLD = 0.0005  # 优先级颜色误差阈值（0.05%）
 NON_PRIORITY_ERROR_THRESHOLD = 0.005  # 非优先级颜色误差阈值（0.5%）
@@ -392,20 +392,6 @@ def linkrun(args):
 
 # 程序启动
 if __name__ == "__main__":
-    # json_data_input2 = [
-    #     {"MFMLIN": 10, "MATRATCALC": 1.5, "PRIORITY": 0, "POSITION": "B"},
-    #     {"MFMLIN": 20, "MATRATCALC": 6.43, "PRIORITY": 0, "POSITION": ""},
-    #     {"MFMLIN": 30, "MATRATCALC": 5, "PRIORITY": 0, "POSITION": ""},
-    #     {"MFMLIN": 40, "MATRATCALC": 9.32, "PRIORITY": 0, "POSITION": ""},
-    #     {"MFMLIN": 50, "MATRATCALC": 4, "PRIORITY": 0, "POSITION": ""}
-    # ]
-    # json_data_input1 = [
-    #     {"MFMLIN": 10, "MATRATCALC": 17, "PRIORITY": 0, "POSITION": ""},
-    #     {"MFMLIN": 20, "MATRATCALC": 18, "PRIORITY": 0, "POSITION": ""},
-    #     {"MFMLIN": 30, "MATRATCALC": 19, "PRIORITY": 0, "POSITION": ""},
-    #     {"MFMLIN": 40, "MATRATCALC": 20, "PRIORITY": 0, "POSITION": ""},
-    #     {"MFMLIN": 50, "MATRATCALC": 26, "PRIORITY": 0, "POSITION": ""}
-    # ]
     json_str = """{
     "pyFile": "bt8",
     "data": [

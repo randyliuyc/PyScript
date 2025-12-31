@@ -23,7 +23,7 @@ async def test_get_dev_list():
     # 测试获取设备列表, 传入用户名
     # result = await mcp.call_tool("get_linkdata", {"username": "RANDY.LIU", "dmCode": "LINKAIMCP", "dmNum": 110, "para": ["AC", ""]})
     # 测试获取设备列表, 直接传入LINKTOKEN
-    result = await mcp.call_tool("get_linkdata", {"username": "93F8AFF693124D5B8B8A033B54C3B554", "dmCode": "LINKAIMCP", "dmNum": 110, "para": ["AC", ""]})
+    result = await mcp.call_tool("get_linkdata", {"username": "93F8AFF693124D5B8B8A033B54C3B554 @ http://124.71.144.80:8088", "dmCode": "LINKAIMCP", "dmNum": 110, "para": ["AC", ""]})
     print(result)
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ import datetime
 from typing import Dict, Any, List
 
 # 定义基础 URL 常量，对应 TotalLINK IIS 基本服务地址
-BASE_URL = "http://124.71.144.80:8088"
+BASE_URL = "http://124.71.144.80:7077"
 
 import httpx
 from loguru import logger
@@ -63,12 +63,19 @@ async def get_ai_result(
     JSON 格式的模型结果
   """
   try:
-    # 1. 构造请求参数
-    # 判断 username 是否为32位字符（由字母和数字组成）
-    if len(username) == 32 and username.isalnum():
-      linktoken = username
+    # 构造请求参数
+    # 1. 处理 username 中的 " @ " 分割逻辑
+    if " @ " in username:
+        user, base_url = username.split(" @ ")
     else:
-      linktoken = username + " " + calc_value()
+        user = username
+        base_url = BASE_URL  # 使用默认的 BASE_URL    
+
+    # 2. 判断 user 是否为32位字符（由字母和数字组成）
+    if len(user) == 32 and user.isalnum():
+      linktoken = user
+    else:
+      linktoken = user + " " + calc_value()
       
     payload = {
       "loginID": linktoken,
@@ -83,7 +90,7 @@ async def get_ai_result(
 
     # 2. 发送POST请求
     response = await client.post(
-      f"{BASE_URL}/api/DataModel/linkDMAIResult",
+      f"{base_url}/api/DataModel/linkDMAIResult",
       json = payload
     )
 
@@ -116,8 +123,19 @@ async def ai_action(
     username: 用户名，默认为 "DINA"
   """
   try:
-    # 1. 构造请求参数
-    linktoken = username + " " + calc_value()
+    # 构造请求参数
+    # 1. 处理 username 中的 " @ " 分割逻辑
+    if " @ " in username:
+        user, base_url = username.split(" @ ")
+    else:
+        user = username
+        base_url = BASE_URL  # 使用默认的 BASE_URL    
+
+    # 2. 判断 user 是否为32位字符（由字母和数字组成）
+    if len(user) == 32 and user.isalnum():
+      linktoken = user
+    else:
+      linktoken = user + " " + calc_value()
 
     payload = {
       "loginID": linktoken,
@@ -136,7 +154,7 @@ async def ai_action(
 
     # 2. 发送POST请求
     response = await client.post(
-      f"{BASE_URL}/api/DataModel/linkDMAIAction",
+      f"{base_url}/api/DataModel/linkDMAIAction",
       json = payload
     )
 
@@ -169,8 +187,19 @@ async def ai_row_submit(
     username: 用户名，默认为 "DINA"
   """
   try:
-    # 1. 构造请求参数
-    linktoken = username + " " + calc_value()
+    # 构造请求参数
+    # 1. 处理 username 中的 " @ " 分割逻辑
+    if " @ " in username:
+        user, base_url = username.split(" @ ")
+    else:
+        user = username
+        base_url = BASE_URL  # 使用默认的 BASE_URL    
+
+    # 2. 判断 user 是否为32位字符（由字母和数字组成）
+    if len(user) == 32 and user.isalnum():
+      linktoken = user
+    else:
+      linktoken = user + " " + calc_value()
 
     payload = {
       "loginID": linktoken,
@@ -189,7 +218,7 @@ async def ai_row_submit(
 
     # 2. 发送POST请求
     response = await client.post(
-      f"{BASE_URL}/api/DataModel/linkDMAIRowSubmit",
+      f"{base_url}/api/DataModel/linkDMAIRowSubmit",
       json = payload
     )
 

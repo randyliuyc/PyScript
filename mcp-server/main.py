@@ -28,7 +28,7 @@ async def test_get_dev_list():
 
 if __name__ == "__main__":
   # 测试工具函数
-  asyncio.run(test_get_dev_list())
+  # asyncio.run(test_get_dev_list())
 
   print("Starting server...")
   mcp.settings.host='0.0.0.0'

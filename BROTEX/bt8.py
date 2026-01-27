@@ -14,8 +14,8 @@ import itertools, time, math, json
 # ======================
 # 算法核心参数
 TOL = 0.015                  # 允许的误差阈值
-TOP_N = 10                  # 输出的最优解数量
-MAX_SOLUTIONS_TO_STOP = 200  # 找到足够解时停止搜索的阈值
+TOP_N = 50                   # 输出的最优解数量
+MAX_SOLUTIONS_TO_STOP = 500  # 找到足够解时停止搜索的阈值
 PRIORITY_ERROR_THRESHOLD = 0.0005  # 优先级颜色误差阈值（0.05%）
 NON_PRIORITY_ERROR_THRESHOLD = 0.005  # 非优先级颜色误差阈值（0.5%）
 D_RANGE = (0.5, 10)          # 牵伸比例 D 的有效范围
@@ -186,7 +186,9 @@ def search_stage1(json_data, targets):
     sigs = set()   # 用于去重的签名集合
     checked = 0    # 已检查的组合数
     start = time.time()
-
+    
+    total_solutions = 0  # 累计解总数计数器
+    
     for stage in SEARCH_STAGES:
         X1_vals = frange(*stage["X1_range"])
         X2_vals = frange(*stage["X2_range"])
@@ -196,6 +198,8 @@ def search_stage1(json_data, targets):
         print(f"\nStarting {stage['label']}...")
         stage_checked = 0
         stage_sols = []
+        
+        stop_search = False  # 停止搜索标志
 
         for X1, X2, X3, X4 in itertools.product(X1_vals, X2_vals, X3_vals, X4_vals):
             # 检查 X4 的有效性
@@ -239,16 +243,34 @@ def search_stage1(json_data, targets):
                     'D': D,
                     'final_pcts': final_pcts
                 })
+                
+                total_solutions += 1  # 累计解数递增
+                
+                # 实时阈值检查
+                if total_solutions >= MAX_SOLUTIONS_TO_STOP:
+                    print(f"Found enough solutions (>= {MAX_SOLUTIONS_TO_STOP}), stopping current stage immediately.")
+                    stop_search = True
+                    break  # 跳出内层 for 循环（分配方案循环）
 
                 if len(stage_sols) >= MAX_SOLUTIONS_COLLECT:
                     break
+            
+            # 检查是否因阈值达到而需要跳出
+            if stop_search:
+                break  # 跳出中层循环（X组合循环）
 
             if len(stage_sols) >= MAX_SOLUTIONS_COLLECT or checked >= MAX_X_CHECKS:
                 break
 
         sols.extend(stage_sols)
         print(f"Found {len(stage_sols)} solutions in {stage['label']}, checked {stage_checked} combinations.")
-
+        
+        # 检查是否因阈值达到而需要跳出阶段循环
+        if stop_search:
+            print(f"Stopping further stages due to reaching threshold.")
+            break
+        
+        # 保留原有的阶段结束检查（作为后备）
         if len(sols) >= MAX_SOLUTIONS_TO_STOP:
             print(f"Found enough solutions (>= {MAX_SOLUTIONS_TO_STOP}), stopping further stages.")
             break

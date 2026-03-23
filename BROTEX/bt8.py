@@ -139,7 +139,8 @@ def refine_vectorized(seeds, targets, json_data):
             refined_results.append({
                 'X1': mX1[best_idx], 'X2': mX2[best_idx], 'X3': mX3[best_idx], 'X4': mX4[best_idx],
                 'assign': sol['assign'], 'dev': total_errs[best_idx], 'D': D_vec[best_idx],
-                'final_pcts': final_pcts_matrix[:, best_idx].tolist()
+                'final_pcts': final_pcts_matrix[:, best_idx].tolist(),
+                'stage_label': sol.get('stage_label', 'Unknown')
             })
         else:
             refined_results.append(sol)
@@ -171,12 +172,26 @@ def linkrun(json_str):
     # Stage 1: 粗搜种子
     seeds = []
     search_stages = [
-        (1.1, 2.5, 0.2, 1.1, 3.5, 0.2), 
-        (1.0, 4.0, 0.1, 1.1, 6.0, 0.1)  
+        {
+            'label': '1.1-2.5/3.5',
+            'X1_range': (1.1, 2.5, 0.2),
+            'X2_range': (1.1, 2.5, 0.2),
+            'X3_range': (1.1, 2.5, 0.2),
+            'X4_range': (1.1, 3.5, 0.2)
+        },
+        {
+            'label': '1.0-4.0/6.0',
+            'X1_range': (1.0, 4.0, 0.1),
+            'X2_range': (1.0, 4.0, 0.1),
+            'X3_range': (1.0, 4.0, 0.1),
+            'X4_range': (1.1, 6.0, 0.1)
+        }
     ]
     
     start_time = time.time()
-    for x_min, x_max, x_step, x4_min, x4_max, x4_step in search_stages:
+    for stage in search_stages:
+        x_min, x_max, x_step = stage['X1_range']
+        x4_min, x4_max, x4_step = stage['X4_range']
         if len(seeds) >= MAX_SEEDS: break
         x_vals = np.arange(x_min, x_max, x_step)
         x4_vals = np.arange(x4_min, x4_max, x4_step)
@@ -193,7 +208,8 @@ def linkrun(json_str):
             for af, dev, pcts in res:
                 seeds.append({
                     'X1': x1, 'X2': x2, 'X3': x3, 'X4': x4, 
-                    'assign': af, 'dev': dev, 'D': D_seed, 'final_pcts': pcts
+                    'assign': af, 'dev': dev, 'D': D_seed, 'final_pcts': pcts,
+                    'stage_label': stage['label']
                 })
             
             if len(seeds) >= MAX_SEEDS: break
@@ -236,6 +252,7 @@ def linkrun(json_str):
             'X4': round(s['X4'], 4),
             'cum_error': round(s['dev'], 6),
             'total_feed_speed_D': round(s['D'], 6),
+            'stage_label': s.get('stage_label', 'Unknown'),
             'assign': assign_list,
             'colors': [{
                 'color': json_data[i]['MFMLIN'],

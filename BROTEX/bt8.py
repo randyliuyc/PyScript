@@ -250,7 +250,7 @@ def linkrun(json_str):
             'X2': round(s['X2'], 4),
             'X3': round(s['X3'], 4),
             'X4': round(s['X4'], 4),
-            'cum_error': round(s['dev'], 6),
+            'cum_error': format(s['dev'], '.6f'),
             'total_feed_speed_D': round(s['D'], 6),
             'stage_label': s.get('stage_label', 'Unknown'),
             'assign': assign_list,
@@ -258,7 +258,7 @@ def linkrun(json_str):
                 'color': json_data[i]['MFMLIN'],
                 'target': round(targets_pct[i], 2),
                 'final': round(s['final_pcts'][i]*100.0, 2),
-                'error': round(abs(s['final_pcts'][i]*100.0 - targets_pct[i]), 4)
+                'error': format(abs(s['final_pcts'][i]*100.0 - targets_pct[i]), '.4f')
             } for i in range(len(json_data))]
         })
 
@@ -270,57 +270,34 @@ def linkrun(json_str):
 if __name__ == "__main__":
     json_str = """{
     "pyFile": "bt8",
-    "data": [
+    "data": 
+[
   {
     "MFMLIN": 10,
-    "MFMDES": "BCSWP混摊 VE009M-002 ",
-    "MFMSHO": "BCSWP混摊",
-    "MATRATCALC": 20.500000,
+    "MFMDES": "EG004 VE-8874A ",
+    "MFMSHO": "EG004",
+    "MATRATCALC": 20.000000,
     "PRIORITY": 0,
     "POSITION": ""
   },
   {
     "MFMLIN": 20,
-    "MFMDES": "WJ白棉 VG062ABY ",
-    "MFMSHO": "WJ白棉",
-    "MATRATCALC": 12.300000,
+    "MFMDES": "G004W  ",
+    "MFMSHO": "G004W",
+    "MATRATCALC": 71.600000,
     "PRIORITY": 0,
     "POSITION": ""
   },
   {
     "MFMLIN": 30,
-    "MFMDES": "SW本白 V-12482A ",
-    "MFMSHO": "SW本白",
-    "MATRATCALC": 32.600000,
-    "PRIORITY": 0,
-    "POSITION": ""
-  },
-  {
-    "MFMLIN": 40,
-    "MFMDES": "SWJ本白 V-12482A ",
-    "MFMSHO": "SWJ本白",
-    "MATRATCALC": 11.050000,
-    "PRIORITY": 0,
-    "POSITION": ""
-  },
-  {
-    "MFMLIN": 50,
-    "MFMDES": "BHHH BC04 TRON LO ",
-    "MFMSHO": "BHHH BC04",
-    "MATRATCALC": 12.500000,
-    "PRIORITY": 0,
-    "POSITION": ""
-  },
-  {
-    "MFMLIN": 60,
-    "MFMDES": "SWJ本白 V-12482A ",
-    "MFMSHO": "SWJ本白",
-    "MATRATCALC": 11.050000,
+    "MFMDES": "G008W  ",
+    "MFMSHO": "G008W",
+    "MATRATCALC": 8.400000,
     "PRIORITY": 0,
     "POSITION": ""
   }
-]
-    }"""
+]        
+}"""
 
     result = linkrun(json_str)
     print(result)

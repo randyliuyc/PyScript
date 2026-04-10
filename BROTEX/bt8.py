@@ -16,6 +16,7 @@ NON_PRIORITY_ERROR_THRESHOLD = 0.005 # 0.5%
 D_RANGE = (0.5, 10.0)
 X4_RATIO_LIMIT = 4.0
 MAX_X4 = 6.0
+MAX_RUNTIME = 60             # 最大运行时间60秒
 
 # 物理结构定义
 BUCKETS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
@@ -108,8 +109,8 @@ def refine_vectorized(seeds, targets, json_data):
         
         # 物理与工艺约束过滤
         mask = (mX1 >= 1.0) & (mX2 >= 1.0) & (mX3 >= 1.0) & (mX4 > mX1 + 0.01) & \
-               (mX4 > mX3 + 0.01) & (mX4 <= MAX_X4) & \
-               (mX4/mX1 <= X4_RATIO_LIMIT) & (mX4/mX3 <= X4_RATIO_LIMIT)
+            (mX4 > mX3 + 0.01) & (mX4 <= MAX_X4) & \
+            (mX4/mX1 <= X4_RATIO_LIMIT) & (mX4/mX3 <= X4_RATIO_LIMIT)
         
         if not np.any(mask): 
             refined_results.append(sol)
@@ -190,6 +191,11 @@ def linkrun(json_str):
     
     start_time = time.time()
     for stage in search_stages:
+        # 检查是否超时
+        if time.time() - start_time > MAX_RUNTIME:
+            print(f"运行超时，已运行 {time.time() - start_time:.1f} 秒，强制停止")
+            break
+        
         x_min, x_max, x_step = stage['X1_range']
         x4_min, x4_max, x4_step = stage['X4_range']
         if len(seeds) >= MAX_SEEDS: break
@@ -197,6 +203,11 @@ def linkrun(json_str):
         x4_vals = np.arange(x4_min, x4_max, x4_step)
         
         for x1, x2, x3, x4 in itertools.product(x_vals, x_vals, x_vals, x4_vals):
+            # 每次迭代检查超时
+            if time.time() - start_time > MAX_RUNTIME:
+                print(f"运行超时，已运行 {time.time() - start_time:.1f} 秒，强制停止")
+                break
+            
             if not (x4 > x1 + 0.05 and x4 > x3 + 0.05): continue
             if x4/x1 > X4_RATIO_LIMIT or x4/x3 > X4_RATIO_LIMIT: continue
             
@@ -213,6 +224,15 @@ def linkrun(json_str):
                 })
             
             if len(seeds) >= MAX_SEEDS: break
+        else:
+            continue  # 如果内层循环正常结束，继续外层循环
+        break  # 如果内层循环因超时或种子数限制而break，则跳出外层循环
+    
+    # 检查是否有有效结果
+    if not seeds:
+        return json.dumps({'error': '运行超时或未找到有效解', 'results': [], 'runtime': time.time() - start_time}, indent=2, ensure_ascii=False)
+    else:
+        print(f"搜索完成，找到 {len(seeds)} 个种子，运行时间 {time.time() - start_time:.1f} 秒")
 
     # Stage 2: 矢量化精修
     refined = refine_vectorized(sorted(seeds, key=lambda x: x['dev']), targets, json_data)
@@ -274,30 +294,62 @@ if __name__ == "__main__":
 [
   {
     "MFMLIN": 10,
-    "MFMDES": "EG004 VE-8874A ",
-    "MFMSHO": "EG004",
-    "MATRATCALC": 20.000000,
-    "PRIORITY": 0,
-    "POSITION": ""
-  },
-  {
-    "MFMLIN": 20,
-    "MFMDES": "G004W  ",
-    "MFMSHO": "G004W",
-    "MATRATCALC": 71.600000,
+    "MFMDES": "ER007 UGOV-8666 V1",
+    "MFMSHO": "ER007",
+    "MATRATCALC": 1.500000,
     "PRIORITY": 0,
     "POSITION": ""
   },
   {
     "MFMLIN": 30,
-    "MFMDES": "G008W  ",
-    "MFMSHO": "G008W",
-    "MATRATCALC": 8.400000,
+    "MFMDES": "SWP本白 UVG009BY ",
+    "MFMSHO": "SWP本白",
+    "MATRATCALC": 11.250000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 40,
+    "MFMDES": "WP白棉 UCB196A-3 ",
+    "MFMSHO": "WP白棉",
+    "MATRATCALC": 12.680000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 50,
+    "MFMDES": "W白棉 VG054ABY ",
+    "MFMSHO": "W白棉",
+    "MATRATCALC": 5.000000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 60,
+    "MFMDES": "SW本白 V-11388A ",
+    "MFMSHO": "SW本白",
+    "MATRATCALC": 7.000000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 70,
+    "MFMDES": "WP白棉 UCB196A-3 ",
+    "MFMSHO": "WP白棉",
+    "MATRATCALC": 2.320000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 99999,
+    "MFMDES": "HY 条子",
+    "MFMSHO": "HY 条子",
+    "MATRATCALC": 4.000000,
     "PRIORITY": 0,
     "POSITION": ""
   }
-]        
-}"""
+]
+    }"""
 
     result = linkrun(json_str)
     print(result)

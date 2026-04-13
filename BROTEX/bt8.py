@@ -47,6 +47,9 @@ def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
                 final_pcts.append(pct)
                 if err > 0.015: return # 种子阶段单色误差阈值，略微放宽
             
+            # 将 total_err 保留两位小数，便于后续通过 total_feed_speed_D 判断更优解
+            total_err = round(total_err, 2)
+            
             # 还原为 8 桶位分配 (存储颜色索引)
             # 对于大小为2的组，按固定顺序展开（小索引在前，大索引在后）
             flat = [None] * 8
@@ -249,10 +252,11 @@ def linkrun(json_str):
         print(f"搜索完成，找到 {len(seeds)} 个种子，运行时间 {time.time() - start_time:.1f} 秒")
 
     # Stage 2: 矢量化精修
-    refined = refine_vectorized(sorted(seeds, key=lambda x: x['dev']), targets, json_data)
+    # 排序：误差越小越好，total_feed_speed_D 越大越好
+    refined = refine_vectorized(sorted(seeds, key=lambda x: (x['dev'], -x['D'])), targets, json_data)
     
-    # 结果排序并输出
-    top_results = sorted(refined, key=lambda x: x['dev'])[:TOP_N]
+    # 结果排序并输出：误差越小越好，total_feed_speed_D 越大越好
+    top_results = sorted(refined, key=lambda x: (x['dev'], -x['D']))[:TOP_N]
     
     final_results = []
     for s in top_results:
@@ -337,6 +341,7 @@ if __name__ == "__main__":
     "POSITION": ""
   }
 ]
+,"data1":[]
     }"""
 
     result = linkrun(json_str)

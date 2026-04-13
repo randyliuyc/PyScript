@@ -8,7 +8,7 @@ import numpy as np
 # 算法核心参数
 # 2026年3月3日, 优化计算速度，当前使用版本
 # ======================
-TOL = 0.02                   # 粗搜容差
+TOL = 0.015                  # 粗搜容差
 TOP_N = 10                  
 MAX_SEEDS = 150              # 限制种子数量，平衡速度与精度
 PRIORITY_ERROR_THRESHOLD = 0.0005   # 0.05%
@@ -181,18 +181,13 @@ def linkrun(json_str):
     # 预处理位置约束
     # 支持多字符 POSITION，如 "ACF" 表示该颜色需要出现在 A、C、F 三个位置
     pos_constraints = {}
-    # bucket_constraints: 记录每个颜色被约束到的具体桶位 {color_idx: [bucket_indices]}
-    bucket_constraints = {}
     for i, item in enumerate(json_data):
         position = item.get("POSITION")
         if position:
             for bucket in position:
                 try:
-                    bucket_idx = BUCKETS.index(bucket)
-                    g_idx = BUCKET_TO_GROUP[bucket_idx]
+                    g_idx = BUCKET_TO_GROUP[BUCKETS.index(bucket)]
                     pos_constraints.setdefault(g_idx, []).append(i)
-                    # 记录该颜色被约束到的具体桶位
-                    bucket_constraints.setdefault(i, []).append(bucket_idx)
                 except ValueError:
                     pass
 
@@ -201,9 +196,9 @@ def linkrun(json_str):
     
     # 从输入参数获取搜索范围，使用默认值
     xmin = linkargs.get("xmin", 1.1)
-    x1_3max = linkargs.get("x1_3max", 4.0)
-    x4max = linkargs.get("x4max", 6.0)
-    xstep = linkargs.get("xstep", 0.1)
+    x1_3max = linkargs.get("x1_3max", 3.6)
+    x4max = linkargs.get("x4max", 5.6)
+    xstep = linkargs.get("xstep", 0.05)
     
     search_stages = [
         {
@@ -271,40 +266,10 @@ def linkrun(json_str):
     for s in top_results:
         w_map = [1/s['X1'], 1/s['X4'], 1.0, 1/s['X2'], 1/s['X3']]
         
-        # 根据 bucket_constraints 调整组内分配顺序
-        # bucket_constraints: {color_idx: [bucket_indices]} - 记录每个颜色被约束到的桶位
-        # 组1(BG): 桶位1(B)和6(G), 组2(CD): 桶位2(C)和3(D), 组3(EF): 桶位4(E)和5(F)
-        adjusted_assign = s['assign'].copy()
-        
-        # 检查组1 (BG): 桶位1和6
-        b_color = adjusted_assign[1]  # B位置当前颜色索引
-        g_color = adjusted_assign[6]  # G位置当前颜色索引
-        # 检查B位置的颜色是否被约束到G位置(桶位6)，或者G位置的颜色是否被约束到B位置(桶位1)
-        b_constrained_to_g = b_color in bucket_constraints and 6 in bucket_constraints[b_color]
-        g_constrained_to_b = g_color in bucket_constraints and 1 in bucket_constraints[g_color]
-        if b_constrained_to_g or g_constrained_to_b:
-            adjusted_assign[1], adjusted_assign[6] = adjusted_assign[6], adjusted_assign[1]
-        
-        # 检查组2 (CD): 桶位2和3
-        c_color = adjusted_assign[2]
-        d_color = adjusted_assign[3]
-        c_constrained_to_d = c_color in bucket_constraints and 3 in bucket_constraints[c_color]
-        d_constrained_to_c = d_color in bucket_constraints and 2 in bucket_constraints[d_color]
-        if c_constrained_to_d or d_constrained_to_c:
-            adjusted_assign[2], adjusted_assign[3] = adjusted_assign[3], adjusted_assign[2]
-        
-        # 检查组3 (EF): 桶位4和5
-        e_color = adjusted_assign[4]
-        f_color = adjusted_assign[5]
-        e_constrained_to_f = e_color in bucket_constraints and 5 in bucket_constraints[e_color]
-        f_constrained_to_e = f_color in bucket_constraints and 4 in bucket_constraints[f_color]
-        if e_constrained_to_f or f_constrained_to_e:
-            adjusted_assign[4], adjusted_assign[5] = adjusted_assign[5], adjusted_assign[4]
-        
         assign_list = []
         for i, b_name in enumerate(BUCKETS):
             g_idx = BUCKET_TO_GROUP[i]
-            color_idx = adjusted_assign[i]
+            color_idx = s['assign'][i]
             
             # X 值显示逻辑
             if i == 0: x_val = s['X1']
@@ -346,8 +311,8 @@ if __name__ == "__main__":
     json_str = """{
     "pyFile": "bt8",
     "xmin": 1.05,
-    "x1_3max": 2.5,
-    "x4max": 5.0,
+    "x1_3max": 2.6,
+    "x4max": 5.6,
     "xstep": 0.1,
     "data2": 
 [
@@ -391,7 +356,7 @@ if __name__ == "__main__":
     "MFMSHO": "W 白棉条",
     "MATRATCALC": 41.390000,
     "PRIORITY": 0,
-    "POSITION": ""
+    "POSITION": "ACF"
   },
   {
     "MFMLIN": 60,
@@ -407,7 +372,7 @@ if __name__ == "__main__":
     "MFMSHO": "Y006W",
     "MATRATCALC": 7.920000,
     "PRIORITY": 0,
-    "POSITION": "F"
+    "POSITION": ""
   },
   {
     "MFMLIN": 80,

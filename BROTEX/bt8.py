@@ -9,7 +9,7 @@ import numpy as np
 # 2026年3月3日, 优化计算速度，当前使用版本
 # ======================
 TOL = 0.015                  # 粗搜容差
-TOP_N = 50                  
+TOP_N = 5                  
 MAX_SEEDS = 150              # 限制种子数量，平衡速度与精度
 PRIORITY_ERROR_THRESHOLD = 0.0005   # 0.05%
 NON_PRIORITY_ERROR_THRESHOLD = 0.005 # 0.5%
@@ -48,19 +48,33 @@ def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
                 if err > 0.015: return # 种子阶段单色误差阈值，略微放宽
             
             # 还原为 8 桶位分配 (存储颜色索引)
+            # 对于大小为2的组，按固定顺序展开（小索引在前，大索引在后）
             flat = [None] * 8
-            flat[0] = current_assign[0][0] # A
-            flat[1], flat[6] = current_assign[1] # B, G
-            flat[2], flat[3] = current_assign[2] # C, D
-            flat[4], flat[5] = current_assign[3] # E, F
-            flat[7] = current_assign[4][0] # H
+            flat[0] = current_assign[0][0] # A (组0, 大小1)
+            # 组1 (BG): 按顺序展开，确保 B < G 的索引顺序
+            c1, c2 = current_assign[1]
+            flat[1], flat[6] = (c1, c2) if c1 <= c2 else (c2, c1)
+            # 组2 (CD): 按顺序展开，确保 C < D 的索引顺序
+            c1, c2 = current_assign[2]
+            flat[2], flat[3] = (c1, c2) if c1 <= c2 else (c2, c1)
+            # 组3 (EF): 按顺序展开，确保 E < F 的索引顺序
+            c1, c2 = current_assign[3]
+            flat[4], flat[5] = (c1, c2) if c1 <= c2 else (c2, c1)
+            flat[7] = current_assign[4][0] # H (组4, 大小1)
             results.append((flat, total_err, final_pcts))
             return
 
         size = GROUP_SIZES[g_idx]
         w = weights[g_idx]
         
-        for combo in itertools.combinations_with_replacement(range(num_colors), size):
+        # 对于大小为2的组(BG, CD, EF)，使用 combinations 避免组内顺序重复
+        # 对于大小为1的组(A, H)，直接迭代
+        if size == 2:
+            combo_iter = itertools.combinations(range(num_colors), size)
+        else:
+            combo_iter = itertools.combinations_with_replacement(range(num_colors), size)
+        
+        for combo in combo_iter:
             # POSITION 约束检查
             if g_idx in pos_constraints:
                 valid = True
@@ -181,10 +195,10 @@ def linkrun(json_str):
             'X4_range': (1.1, 3.5, 0.2)
         },
         {
-            'label': '1.0-4.0/6.0',
-            'X1_range': (1.0, 4.0, 0.1),
-            'X2_range': (1.0, 4.0, 0.1),
-            'X3_range': (1.0, 4.0, 0.1),
+            'label': '1.1-4.0/6.0',
+            'X1_range': (1.1, 4.0, 0.1),
+            'X2_range': (1.1, 4.0, 0.1),
+            'X3_range': (1.1, 4.0, 0.1),
             'X4_range': (1.1, 6.0, 0.1)
         }
     ]
@@ -274,12 +288,10 @@ def linkrun(json_str):
             'total_feed_speed_D': round(s['D'], 6),
             'stage_label': s.get('stage_label', 'Unknown'),
             'assign': assign_list,
-            'colors': [{
-                'color': json_data[i]['MFMLIN'],
-                'target': round(targets_pct[i], 2),
-                'final': round(s['final_pcts'][i]*100.0, 2),
-                'error': format(abs(s['final_pcts'][i]*100.0 - targets_pct[i]), '.4f')
-            } for i in range(len(json_data))]
+            'colors': [
+                f"{json_data[i]['MFMDES']}: {round(targets_pct[i], 2)} -> {round(s['final_pcts'][i]*100.0, 2)} ({format(abs(s['final_pcts'][i]*100.0 - targets_pct[i]), '.2f')}%)"
+                for i in range(len(json_data))
+            ]
         })
 
     return json.dumps({'results': final_results}, indent=2, ensure_ascii=False)
@@ -293,58 +305,34 @@ if __name__ == "__main__":
     "data": 
 [
   {
-    "MFMLIN": 10,
-    "MFMDES": "ER007 UGOV-8666 V1",
-    "MFMSHO": "ER007",
-    "MATRATCALC": 1.500000,
-    "PRIORITY": 0,
-    "POSITION": ""
-  },
-  {
-    "MFMLIN": 30,
-    "MFMDES": "SWP本白 UVG009BY ",
+    "MFMLIN": 62,
+    "MFMDES": "SWP本白 VG010M ",
     "MFMSHO": "SWP本白",
-    "MATRATCALC": 11.250000,
-    "PRIORITY": 0,
-    "POSITION": ""
-  },
-  {
-    "MFMLIN": 40,
-    "MFMDES": "WP白棉 UCB196A-3 ",
-    "MFMSHO": "WP白棉",
-    "MATRATCALC": 12.680000,
-    "PRIORITY": 0,
-    "POSITION": ""
-  },
-  {
-    "MFMLIN": 50,
-    "MFMDES": "W白棉 VG054ABY ",
-    "MFMSHO": "W白棉",
-    "MATRATCALC": 5.000000,
-    "PRIORITY": 0,
-    "POSITION": ""
-  },
-  {
-    "MFMLIN": 60,
-    "MFMDES": "SW本白 V-11388A ",
-    "MFMSHO": "SW本白",
-    "MATRATCALC": 7.000000,
+    "MATRATCALC": 36.900000,
     "PRIORITY": 0,
     "POSITION": ""
   },
   {
     "MFMLIN": 70,
-    "MFMDES": "WP白棉 UCB196A-3 ",
-    "MFMSHO": "WP白棉",
-    "MATRATCALC": 2.320000,
+    "MFMDES": "BC02W VE001M-U-001 ",
+    "MFMSHO": "BC02W",
+    "MATRATCALC": 11.200000,
     "PRIORITY": 0,
     "POSITION": ""
   },
   {
-    "MFMLIN": 99999,
-    "MFMDES": "HY 条子",
-    "MFMSHO": "HY 条子",
-    "MATRATCALC": 4.000000,
+    "MFMLIN": 80,
+    "MFMDES": "WJ 白棉 VG055M ",
+    "MFMSHO": "WJ 白棉",
+    "MATRATCALC": 29.800000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 81,
+    "MFMDES": "W 白棉 VG055M ",
+    "MFMSHO": "W 白棉",
+    "MATRATCALC": 22.100000,
     "PRIORITY": 0,
     "POSITION": ""
   }

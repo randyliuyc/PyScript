@@ -37,7 +37,7 @@ def register_ai_tools(mcp):
     para: List[str]
   ) -> Dict[str, Any]:
     """
-    获取车间的设备列表
+    获取 TotalLINK 模型结果的工具函数
 
     Args:
       linkurl: 基础链接地址，必填，用于请求的基础URL。

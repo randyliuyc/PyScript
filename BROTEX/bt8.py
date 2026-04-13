@@ -179,13 +179,17 @@ def linkrun(json_str):
     targets_pct = targets * 100.0
 
     # 预处理位置约束
+    # 支持多字符 POSITION，如 "ACF" 表示该颜色需要出现在 A、C、F 三个位置
     pos_constraints = {}
     for i, item in enumerate(json_data):
-        if item.get("POSITION"):
-            try:
-                g_idx = BUCKET_TO_GROUP[BUCKETS.index(item["POSITION"])]
-                pos_constraints.setdefault(g_idx, []).append(i)
-            except ValueError: pass
+        position = item.get("POSITION")
+        if position:
+            for bucket in position:
+                try:
+                    g_idx = BUCKET_TO_GROUP[BUCKETS.index(bucket)]
+                    pos_constraints.setdefault(g_idx, []).append(i)
+                except ValueError:
+                    pass
 
     # Stage 1: 粗搜种子
     seeds = []
@@ -352,7 +356,7 @@ if __name__ == "__main__":
     "MFMSHO": "W 白棉条",
     "MATRATCALC": 41.390000,
     "PRIORITY": 0,
-    "POSITION": ""
+    "POSITION": "ACF"
   },
   {
     "MFMLIN": 60,

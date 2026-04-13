@@ -189,20 +189,20 @@ def linkrun(json_str):
 
     # Stage 1: 粗搜种子
     seeds = []
+    
+    # 从输入参数获取搜索范围，使用默认值
+    xmin = linkargs.get("xmin", 1.1)
+    x1_3max = linkargs.get("x1_3max", 3.6)
+    x4max = linkargs.get("x4max", 5.6)
+    xstep = linkargs.get("xstep", 0.05)
+    
     search_stages = [
         {
-            'label': '1.1-2.5/3.5',
-            'X1_range': (1.1, 2.5, 0.2),
-            'X2_range': (1.1, 2.5, 0.2),
-            'X3_range': (1.1, 2.5, 0.2),
-            'X4_range': (1.1, 3.5, 0.2)
-        },
-        {
-            'label': '1.1-4.0/6.0',
-            'X1_range': (1.1, 4.0, 0.1),
-            'X2_range': (1.1, 4.0, 0.1),
-            'X3_range': (1.1, 4.0, 0.1),
-            'X4_range': (1.1, 6.0, 0.1)
+            'label': f'{xmin}-{x1_3max}/{x4max}',
+            'X1_range': (xmin, x1_3max, xstep),
+            'X2_range': (xmin, x1_3max, xstep),
+            'X3_range': (xmin, x1_3max, xstep),
+            'X4_range': (xmin, x4max, xstep)
         }
     ]
     
@@ -306,6 +306,10 @@ def linkrun(json_str):
 if __name__ == "__main__":
     json_str = """{
     "pyFile": "bt8",
+    "xmin": 1.05,
+    "x1_3max": 3.6,
+    "x4max": 5.6,
+    "xstep": 0.05,
     "data": 
 [
   {

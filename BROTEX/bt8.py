@@ -181,13 +181,18 @@ def linkrun(json_str):
     # 预处理位置约束
     # 支持多字符 POSITION，如 "ACF" 表示该颜色需要出现在 A、C、F 三个位置
     pos_constraints = {}
+    # bucket_constraints: 记录每个颜色被约束到的具体桶位 {color_idx: [bucket_indices]}
+    bucket_constraints = {}
     for i, item in enumerate(json_data):
         position = item.get("POSITION")
         if position:
             for bucket in position:
                 try:
-                    g_idx = BUCKET_TO_GROUP[BUCKETS.index(bucket)]
+                    bucket_idx = BUCKETS.index(bucket)
+                    g_idx = BUCKET_TO_GROUP[bucket_idx]
                     pos_constraints.setdefault(g_idx, []).append(i)
+                    # 记录该颜色被约束到的具体桶位
+                    bucket_constraints.setdefault(i, []).append(bucket_idx)
                 except ValueError:
                     pass
 
@@ -266,10 +271,40 @@ def linkrun(json_str):
     for s in top_results:
         w_map = [1/s['X1'], 1/s['X4'], 1.0, 1/s['X2'], 1/s['X3']]
         
+        # 根据 bucket_constraints 调整组内分配顺序
+        # bucket_constraints: {color_idx: [bucket_indices]} - 记录每个颜色被约束到的桶位
+        # 组1(BG): 桶位1(B)和6(G), 组2(CD): 桶位2(C)和3(D), 组3(EF): 桶位4(E)和5(F)
+        adjusted_assign = s['assign'].copy()
+        
+        # 检查组1 (BG): 桶位1和6
+        b_color = adjusted_assign[1]  # B位置当前颜色索引
+        g_color = adjusted_assign[6]  # G位置当前颜色索引
+        # 检查B位置的颜色是否被约束到G位置(桶位6)，或者G位置的颜色是否被约束到B位置(桶位1)
+        b_constrained_to_g = b_color in bucket_constraints and 6 in bucket_constraints[b_color]
+        g_constrained_to_b = g_color in bucket_constraints and 1 in bucket_constraints[g_color]
+        if b_constrained_to_g or g_constrained_to_b:
+            adjusted_assign[1], adjusted_assign[6] = adjusted_assign[6], adjusted_assign[1]
+        
+        # 检查组2 (CD): 桶位2和3
+        c_color = adjusted_assign[2]
+        d_color = adjusted_assign[3]
+        c_constrained_to_d = c_color in bucket_constraints and 3 in bucket_constraints[c_color]
+        d_constrained_to_c = d_color in bucket_constraints and 2 in bucket_constraints[d_color]
+        if c_constrained_to_d or d_constrained_to_c:
+            adjusted_assign[2], adjusted_assign[3] = adjusted_assign[3], adjusted_assign[2]
+        
+        # 检查组3 (EF): 桶位4和5
+        e_color = adjusted_assign[4]
+        f_color = adjusted_assign[5]
+        e_constrained_to_f = e_color in bucket_constraints and 5 in bucket_constraints[e_color]
+        f_constrained_to_e = f_color in bucket_constraints and 4 in bucket_constraints[f_color]
+        if e_constrained_to_f or f_constrained_to_e:
+            adjusted_assign[4], adjusted_assign[5] = adjusted_assign[5], adjusted_assign[4]
+        
         assign_list = []
         for i, b_name in enumerate(BUCKETS):
             g_idx = BUCKET_TO_GROUP[i]
-            color_idx = s['assign'][i]
+            color_idx = adjusted_assign[i]
             
             # X 值显示逻辑
             if i == 0: x_val = s['X1']

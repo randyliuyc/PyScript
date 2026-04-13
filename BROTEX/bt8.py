@@ -307,10 +307,10 @@ if __name__ == "__main__":
     json_str = """{
     "pyFile": "bt8",
     "xmin": 1.05,
-    "x1_3max": 3.6,
+    "x1_3max": 2.6,
     "x4max": 5.6,
-    "xstep": 0.05,
-    "data": 
+    "xstep": 0.1,
+    "data2": 
 [
   {
     "MFMLIN": 62,
@@ -345,7 +345,48 @@ if __name__ == "__main__":
     "POSITION": ""
   }
 ]
-,"data1":[]
+,"data":[
+  {
+    "MFMLIN": 50,
+    "MFMDES": "W 白棉条 VB050M ",
+    "MFMSHO": "W 白棉条",
+    "MATRATCALC": 41.390000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 60,
+    "MFMDES": "K004W20 VE001M-001 ",
+    "MFMSHO": "K004W20",
+    "MATRATCALC": 42.250000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 70,
+    "MFMDES": "Y006W VE001M-001 ",
+    "MFMSHO": "Y006W",
+    "MATRATCALC": 7.920000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 80,
+    "MFMDES": "K002W20 VE001M-001 ",
+    "MFMSHO": "K002W20",
+    "MATRATCALC": 3.610000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 90,
+    "MFMDES": "Y01W20 VE001M-001 ",
+    "MFMSHO": "Y01W20",
+    "MATRATCALC": 4.830000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  }
+]
     }"""
 
     result = linkrun(json_str)

@@ -9,7 +9,7 @@ import numpy as np
 # 2026年3月3日, 优化计算速度，当前使用版本
 # ======================
 TOL = 0.015                  # 粗搜容差
-TOP_N = 5                  
+TOP_N = 10                  
 MAX_SEEDS = 150              # 限制种子数量，平衡速度与精度
 PRIORITY_ERROR_THRESHOLD = 0.0005   # 0.05%
 NON_PRIORITY_ERROR_THRESHOLD = 0.005 # 0.5%
@@ -288,7 +288,7 @@ def linkrun(json_str):
             'X2': round(s['X2'], 4),
             'X3': round(s['X3'], 4),
             'X4': round(s['X4'], 4),
-            'cum_error': format(s['dev'], '.6f'),
+            'cum_error': round(s['dev'], 2),
             'total_feed_speed_D': round(s['D'], 6),
             'stage_label': s.get('stage_label', 'Unknown'),
             'assign': assign_list,

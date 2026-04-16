@@ -3,7 +3,13 @@ DECLARE @MFGNUM VARCHAR(30) = 'TEST';
 DECLARE @MFBLIN INT = 10;
 DECLARE @YARNGRP VARCHAR(30) = '';
 
-DECLARE @JSON VARCHAR(MAX) = '{
+DECLARE @JSON1 VARCHAR(MAX) = '{
+  "error": "运行超时或未找到有效解",
+  "results": [],
+  "runtime": 2.5549020767211914
+}';
+
+DECLARE @JSON1 VARCHAR(MAX) = '{
   "results": [
     {
       "X1": 1.1,

@@ -8,8 +8,8 @@ import numpy as np
 # 算法核心参数
 # 2026年3月3日, 优化计算速度，当前使用版本
 # ======================
-TOL = 0.02                   # 粗搜容差
-TOP_N = 10                  
+TOL = 0.015                  # 粗搜容差 1.5%
+TOP_N = 100                  # 结果返回的数量
 MAX_SEEDS = 150              # 限制种子数量，平衡速度与精度
 PRIORITY_ERROR_THRESHOLD = 0.0005   # 0.05%
 NON_PRIORITY_ERROR_THRESHOLD = 0.005 # 0.5%
@@ -349,7 +349,7 @@ if __name__ == "__main__":
     "x1_3max": 2.5,
     "x4max": 5.0,
     "xstep": 0.1,
-    "data2": 
+    "data": 
 [
   {
     "MFMLIN": 62,
@@ -365,7 +365,7 @@ if __name__ == "__main__":
     "MFMSHO": "BC02W",
     "MATRATCALC": 11.200000,
     "PRIORITY": 0,
-    "POSITION": ""
+    "POSITION": "A"
   },
   {
     "MFMLIN": 80,
@@ -384,7 +384,7 @@ if __name__ == "__main__":
     "POSITION": ""
   }
 ]
-,"data":[
+,"data1":[
   {
     "MFMLIN": 50,
     "MFMDES": "W 白棉条 VB050M ",

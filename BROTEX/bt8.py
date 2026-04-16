@@ -319,7 +319,7 @@ def linkrun(json_str):
                 'colordes': json_data[color_idx].get('MFMDES', ''),
                 'colorsho': json_data[color_idx].get('MFMSHO', ''),
                 'x': round(x_val, 2),
-                'speed': round(w_map[g_idx], 6)
+                'speed': round(w_map[g_idx] / s['D'] * 100.0, 2)
             })
             
         final_results.append({

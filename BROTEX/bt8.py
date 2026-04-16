@@ -120,8 +120,8 @@ def refine_vectorized(seeds, targets, json_data):
     is_priority = np.array([item["PRIORITY"] for item in json_data])
     refined_results = []
     
-    # 仅精修前 50 个优质种子
-    for sol in seeds[:50]:
+    # 仅精修前 TOP_N 个优质种子
+    for sol in seeds[:TOP_N]:
         mX1, mX2, mX3, mX4 = sol['X1']+d1, sol['X2']+d2, sol['X3']+d3, sol['X4']+d4
         
         # 物理与工艺约束过滤
@@ -256,7 +256,7 @@ def linkrun(json_str):
     
     # 检查是否有有效结果
     if not seeds:
-        return json.dumps({'error': '运行超时或未找到有效解', 'results': [], 'runtime': time.time() - start_time}, indent=2, ensure_ascii=False)
+        return json.dumps({'error': '运行超时或未找到有效解', 'results': [], 'runtime': time.time() - start_time})
     else:
         print(f"搜索完成，找到 {len(seeds)} 个种子，运行时间 {time.time() - start_time:.1f} 秒")
 
@@ -319,7 +319,7 @@ def linkrun(json_str):
                 'colordes': json_data[color_idx].get('MFMDES', ''),
                 'colorsho': json_data[color_idx].get('MFMSHO', ''),
                 'x': round(x_val, 2),
-                'speed': round(w_map[g_idx] / s['D'] * 100.0, 2)
+                'speed': round(w_map[g_idx] / s['D'] * 100.0, 4)
             })
             
         final_results.append({
@@ -337,7 +337,8 @@ def linkrun(json_str):
             ]
         })
 
-    return json.dumps({'results': final_results}, indent=2, ensure_ascii=False)
+    # return json.dumps({'results': final_results}, indent=2, ensure_ascii=False)
+    return json.dumps({'results': final_results}, ensure_ascii=False)
 
 # ======================
 # 程序入口

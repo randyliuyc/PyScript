@@ -232,7 +232,7 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
         (max(1.0, bounds['x4'][0]), min(MAX_X4, bounds['x4'][1]))
     ]
 
-    n_explore = 100
+    n_explore = 200
     for i in range(n_explore):
         if len(seeds) >= max_seeds:
             break
@@ -248,7 +248,7 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
             options={'maxiter': 150, 'xatol': 0.01, 'fatol': 0.0001}
         )
 
-    n_local = 50
+    n_local = 100
     for i in range(n_local):
         if len(seeds) >= max_seeds:
             break
@@ -298,6 +298,73 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
 
     return seeds
 
+def find_seeds_grid(targets, num_colors, pos_constraints, bounds, max_seeds=MAX_SEEDS):
+    """
+    确定性网格搜索，作为 scipy 搜索的兜底方案，确保结果稳定可复现
+    """
+    start_time = time.time()
+    seeds = []
+    x_sig_count = {}
+
+    grid_step = 0.1
+    x1_vals = np.arange(bounds['x1'][0], bounds['x1'][1] + grid_step/2, grid_step)
+    x2_vals = np.arange(bounds['x2'][0], bounds['x2'][1] + grid_step/2, grid_step)
+    x3_vals = np.arange(bounds['x3'][0], bounds['x3'][1] + grid_step/2, grid_step)
+    x4_vals = np.arange(bounds['x4'][0], bounds['x4'][1] + grid_step/2, grid_step)
+
+    total = len(x1_vals) * len(x2_vals) * len(x3_vals) * len(x4_vals)
+    checked = 0
+
+    for x1 in x1_vals:
+        if len(seeds) >= max_seeds or time.time() - start_time > MAX_RUNTIME * 0.8:
+            break
+        for x2 in x2_vals:
+            if len(seeds) >= max_seeds or time.time() - start_time > MAX_RUNTIME * 0.8:
+                break
+            for x3 in x3_vals:
+                if len(seeds) >= max_seeds or time.time() - start_time > MAX_RUNTIME * 0.8:
+                    break
+                for x4 in x4_vals:
+                    checked += 1
+                    if len(seeds) >= max_seeds or time.time() - start_time > MAX_RUNTIME * 0.8:
+                        break
+
+                    x1r, x2r, x3r, x4r = round(x1, 2), round(x2, 2), round(x3, 2), round(x4, 2)
+
+                    if x1r < 1.0 or x2r < 1.0 or x3r < 1.0 or x4r < 1.0:
+                        continue
+                    if x4r <= x1r + 0.01 or x4r <= x3r + 0.01:
+                        continue
+                    if x4r / x1r > X4_RATIO_LIMIT or x4r / x3r > X4_RATIO_LIMIT:
+                        continue
+                    if x4r > MAX_X4:
+                        continue
+
+                    w = np.array([1/x1r, 1/x4r, 1.0, 1/x2r, 1/x3r])
+                    D = np.sum(w * GROUP_SIZES)
+                    if not (D_RANGE[0] < D < D_RANGE[1]):
+                        continue
+
+                    res = fast_backtrack(targets, w, D, num_colors, pos_constraints)
+                    if not res:
+                        continue
+
+                    for af, dev, pcts in res:
+                        if dev >= 0.015:
+                            continue
+                        x_sig = (round(x1r, 1), round(x2r, 1), round(x3r, 1), round(x4r, 1))
+                        if x_sig_count.get(x_sig, 0) >= 2:
+                            continue
+                        x_sig_count[x_sig] = x_sig_count.get(x_sig, 0) + 1
+                        seeds.append({
+                            'X1': x1r, 'X2': x2r, 'X3': x3r, 'X4': x4r,
+                            'assign': af, 'dev': dev, 'D': D, 'final_pcts': pcts,
+                            'stage_label': 'grid'
+                        })
+
+    print(f"网格兜底: 遍历 {checked}/{total} 个点, 找到 {len(seeds)} 个种子")
+    return seeds
+
 # ======================
 # 主运行接口
 # ======================
@@ -344,7 +411,22 @@ def linkrun(json_str):
     }
 
     seeds = find_seeds_scipy(targets, len(json_data), pos_constraints, bounds)
-    
+
+    # 兜底：scipy 随机搜索不稳定时，用确定性网格搜索保证覆盖率
+    MIN_SEEDS_FALLBACK = 10
+    if len(seeds) < MIN_SEEDS_FALLBACK:
+        print(f"scipy 仅找到 {len(seeds)} 个种子，启动网格搜索兜底...")
+        grid_seeds = find_seeds_grid(targets, len(json_data), pos_constraints, bounds)
+        # 合并去重（按 X 签名）
+        seen_sigs = set()
+        for s in seeds:
+            seen_sigs.add((round(s['X1'], 1), round(s['X2'], 1), round(s['X3'], 1), round(s['X4'], 1)))
+        for gs in grid_seeds:
+            sig = (round(gs['X1'], 1), round(gs['X2'], 1), round(gs['X3'], 1), round(gs['X4'], 1))
+            if sig not in seen_sigs:
+                seen_sigs.add(sig)
+                seeds.append(gs)
+
     # 检查是否有有效结果
     if not seeds:
         elapsed = round(time.time() - start_time, 1)
@@ -442,11 +524,11 @@ def linkrun(json_str):
 if __name__ == "__main__":
     json_str = """{
     "pyFile": "bt8",
-    "xmin": 1.05,
-    "x1_3max": 2.5,
-    "x4max": 5.0,
+    "xmin": 1.01,
+    "x1_3max": 4.0,
+    "x4max": 6.0,
     "xstep": 0.1,
-    "data": 
+    "data1": 
 [
   {
     "MFMLIN": 62,
@@ -481,7 +563,7 @@ if __name__ == "__main__":
     "POSITION": ""
   }
 ]
-,"data1":[
+,"data":[
   {
     "MFMLIN": 50,
     "MFMDES": "W 白棉条 VB050M ",
@@ -496,7 +578,7 @@ if __name__ == "__main__":
     "MFMSHO": "K004W20",
     "MATRATCALC": 42.250000,
     "PRIORITY": 0,
-    "POSITION": ""
+    "POSITION": "ACE"
   },
   {
     "MFMLIN": 70,

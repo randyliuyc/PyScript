@@ -11,7 +11,7 @@ import scipy.optimize
 # 2026年3月3日, 优化计算速度，当前使用版本
 # ======================
 TOL = 0.015                  # 粗搜容差 1.5%
-TOP_N = 10                   # 结果返回的数量
+TOP_N = 50                   # 结果返回的数量
 MAX_SEEDS = 150              # 限制种子数量，平衡速度与精度
 PRIORITY_ERROR_THRESHOLD = 0.0005   # 0.05%
 NON_PRIORITY_ERROR_THRESHOLD = 0.005 # 0.5%
@@ -170,6 +170,52 @@ def refine_vectorized(seeds, targets, json_data):
             refined_results.append(sol)
             
     return refined_results
+
+
+def select_diverse_top(results, top_n=TOP_N):
+    """
+    多样性感知的 Top-N 选择：
+    按误差排序，但在最终输出时跳过 (X区域, 分配方案) 都相同的结果，
+    确保输出涵盖不同牵伸倍数组合和不同颜色分配方案。
+    """
+    if not results:
+        return []
+    
+    sorted_results = sorted(results, key=lambda x: (round(x['dev'], 2), -x['D']))
+    
+    selected = []
+    used_x_zones = set()       # (X1~0.3, X2~0.3, X3~0.3, X4~0.3)
+    used_assign_sigs = set()   # tuple of 8 assignments
+    
+    for s in sorted_results:
+        # X 区域签名：~0.3 步长聚类
+        x_zone = (round(s['X1'] / 0.3) * 0.3,
+                  round(s['X2'] / 0.3) * 0.3,
+                  round(s['X3'] / 0.3) * 0.3,
+                  round(s['X4'] / 0.3) * 0.3)
+        # 分配方案签名
+        assign_sig = tuple(s['assign'])
+        
+        # (X区域, 分配) 同时相同才跳过
+        if x_zone in used_x_zones and assign_sig in used_assign_sigs:
+            continue
+        
+        selected.append(s)
+        used_x_zones.add(x_zone)
+        used_assign_sigs.add(assign_sig)
+        
+        if len(selected) >= top_n:
+            break
+    
+    # 不足 TOP_N 则从剩余补充
+    if len(selected) < top_n:
+        for s in sorted_results:
+            if s not in selected:
+                selected.append(s)
+                if len(selected) >= top_n:
+                    break
+    
+    return selected
 
 def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX_SEEDS):
     """
@@ -442,8 +488,9 @@ def linkrun(json_str):
     # 排序：误差越小越好，total_feed_speed_D 越大越好（误差四舍五入到两位小数后比较）
     refined = refine_vectorized(sorted(seeds, key=lambda x: (round(x['dev'], 2), -x['D'])), targets, json_data)
 
-    # 结果排序并输出：误差越小越好，total_feed_speed_D 越大越好
-    top_results = sorted(refined, key=lambda x: (round(x['dev'], 2), -x['D']))[:TOP_N]
+    # Stage 3: 多样性感知的 Top-N 选择
+    # 按误差排序，但跳过 (X区域, 分配方案) 完全相同的冗余解
+    top_results = select_diverse_top(refined, TOP_N)
     
     final_results = []
     for s in top_results:
@@ -570,7 +617,7 @@ if __name__ == "__main__":
     "MFMSHO": "W 白棉条",
     "MATRATCALC": 41.390000,
     "PRIORITY": 0,
-    "POSITION": ""
+    "POSITION": "DH"
   },
   {
     "MFMLIN": 60,
@@ -578,7 +625,7 @@ if __name__ == "__main__":
     "MFMSHO": "K004W20",
     "MATRATCALC": 42.250000,
     "PRIORITY": 0,
-    "POSITION": "ACE"
+    "POSITION": ""
   },
   {
     "MFMLIN": 70,

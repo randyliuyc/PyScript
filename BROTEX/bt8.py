@@ -11,7 +11,7 @@ import scipy.optimize
 # 2026年3月3日, 优化计算速度，当前使用版本
 # ======================
 TOL = 0.015                  # 粗搜容差 1.5%
-TOP_N = 100                  # 结果返回的数量
+TOP_N = 10                   # 结果返回的数量
 MAX_SEEDS = 150              # 限制种子数量，平衡速度与精度
 PRIORITY_ERROR_THRESHOLD = 0.0005   # 0.05%
 NON_PRIORITY_ERROR_THRESHOLD = 0.005 # 0.5%
@@ -48,9 +48,6 @@ def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
                 total_err += err
                 final_pcts.append(pct)
                 if err > 0.015: return # 种子阶段单色误差阈值，略微放宽
-            
-            # 将 total_err 保留两位小数，便于后续通过 total_feed_speed_D 判断更优解
-            total_err = round(total_err, 2)
             
             # 还原为 8 桶位分配 (存储颜色索引)
             # 对于大小为2的组，按固定顺序展开（小索引在前，大索引在后）
@@ -91,11 +88,18 @@ def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
             # 更新当前各颜色速度总和
             for c_idx in combo: current_sums[c_idx] += w
             
-            # 剪枝：单色占比不能显著超过目标值
+            # 剪枝：单色占比不能偏离目标值太远（上限+下限）
             pass_check = True
             for i in range(num_colors):
-                if current_sums[i]/D > targets[i] + 0.03:
+                pct = current_sums[i] / D
+                if pct > targets[i] + 0.03:
                     pass_check = False; break
+            if pass_check:
+                remaining = sum(weights[g] for g in range(g_idx + 1, 5))
+                for i in range(num_colors):
+                    max_possible = (current_sums[i] + remaining) / D
+                    if max_possible < targets[i] - 0.03:
+                        pass_check = False; break
             
             if pass_check:
                 current_assign[g_idx] = combo
@@ -181,29 +185,41 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
             return 100.0
 
         x1, x2, x3, x4 = x
+        penalty = 0.0
 
-        if x1 < 1.0 or x2 < 1.0 or x3 < 1.0 or x4 < 1.0:
-            return 10.0
-        if x4 <= x1 + 0.01 or x4 <= x3 + 0.01:
-            return 10.0
-        if x4 / x1 > X4_RATIO_LIMIT or x4 / x3 > X4_RATIO_LIMIT:
-            return 10.0
-        if x4 > MAX_X4:
-            return 10.0
+        # 连续惩罚：违反越多惩罚越大，为 Nelder-Mead 提供梯度方向
+        if x1 < 1.0: penalty += (1.0 - x1) * 0.5
+        if x2 < 1.0: penalty += (1.0 - x2) * 0.5
+        if x3 < 1.0: penalty += (1.0 - x3) * 0.5
+        if x4 < 1.0: penalty += (1.0 - x4) * 0.5
 
-        w = np.array([1/x1, 1/x4, 1.0, 1/x2, 1/x3])
+        if x4 <= x1 + 0.01: penalty += (x1 + 0.01 - x4) * 0.5
+        if x4 <= x3 + 0.01: penalty += (x3 + 0.01 - x4) * 0.5
+
+        ratio1 = x4 / max(x1, 1e-6)
+        ratio3 = x4 / max(x3, 1e-6)
+        if ratio1 > X4_RATIO_LIMIT: penalty += (ratio1 - X4_RATIO_LIMIT) * 0.1
+        if ratio3 > X4_RATIO_LIMIT: penalty += (ratio3 - X4_RATIO_LIMIT) * 0.1
+
+        if x4 > MAX_X4: penalty += (x4 - MAX_X4) * 0.1
+
+        w = np.array([1/max(x1,1e-6), 1/max(x4,1e-6), 1.0, 1/max(x2,1e-6), 1/max(x3,1e-6)])
         D = np.sum(w * GROUP_SIZES)
-        if not (D_RANGE[0] < D < D_RANGE[1]):
-            return 10.0
+        if D <= D_RANGE[0]: penalty += (D_RANGE[0] - D) * 0.1
+        if D >= D_RANGE[1]: penalty += (D - D_RANGE[1]) * 0.1
 
-        key = (round(x1, 3), round(x2, 3), round(x3, 3), round(x4, 3))
+        # 连续惩罚 > 0 时，返回惩罚值（始终大于有效解的最大误差 ~0.06）
+        if penalty > 0:
+            return 0.1 + penalty
+
+        key = (round(x1, 2), round(x2, 2), round(x3, 2), round(x4, 2))
         if key in eval_cache:
             return eval_cache[key][0]
 
         res = fast_backtrack(targets, w, D, num_colors, pos_constraints)
         if not res:
-            eval_cache[key] = (10.0, [], D)
-            return 10.0
+            eval_cache[key] = (0.5, [], D)
+            return 0.5
 
         min_err = min(r[1] for r in res)
         eval_cache[key] = (min_err, res, D)
@@ -224,12 +240,12 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
             print(f"搜索超时，已运行 {time.time() - start_time:.1f} 秒，共 {i} 轮探索")
             break
 
-        x0 = [round(random.uniform(*b), 3) for b in scipy_bounds]
+        x0 = [round(random.uniform(*b), 2) for b in scipy_bounds]
 
         scipy.optimize.minimize(
             objective, x0, method='Nelder-Mead',
             bounds=scipy_bounds,
-            options={'maxiter': 150, 'xatol': 0.001, 'fatol': 0.0001}
+            options={'maxiter': 150, 'xatol': 0.01, 'fatol': 0.0001}
         )
 
     n_local = 50
@@ -244,14 +260,14 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
             break
 
         base = random.choice(good_keys)
-        x0 = [round(base[j] + random.uniform(-0.08, 0.08), 3) for j in range(4)]
+        x0 = [round(base[j] + random.uniform(-0.08, 0.08), 2) for j in range(4)]
         for j in range(4):
             x0[j] = max(scipy_bounds[j][0], min(scipy_bounds[j][1], x0[j]))
 
         scipy.optimize.minimize(
             objective, x0, method='Nelder-Mead',
             bounds=scipy_bounds,
-            options={'maxiter': 80, 'xatol': 0.001, 'fatol': 0.0001}
+            options={'maxiter': 80, 'xatol': 0.01, 'fatol': 0.0001}
         )
 
     MAX_PER_X_SIGNATURE = 2
@@ -268,6 +284,17 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
                 'assign': af, 'dev': dev, 'D': D, 'final_pcts': pcts,
                 'stage_label': 'scipy'
             })
+
+    # 诊断信息：无种子时帮助定位问题
+    if not seeds:
+        errors = [v[0] for v in eval_cache.values()]
+        valid_errors = [e for e in errors if e < 0.5]
+        good_errors = [e for e in valid_errors if e < 0.015]
+        print(f"[诊断] 评估点数: {len(eval_cache)}, 有效X组合: {len(valid_errors)}, 误差<1.5%: {len(good_errors)}")
+        if valid_errors:
+            print(f"[诊断] 最佳误差: {min(valid_errors):.4f}, 最差误差: {max(valid_errors):.4f}")
+        else:
+            print(f"[诊断] 所有X组合均未通过物理约束或无法分配颜色")
 
     return seeds
 
@@ -320,16 +347,21 @@ def linkrun(json_str):
     
     # 检查是否有有效结果
     if not seeds:
-        return json.dumps({'error': '运行超时或未找到有效解', 'results': [], 'runtime': time.time() - start_time})
+        elapsed = round(time.time() - start_time, 1)
+        if elapsed >= MAX_RUNTIME * 0.7:
+            reason = f'搜索超时 ({elapsed:.0f}s >= {MAX_RUNTIME*0.7:.0f}s)'
+        else:
+            reason = f'未找到误差<1.5%的有效解 (搜索{elapsed:.0f}s)，请放宽xmin/xmax范围或检查POSITION约束是否过严'
+        return json.dumps({'error': reason, 'results': [], 'runtime': elapsed}, ensure_ascii=False)
     else:
         print(f"搜索完成，找到 {len(seeds)} 个种子，运行时间 {time.time() - start_time:.1f} 秒")
 
     # Stage 2: 矢量化精修
-    # 排序：误差越小越好，total_feed_speed_D 越大越好
-    refined = refine_vectorized(sorted(seeds, key=lambda x: (x['dev'], -x['D'])), targets, json_data)
-    
+    # 排序：误差越小越好，total_feed_speed_D 越大越好（误差四舍五入到两位小数后比较）
+    refined = refine_vectorized(sorted(seeds, key=lambda x: (round(x['dev'], 2), -x['D'])), targets, json_data)
+
     # 结果排序并输出：误差越小越好，total_feed_speed_D 越大越好
-    top_results = sorted(refined, key=lambda x: (x['dev'], -x['D']))[:TOP_N]
+    top_results = sorted(refined, key=lambda x: (round(x['dev'], 2), -x['D']))[:TOP_N]
     
     final_results = []
     for s in top_results:
@@ -387,10 +419,10 @@ def linkrun(json_str):
             })
             
         final_results.append({
-            'X1': round(s['X1'], 4),
-            'X2': round(s['X2'], 4),
-            'X3': round(s['X3'], 4),
-            'X4': round(s['X4'], 4),
+            'X1': round(s['X1'], 2),
+            'X2': round(s['X2'], 2),
+            'X3': round(s['X3'], 2),
+            'X4': round(s['X4'], 2),
             'cum_error': round(s['dev'], 2),
             'total_feed_speed_D': round(s['D'], 6),
             'stage_label': s.get('stage_label', 'Unknown'),
@@ -401,8 +433,8 @@ def linkrun(json_str):
             ]
         })
 
-    # return json.dumps({'results': final_results}, indent=2, ensure_ascii=False)
-    return json.dumps({'results': final_results}, ensure_ascii=False)
+    return json.dumps({'results': final_results}, indent=2, ensure_ascii=False)
+    # return json.dumps({'results': final_results}, ensure_ascii=False)
 
 # ======================
 # 程序入口
@@ -422,7 +454,7 @@ if __name__ == "__main__":
     "MFMSHO": "SWP本白",
     "MATRATCALC": 36.900000,
     "PRIORITY": 0,
-    "POSITION": ""
+    "POSITION": "AD"
   },
   {
     "MFMLIN": 70,
@@ -430,7 +462,7 @@ if __name__ == "__main__":
     "MFMSHO": "BC02W",
     "MATRATCALC": 11.200000,
     "PRIORITY": 0,
-    "POSITION": "A"
+    "POSITION": ""
   },
   {
     "MFMLIN": 80,
@@ -472,7 +504,7 @@ if __name__ == "__main__":
     "MFMSHO": "Y006W",
     "MATRATCALC": 7.920000,
     "PRIORITY": 0,
-    "POSITION": "F"
+    "POSITION": ""
   },
   {
     "MFMLIN": 80,

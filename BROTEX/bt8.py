@@ -3,6 +3,8 @@ import itertools
 import time
 import json
 import numpy as np
+import random
+import scipy.optimize
 
 # ======================
 # 算法核心参数
@@ -165,6 +167,110 @@ def refine_vectorized(seeds, targets, json_data):
             
     return refined_results
 
+def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX_SEEDS):
+    """
+    使用 scipy.optimize.minimize (Nelder-Mead) 进行多起点局部优化搜索
+    """
+    eval_cache = {}
+    x_signature_count = {}
+    seeds = []
+    start_time = time.time()
+
+    def objective(x):
+        if time.time() - start_time > MAX_RUNTIME:
+            return 100.0
+
+        x1, x2, x3, x4 = x
+
+        if x1 < 1.0 or x2 < 1.0 or x3 < 1.0 or x4 < 1.0:
+            return 10.0
+        if x4 <= x1 + 0.01 or x4 <= x3 + 0.01:
+            return 10.0
+        if x4 / x1 > X4_RATIO_LIMIT or x4 / x3 > X4_RATIO_LIMIT:
+            return 10.0
+        if x4 > MAX_X4:
+            return 10.0
+
+        w = np.array([1/x1, 1/x4, 1.0, 1/x2, 1/x3])
+        D = np.sum(w * GROUP_SIZES)
+        if not (D_RANGE[0] < D < D_RANGE[1]):
+            return 10.0
+
+        key = (round(x1, 3), round(x2, 3), round(x3, 3), round(x4, 3))
+        if key in eval_cache:
+            return eval_cache[key][0]
+
+        res = fast_backtrack(targets, w, D, num_colors, pos_constraints)
+        if not res:
+            eval_cache[key] = (10.0, [], D)
+            return 10.0
+
+        min_err = min(r[1] for r in res)
+        eval_cache[key] = (min_err, res, D)
+        return min_err
+
+    scipy_bounds = [
+        (max(1.0, bounds['x1'][0]), min(4.0, bounds['x1'][1])),
+        (max(1.0, bounds['x2'][0]), min(4.0, bounds['x2'][1])),
+        (max(1.0, bounds['x3'][0]), min(4.0, bounds['x3'][1])),
+        (max(1.0, bounds['x4'][0]), min(MAX_X4, bounds['x4'][1]))
+    ]
+
+    n_explore = 100
+    for i in range(n_explore):
+        if len(seeds) >= max_seeds:
+            break
+        if time.time() - start_time > MAX_RUNTIME * 0.7:
+            print(f"搜索超时，已运行 {time.time() - start_time:.1f} 秒，共 {i} 轮探索")
+            break
+
+        x0 = [round(random.uniform(*b), 3) for b in scipy_bounds]
+
+        scipy.optimize.minimize(
+            objective, x0, method='Nelder-Mead',
+            bounds=scipy_bounds,
+            options={'maxiter': 150, 'xatol': 0.001, 'fatol': 0.0001}
+        )
+
+    n_local = 50
+    for i in range(n_local):
+        if len(seeds) >= max_seeds:
+            break
+        if time.time() - start_time > MAX_RUNTIME * 0.9:
+            break
+
+        good_keys = [k for k, v in eval_cache.items() if v[0] < 0.015]
+        if not good_keys:
+            break
+
+        base = random.choice(good_keys)
+        x0 = [round(base[j] + random.uniform(-0.08, 0.08), 3) for j in range(4)]
+        for j in range(4):
+            x0[j] = max(scipy_bounds[j][0], min(scipy_bounds[j][1], x0[j]))
+
+        scipy.optimize.minimize(
+            objective, x0, method='Nelder-Mead',
+            bounds=scipy_bounds,
+            options={'maxiter': 80, 'xatol': 0.001, 'fatol': 0.0001}
+        )
+
+    MAX_PER_X_SIGNATURE = 2
+    for key, (err, assignments, D) in eval_cache.items():
+        if err >= 0.015:
+            continue
+        x_sig = (round(key[0], 1), round(key[1], 1), round(key[2], 1), round(key[3], 1))
+        if x_signature_count.get(x_sig, 0) >= MAX_PER_X_SIGNATURE:
+            continue
+        x_signature_count[x_sig] = x_signature_count.get(x_sig, 0) + 1
+        for af, dev, pcts in assignments:
+            seeds.append({
+                'X1': key[0], 'X2': key[1], 'X3': key[2], 'X4': key[3],
+                'assign': af, 'dev': dev, 'D': D, 'final_pcts': pcts,
+                'stage_label': 'scipy'
+            })
+
+    return seeds
+
 # ======================
 # 主运行接口
 # ======================
@@ -196,63 +302,21 @@ def linkrun(json_str):
                 except ValueError:
                     pass
 
-    # Stage 1: 粗搜种子
-    seeds = []
-    
-    # 从输入参数获取搜索范围，使用默认值
+    # Stage 1: 使用 scipy.optimize.minimize 进行多起点局部优化搜索
+    start_time = time.time()
+
     xmin = linkargs.get("xmin", 1.1)
     x1_3max = linkargs.get("x1_3max", 4.0)
     x4max = linkargs.get("x4max", 6.0)
-    xstep = linkargs.get("xstep", 0.1)
-    
-    search_stages = [
-        {
-            'label': f'{xmin}-{x1_3max}/{x4max}',
-            'X1_range': (xmin, x1_3max, xstep),
-            'X2_range': (xmin, x1_3max, xstep),
-            'X3_range': (xmin, x1_3max, xstep),
-            'X4_range': (xmin, x4max, xstep)
-        }
-    ]
-    
-    start_time = time.time()
-    for stage in search_stages:
-        # 检查是否超时
-        if time.time() - start_time > MAX_RUNTIME:
-            print(f"运行超时，已运行 {time.time() - start_time:.1f} 秒，强制停止")
-            break
-        
-        x_min, x_max, x_step = stage['X1_range']
-        x4_min, x4_max, x4_step = stage['X4_range']
-        if len(seeds) >= MAX_SEEDS: break
-        x_vals = np.arange(x_min, x_max, x_step)
-        x4_vals = np.arange(x4_min, x4_max, x4_step)
-        
-        for x1, x2, x3, x4 in itertools.product(x_vals, x_vals, x_vals, x4_vals):
-            # 每次迭代检查超时
-            if time.time() - start_time > MAX_RUNTIME:
-                print(f"运行超时，已运行 {time.time() - start_time:.1f} 秒，强制停止")
-                break
-            
-            if not (x4 > x1 + 0.05 and x4 > x3 + 0.05): continue
-            if x4/x1 > X4_RATIO_LIMIT or x4/x3 > X4_RATIO_LIMIT: continue
-            
-            w_seed = np.array([1/x1, 1/x4, 1.0, 1/x2, 1/x3])
-            D_seed = np.sum(w_seed * GROUP_SIZES)
-            if not (D_RANGE[0] < D_seed < D_RANGE[1]): continue
-            
-            res = fast_backtrack(targets, w_seed, D_seed, len(json_data), pos_constraints)
-            for af, dev, pcts in res:
-                seeds.append({
-                    'X1': x1, 'X2': x2, 'X3': x3, 'X4': x4, 
-                    'assign': af, 'dev': dev, 'D': D_seed, 'final_pcts': pcts,
-                    'stage_label': stage['label']
-                })
-            
-            if len(seeds) >= MAX_SEEDS: break
-        else:
-            continue  # 如果内层循环正常结束，继续外层循环
-        break  # 如果内层循环因超时或种子数限制而break，则跳出外层循环
+
+    bounds = {
+        'x1': (xmin, x1_3max),
+        'x2': (xmin, x1_3max),
+        'x3': (xmin, x1_3max),
+        'x4': (xmin, x4max)
+    }
+
+    seeds = find_seeds_scipy(targets, len(json_data), pos_constraints, bounds)
     
     # 检查是否有有效结果
     if not seeds:

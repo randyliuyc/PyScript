@@ -11,7 +11,7 @@ import scipy.optimize
 # 2026年3月3日, 优化计算速度，当前使用版本
 # ======================
 TOL = 0.015                  # 粗搜容差 1.5%
-TOP_N = 50                   # 结果返回的数量
+TOP_N = 10                   # 结果返回的数量
 MAX_SEEDS = 150              # 限制种子数量，平衡速度与精度
 PRIORITY_ERROR_THRESHOLD = 0.0005   # 0.05%
 NON_PRIORITY_ERROR_THRESHOLD = 0.005 # 0.5%
@@ -526,10 +526,13 @@ def linkrun(json_str):
         if e_constrained_to_f or f_constrained_to_e:
             adjusted_assign[4], adjusted_assign[5] = adjusted_assign[5], adjusted_assign[4]
         
+        # 尝试 B↔G、C↔D、E↔F 的交换组合，减少圆环相邻同色
+        final_assign = optimize_arrangement(adjusted_assign, bucket_constraints)
+        
         assign_list = []
         for i, b_name in enumerate(BUCKETS):
             g_idx = BUCKET_TO_GROUP[i]
-            color_idx = adjusted_assign[i]
+            color_idx = final_assign[i]
             
             # X 值显示逻辑
             if i == 0: x_val = s['X1']
@@ -564,6 +567,48 @@ def linkrun(json_str):
 
     return json.dumps({'results': final_results}, indent=2, ensure_ascii=False)
     # return json.dumps({'results': final_results}, ensure_ascii=False)
+
+def optimize_arrangement(assign, bucket_constraints):
+    """
+    对 B↔G(1↔6)、C↔D(2↔3)、E↔F(4↔5) 尝试交换组合，
+    选择圆环 A-B-C-D-E-F-G-H-A 上相邻同色最少的排布。
+    交换时不违反 bucket_constraints 约束。
+    牵伸不变，仅改变颜色分布。
+    """
+    # 先检查是否有相邻同色，没有则直接返回
+    adj_init = sum(1 for i in range(8) if assign[i] == assign[(i + 1) % 8])
+    if adj_init == 0:
+        return assign
+
+    pairs = [(1, 6), (2, 3), (4, 5)]
+    best = assign[:]
+    best_adj = adj_init
+
+    for mask in range(1, 8):  # 跳过全不交换(0)，因为已经检查过了
+        test = assign[:]
+        valid = True
+
+        for pi in range(3):
+            if mask & (1 << pi):
+                a, b = pairs[pi]
+                ca, cb = test[a], test[b]
+                if ca in bucket_constraints and b not in bucket_constraints[ca]:
+                    valid = False; break
+                if cb in bucket_constraints and a not in bucket_constraints[cb]:
+                    valid = False; break
+                test[a], test[b] = cb, ca
+
+        if not valid:
+            continue
+
+        adj = sum(1 for i in range(8) if test[i] == test[(i + 1) % 8])
+        if adj < best_adj:
+            best_adj = adj
+            best = test[:]
+            if best_adj == 0:  # 已找到最优，提前退出
+                break
+
+    return best
 
 # ======================
 # 程序入口
@@ -648,6 +693,31 @@ if __name__ == "__main__":
     "MFMDES": "Y01W20 VE001M-001 ",
     "MFMSHO": "Y01W20",
     "MATRATCALC": 4.830000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  }
+],"data3":[
+  {
+    "MFMLIN": 10,
+    "MFMDES": "K001W20 VE001M-001 ",
+    "MFMSHO": "K001W20",
+    "MATRATCALC": 2.530000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 20,
+    "MFMDES": "K003W20 VE001M-001 ",
+    "MFMSHO": "K003W20",
+    "MATRATCALC": 1.020000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 30,
+    "MFMDES": "W 白棉条 VB050M ",
+    "MFMSHO": "W 白棉条",
+    "MATRATCALC": 8.950000,
     "PRIORITY": 0,
     "POSITION": ""
   }

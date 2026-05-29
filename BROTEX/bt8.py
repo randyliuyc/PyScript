@@ -13,6 +13,7 @@ import scipy.optimize
 TOL = 0.015                  # 粗搜容差 1.5%
 TOP_N = 10                   # 结果返回的数量
 MAX_SEEDS = 150              # 限制种子数量，平衡速度与精度
+MAX_PER_X_SIGNATURE = 5      # 每种 X 区域签名最多保留的结果数
 PRIORITY_ERROR_THRESHOLD = 0.0005   # 0.05%
 NON_PRIORITY_ERROR_THRESHOLD = 0.005 # 0.5%
 D_RANGE = (0.5, 10.0)
@@ -316,7 +317,6 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
             options={'maxiter': 80, 'xatol': 0.01, 'fatol': 0.0001}
         )
 
-    MAX_PER_X_SIGNATURE = 2
     for key, (err, assignments, D) in eval_cache.items():
         if err >= 0.015:
             continue
@@ -484,9 +484,19 @@ def linkrun(json_str):
     else:
         print(f"搜索完成，找到 {len(seeds)} 个种子，运行时间 {time.time() - start_time:.1f} 秒")
 
-    # Stage 2: 矢量化精修
+    # Stage 2: 按分配方案去重（同颜色分布保留误差最小的 1 个牵伸倍数）
+    seeds_sorted = sorted(seeds, key=lambda x: x['dev'])
+    deduped_seeds = []
+    seen_assign = set()
+    for s in seeds_sorted:
+        sig = tuple(s['assign'])
+        if sig not in seen_assign:
+            seen_assign.add(sig)
+            deduped_seeds.append(s)
+
+    # Stage 3: 矢量化精修
     # 排序：误差越小越好，total_feed_speed_D 越大越好（误差四舍五入到两位小数后比较）
-    refined = refine_vectorized(sorted(seeds, key=lambda x: (round(x['dev'], 2), -x['D'])), targets, json_data)
+    refined = refine_vectorized(sorted(deduped_seeds, key=lambda x: (round(x['dev'], 2), -x['D'])), targets, json_data)
 
     # Stage 3: 多样性感知的 Top-N 选择
     # 按误差排序，但跳过 (X区域, 分配方案) 完全相同的冗余解

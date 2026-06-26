@@ -13,7 +13,7 @@ import scipy.optimize
 # 2026年5月29日，相邻颜色相同时对调，打乱颜色
 # ======================
 TOL = 0.015                  # 粗搜容差 1.5%
-TOP_N = 10                   # 结果返回的数量
+TOP_N = 100                   # 结果返回的数量
 MAX_SEEDS = 150              # 限制种子数量，平衡速度与精度
 MAX_PER_X_SIGNATURE = 5      # 每种 X 区域签名最多保留的结果数
 PRIORITY_ERROR_THRESHOLD = 0.0005   # 0.05%

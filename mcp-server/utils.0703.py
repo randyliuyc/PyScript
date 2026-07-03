@@ -243,10 +243,8 @@ async def ai_row_submit(
 async def ai_data_submit(
     code: str,
     num: int,
-    script_type: int,
     para: List[str],
     row_data: Dict[str, Any] = None,
-    table_data: Dict[str, Any] = None,
     userid: str = "",
     linkurl: str = BASE_URL
 ) -> Dict[str, Any]:
@@ -262,16 +260,14 @@ async def ai_data_submit(
                 "dmNum": num,
                 "Para": para
             },
-            "scriptType": script_type,
-            "rowData": row_data,
-            "tableData": table_data
+            "rowData": row_data
         }
     }
 
     logger.info(f"[AIDataSubmit] {code}/{num}")
-    logger.debug(f"[AIDataSubmit] row_data={row_data}, table_data={table_data}")
+    logger.debug(f"[AIDataSubmit] row_data={row_data}")
     # print(f"DataSubmit: {code}/{num}")
-    return await call_link_api("linkDMAIDataSubmit", payload, linkurl)
+    return await call_link_api("linkDMDataSubmit", payload, linkurl)
 
 # ============ 动态工具管理 ============
 async def fetch_tools_from_linkai(userid: str = "") -> List[Dict[str, Any]]:
@@ -470,8 +466,7 @@ def register_ai_tools(mcp):
         page: int = 1,
         page_size: int = DEFAULT_PAGE_SIZE,
         script_type: Any = -1,
-        row_data: Dict[str, Any] = None,
-        table_data: List[Dict[str, Any]] = None
+        row_data: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
         【统一入口】调用指定的 TotalLINK 模型工具（4种模式自动路由）（默认分页）
@@ -488,7 +483,6 @@ def register_ai_tools(mcp):
             page_size: 每页数据量（默认 {page_size}，最大建议不超过 50）AIResult 模式有效
             script_type: 脚本类型，整数，AIRowSubmit 模式有效
             row_data: AIRowSubmit/AIDataSubmit 模式有效
-            table_data: 仅 AIDataSubmit 模式有效
 
         Returns:
             根据 ToolType 返回对应结果，包含 data 和 pagination 分页信息。
@@ -499,8 +493,6 @@ def register_ai_tools(mcp):
         # ========== 类型强制转换 ==========
         if row_data is None:
             row_data = {}
-        if table_data is None:
-            table_data = []
         if isinstance(parameters, str):
             import json
             try:
@@ -542,7 +534,7 @@ def register_ai_tools(mcp):
          # ===== 按 ToolType 路由 =====
         if tool_type == "AIRowSubmit" or tool_type == "AIDataSubmit":
             if(script_type < 0):
-                match = re.search(r'script_type["\s]*[=：:]\s*(\d+)', desc)
+                match = re.search(r'script_type\s*[=：:]\s*(\d+)', desc)
                 if match:
                     script_type = int(match.group(1))
 
@@ -563,7 +555,6 @@ def register_ai_tools(mcp):
                 script_type=script_type,
                 para=parameters,
                 row_data=row_data,
-                table_data=table_data,
                 userid=userid
             )
 

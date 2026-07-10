@@ -383,15 +383,15 @@ def register_ai_tools(mcp):
         """
         【工具列表】获取当前用户可用的动态工具列表
 
-        返回所有可用的 TotalLINK 模型工具及其描述。
-        AI 根据工具描述选择合适的工具名称，然后通过 call_dynamic_tool 调用。
+        返回所有已授权的 TotalLINK 模型工具。工具较多时优先使用 match_tool，工具少时直接从此列表选择。
 
         Args:
             userid: TotalLINK用户名
-            force_refresh: 是否强制刷新缓存（默认 False，使用1小时缓存）
+            force_refresh: 是否强制刷新缓存（默认 False，缓存15分钟）
 
         Returns:
-            工具列表，包含 name、description，以及 total 数量
+            工具列表，每项包含 tool_id、name、description、toolType，以及 total 数量
+            ⚠️ 调用 call_dynamic_tool 时必须使用 tool_id
         """
         # 类型兜底
         if isinstance(force_refresh, str):
@@ -401,7 +401,7 @@ def register_ai_tools(mcp):
         return {
             "total": len(tools),
             "tools": [
-                {"name": t["name"], "description": t["description"]}
+                {"tool_id": t["toolid"], "name": t["name"], "description": t["description"], "toolType": t["toolType"]}
                 for t in tools
             ]
         }
@@ -409,21 +409,21 @@ def register_ai_tools(mcp):
     @mcp.tool()
     async def match_tool(userid: str = "", query: str = "") -> Dict[str, Any]:
         """
-        【工具匹配】根据用户问题自动匹配最合适的 TotalLINK 模型工具
+        【工具匹配】根据用户问题语义匹配最合适的工具
 
-        当用户描述需求时，调用此工具进行关键词匹配，找到最相关的工具。
-        匹配成功时只返回匹配到的工具，不返回完整列表，节省 token。
-        匹配失败时返回 top 5 候选，而非全部工具。
+        返回最佳匹配（含 tool_id、toolType），匹配成功直接调用，无需再查完整列表，节省 token。
+        匹配不准时返回 top 5 候选供 AI 二次判断。工具很少时直接用 get_tools 即可。
 
         Args:
             userid: TotalLINK用户名
-            query: 用户的自然语言问题或需求描述
+            query: 用户的自然语言需求描述
 
         Returns:
-            matched: 是否找到高置信度匹配
-            tool: 最佳匹配工具（高置信度时直接使用此 name 调用 call_dynamic_tool）
-            candidates: 候选工具列表（最多 5 个，供 AI 二次判断）
-            hint: 如需查看全部工具，请调用 get_tools
+            matched: 是否唯一高置信度匹配
+            tool: 最佳匹配（含 tool_id、name、description、toolType），matched=true 时直接用 tool_id 调用
+            candidates: 候选列表（最多5个，含 tool_id、toolType），matched=false 时按描述选最合适的
+            total_available: 用户可用工具总数
+            message: 匹配结果提示
         """
         tools = await get_user_tools(userid)
         candidates = match_tool_by_query(query, tools, top_n=5)
@@ -439,41 +439,33 @@ def register_ai_tools(mcp):
         # 第一个候选分数最高，作为推荐
         best = candidates[0]
         logger.info(f"[MatchTool] userid={userid}, query='{query}', total_tools={len(tools)},toools:{candidates}")
-        # high_confidence = len(candidates) == 1
-        # 检查是否有同名但不同描述的工具
-        same_name_tools = [t for t in candidates if t["name"] == best["name"]]
-        has_duplicate_names = len(same_name_tools) > 1
 
-        high_confidence = len(candidates) == 1 and not has_duplicate_names
+        high_confidence = len(candidates) == 1
 
         return {
             "matched": high_confidence,
             "tool": {
+                "tool_id": best["toolid"],
                 "name": best["name"],
-                "description": best["description"]
+                "description": best["description"],
+                "toolType": best["toolType"]
             },
             "candidates": [
-                {"name": t["name"], "description": t["description"]}
+                {"tool_id": t["toolid"], "name": t["name"], "description": t["description"], "toolType": t["toolType"]}
                 for t in candidates
             ],
             "total_available": len(tools),
             "message": (
-                f"✅ 高置信度匹配「{best['name']}」，请直接使用 call_dynamic_tool 调用"
+                f"✅ 高置信度匹配「{best['name']}」，请直接使用 tool_id 调用 call_dynamic_tool"
                 if high_confidence
-                else (
-                    f"⚠️ 找到 {len(same_name_tools)} 个同名工具「{best['name']}」，"
-                    f"请根据描述选择对应的候选。调用 call_dynamic_tool 时传入具体描述"
-                    if has_duplicate_names
-                    else f"找到 {len(candidates)} 个候选工具，推荐「{best['name']}」"
-                )
+                else f"找到 {len(candidates)} 个候选工具，推荐「{best['name']}」，请根据描述选择对应的 tool_id 调用"
             )
         }
 
 
     @mcp.tool()
     async def call_dynamic_tool(
-        tool_name: str,
-        toolid: str = "",
+        tool_id: str,
         parameters: List[str] = [],
         userid: str = "",
         page: int = 1,
@@ -483,28 +475,24 @@ def register_ai_tools(mcp):
         table_data: List[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        【统一入口】调用指定的 TotalLINK 模型工具（4种模式自动路由）（默认分页）
+        【统一入口】调用 TotalLINK 模型工具（3种模式自动路由，默认分页）
 
-        通过工具名称调用 SEARCHLIST-100 中配置的模型工具。
-        根据工具在 SEARCHLIST-100 中配置的 ToolType 自动选择调用方式。
-        始终分页返回，避免 token 超限。每页默认 {page_size} 条。
+        通过 tool_id 定位工具，根据 toolType 自动选择 AIResult / AIRowSubmit / AIDataSubmit 模式。
+        所有工具通用: tool_id（必填）+ userid（必填）+ parameters（按位置数组，空位传 ""）
 
         Args:
-            tool_name: 工具名称（从 get_tools 或 match_tool 返回的 name 字段）
-            toolid: 工具唯一ID（从 match_tool 返回的 toolid 字段）。当存在同名工具时，优先使用 toolid 精确匹配，避免歧义
-            parameters: 工具参数数组，按顺序传入模型，如 ["", "2026-06-14", ""]，工具参数数组，按顺序传入。空字符串 "" 表示该位置不传参
-            userid: TotalLINK用户名
-            page: 页码（从1开始，默认第1页）
-            page_size: 每页数据量（默认 {page_size}，最大建议不超过 50）AIResult 模式有效
-            script_type: 脚本类型，整数，AIRowSubmit 模式有效
-            row_data: AIRowSubmit/AIDataSubmit 模式有效
-            table_data: 仅 AIDataSubmit 模式有效
+            tool_id: 工具唯一ID（从 get_tools 或 match_tool 获取，必填）
+            parameters: 参数数组，按工具 description 中的顺序传入，空位传 ""。如 ["", "2026-06-14", ""]
+            userid: TotalLINK用户名（必填）
+            page: 页码，从1开始（仅 AIResult 有效，默认1）
+            page_size: 每页条数（仅 AIResult 有效，默认 {page_size}，最大50）
+            script_type: 操作类型整数（仅 AIRowSubmit/AIDataSubmit 需要，从工具 description 获取）
+            row_data: 单行数据 dict（仅 AIRowSubmit/AIDataSubmit 需要，字段从工具 description 获取）
+            table_data: 批量数据 list[dict]（仅 AIDataSubmit 需要）
 
         Returns:
-            根据 ToolType 返回对应结果，包含 data 和 pagination 分页信息。
-            当前页数据，包含 data 和 pagination 分页信息。
-            ⚠️ 禁止自动翻页！仅返回当前页数据。
-            只有当用户明确要求"下一页"、"更多"时，才继续翻页。
+            AIResult → {{ data, pagination }}  分页结果，禁止自动翻页
+            AIRowSubmit/AIDataSubmit → {{ isSuccess, message }}  操作结果
         """.format(page_size=DEFAULT_PAGE_SIZE)
         # ========== 类型强制转换 ==========
         if row_data is None:
@@ -539,38 +527,24 @@ def register_ai_tools(mcp):
 
         tools = await get_user_tools(userid)
 
-        # ===== 匹配工具：优先 toolid，其次 name =====
-        tool_def = None
-
-        if toolid:
-            # 精确 toolid 匹配
-            tool_def = next((t for t in tools if str(t.get("toolid", "")) == toolid), None)
+        # ===== 精确匹配 tool_id =====
+        tool_def = next(
+            (t for t in tools if str(t.get("toolid", "")) == str(tool_id)),
+            None
+        )
 
         if not tool_def:
-            # 按 name 匹配
-            same_name_list = [t for t in tools if t["name"] == tool_name]
-
-            if len(same_name_list) == 0:
-                return {
-                    "isSuccess": "false",
-                    "message": f"工具 '{tool_name}' 不存在或未授权，请先调用 get_tools 查看可用工具"
-                }
-            elif len(same_name_list) > 1:
-                # 同名工具存在，但没传 toolid → 无法精确区分，返回提示
-                return {
-                    "isSuccess": "false",
-                    "message": (
-                        f"工具 '{tool_name}' 存在 {len(same_name_list)} 个同名工具，无法确定调用哪一个。"
-                        f"请先调用 match_tool 匹配具体工具，然后使用返回的 toolid 调用本方法。"
-                        f"候选工具: {[t.get('description','') for t in same_name_list]}"
-                    )
-                }
-            else:
-                tool_def = same_name_list[0]
+            return {
+                "isSuccess": "false",
+                "message": (
+                    f"tool_id '{tool_id}' 不存在或未授权。"
+                    f"请先调用 get_tools 获取可用工具列表，从中获取正确的 tool_id"
+                )
+            }
 
         tool_type = tool_def.get("toolType", "AIResult")
 
-        logger.info(f"[CallDynamicTool] {tool_type}, toolid={tool_def.get('toolid')}, scriptType={script_type}, para={parameters}")
+        logger.info(f"[CallDynamicTool] {tool_type}, tool_id={tool_id}, scriptType={script_type}, para={parameters}")
         import re
         desc = tool_def.get("description", "")
         # ===== 按 ToolType 路由 =====

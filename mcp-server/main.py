@@ -20,7 +20,7 @@ if __name__ == "__main__":
   mcp.settings.port = 7077
 
   try:
-    mcp.run(transport="sse")
+    mcp.run(transport="streamable-http")
   except KeyboardInterrupt:
     print("Received KeyboardInterrupt — shutting down gracefully.")
   except Exception as e:

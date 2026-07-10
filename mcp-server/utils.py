@@ -275,9 +275,9 @@ async def ai_data_submit(
 
 # ============ 动态工具管理 ============
 async def fetch_tools_from_linkai(userid: str = "") -> List[Dict[str, Any]]:
-    """从 LINKAIMCP.LIST 获取工具列表"""
+    """从 SEARCHLIST-100 获取工具列表"""
     result = await get_ai_result(
-        "LINKAIMCP.LIST", 10, [], userid,
+        "SEARCHLIST", 100, [], userid,
         endpoint="linkDMAIResult"
     )
 
@@ -351,29 +351,26 @@ def match_tool_by_query(query: str, tools: List[Dict], top_n: int = 5) -> List[D
 
     query_lower = query.strip().lower()
     keywords = set(query_lower.split())
-    
-    scored = []  # (score, tool)
+
+    scored = []
 
     for t in tools:
         name_lower = t["name"].strip().lower()
         desc_lower = (t.get("description") or "").lower()
 
-        # 1. 名称完全匹配 → 最高优先级
+        # 描述关键词命中数
+        desc_score = sum(1 for kw in keywords if kw in desc_lower or kw in name_lower)
+
         if name_lower == query_lower:
-            scored.append((1000, t))
-            continue
+            # 完全匹配名称 = 基础 1000 + 描述加成
+            scored.append((1000 + desc_score, t))
+        elif name_lower in query_lower or query_lower in name_lower:
+            # 名称包含匹配 = 基础 500 + 描述加成
+            scored.append((500 + desc_score, t))
+        elif desc_score > 0:
+            # 纯描述匹配
+            scored.append((desc_score, t))
 
-        # 2. 名称包含匹配
-        if name_lower in query_lower or query_lower in name_lower:
-            scored.append((500, t))
-            continue
-
-        # 3. 描述关键词匹配
-        score = sum(1 for kw in keywords if kw in desc_lower or kw in name_lower)
-        if score > 0:
-            scored.append((score, t))
-
-    # 按分数降序，取 top_n
     scored.sort(key=lambda x: x[0], reverse=True)
     return [t for _, t in scored[:top_n]]
 
@@ -441,7 +438,13 @@ def register_ai_tools(mcp):
 
         # 第一个候选分数最高，作为推荐
         best = candidates[0]
-        high_confidence = len(candidates) == 1
+        logger.info(f"[MatchTool] userid={userid}, query='{query}', total_tools={len(tools)},toools:{candidates}")
+        # high_confidence = len(candidates) == 1
+        # 检查是否有同名但不同描述的工具
+        same_name_tools = [t for t in candidates if t["name"] == best["name"]]
+        has_duplicate_names = len(same_name_tools) > 1
+
+        high_confidence = len(candidates) == 1 and not has_duplicate_names
 
         return {
             "matched": high_confidence,
@@ -457,7 +460,12 @@ def register_ai_tools(mcp):
             "message": (
                 f"✅ 高置信度匹配「{best['name']}」，请直接使用 call_dynamic_tool 调用"
                 if high_confidence
-                else f"找到 {len(candidates)} 个候选工具，推荐「{best['name']}」"
+                else (
+                    f"⚠️ 找到 {len(same_name_tools)} 个同名工具「{best['name']}」，"
+                    f"请根据描述选择对应的候选。调用 call_dynamic_tool 时传入具体描述"
+                    if has_duplicate_names
+                    else f"找到 {len(candidates)} 个候选工具，推荐「{best['name']}」"
+                )
             )
         }
 
@@ -465,6 +473,7 @@ def register_ai_tools(mcp):
     @mcp.tool()
     async def call_dynamic_tool(
         tool_name: str,
+        toolid: str = "",
         parameters: List[str] = [],
         userid: str = "",
         page: int = 1,
@@ -476,12 +485,13 @@ def register_ai_tools(mcp):
         """
         【统一入口】调用指定的 TotalLINK 模型工具（4种模式自动路由）（默认分页）
 
-        通过工具名称调用 LINKAIMCP.LIST 中配置的模型工具。
-        根据工具在 LINKAIMCP.LIST 中配置的 ToolType 自动选择调用方式。
+        通过工具名称调用 SEARCHLIST-100 中配置的模型工具。
+        根据工具在 SEARCHLIST-100 中配置的 ToolType 自动选择调用方式。
         始终分页返回，避免 token 超限。每页默认 {page_size} 条。
 
         Args:
-            tool_name: 工具名称（从 get_tools 返回的 name 字段，必须精确匹配）
+            tool_name: 工具名称（从 get_tools 或 match_tool 返回的 name 字段）
+            toolid: 工具唯一ID（从 match_tool 返回的 toolid 字段）。当存在同名工具时，优先使用 toolid 精确匹配，避免歧义
             parameters: 工具参数数组，按顺序传入模型，如 ["", "2026-06-14", ""]，工具参数数组，按顺序传入。空字符串 "" 表示该位置不传参
             userid: TotalLINK用户名
             page: 页码（从1开始，默认第1页）
@@ -526,22 +536,46 @@ def register_ai_tools(mcp):
         except (ValueError, TypeError):
             script_type = -1
         # =========================================
+
         tools = await get_user_tools(userid)
-        tool_def = next((t for t in tools if t["name"] == tool_name), None)
+
+        # ===== 匹配工具：优先 toolid，其次 name =====
+        tool_def = None
+
+        if toolid:
+            # 精确 toolid 匹配
+            tool_def = next((t for t in tools if str(t.get("toolid", "")) == toolid), None)
 
         if not tool_def:
-            return {
-                "isSuccess": "false",
-                "message": f"工具 '{tool_name}' 不存在或未授权，请先调用 get_tools 查看可用工具"
-            }
+            # 按 name 匹配
+            same_name_list = [t for t in tools if t["name"] == tool_name]
+
+            if len(same_name_list) == 0:
+                return {
+                    "isSuccess": "false",
+                    "message": f"工具 '{tool_name}' 不存在或未授权，请先调用 get_tools 查看可用工具"
+                }
+            elif len(same_name_list) > 1:
+                # 同名工具存在，但没传 toolid → 无法精确区分，返回提示
+                return {
+                    "isSuccess": "false",
+                    "message": (
+                        f"工具 '{tool_name}' 存在 {len(same_name_list)} 个同名工具，无法确定调用哪一个。"
+                        f"请先调用 match_tool 匹配具体工具，然后使用返回的 toolid 调用本方法。"
+                        f"候选工具: {[t.get('description','') for t in same_name_list]}"
+                    )
+                }
+            else:
+                tool_def = same_name_list[0]
+
         tool_type = tool_def.get("toolType", "AIResult")
 
-        logger.info(f"RowSubmit: {tool_type}, scriptType: {script_type}+{parameters}+{row_data}")
+        logger.info(f"[CallDynamicTool] {tool_type}, toolid={tool_def.get('toolid')}, scriptType={script_type}, para={parameters}")
         import re
         desc = tool_def.get("description", "")
-         # ===== 按 ToolType 路由 =====
+        # ===== 按 ToolType 路由 =====
         if tool_type == "AIRowSubmit" or tool_type == "AIDataSubmit":
-            if(script_type < 0):
+            if script_type < 0:
                 match = re.search(r'script_type["\s]*[=：:]\s*(\d+)', desc)
                 if match:
                     script_type = int(match.group(1))

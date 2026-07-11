@@ -131,7 +131,6 @@ Content-Type: application/json
 | TOOL_TYPE | 接口 | 用途 |
 |-----------|------|------|
 | AIResult | `POST /api/DataModel/linkDMAIResult` | 数据查询（默认分页） |
-| AIAction | `POST /api/DataModel/linkDMAIAction` | 执行操作（增删改等） |
 | AIRowSubmit | `POST /api/DataModel/linkDMAIRowSubmit` | 行数据提交 |
 | AIDataSubmit | `POST /api/DataModel/linkDMAIDataSubmit` | 批量数据提交 |
 
@@ -174,25 +173,6 @@ Content-Type: application/json
     "total_items": 100
   },
   "message": "第 1/5 页，共 100 条。当前显示 20 条，还有 80 条未显示。"
-}
-```
-
----
-
-### AIAction（执行操作）
-
-```json
-{
-  "loginID": "${TOTALLINK_AUTH_TOKEN}",
-  "par": {
-    "dm": {
-      "dmCode": "<TOOL_CODE>",
-      "dmNum": <TOOL_NUM>,
-      "Para": ["参数1", "参数2", "..."]
-    },
-    "contextMenuNo": <操作编号>,
-    "rowData": { "字段": "值" }
-  }
 }
 ```
 
@@ -244,9 +224,7 @@ Content-Type: application/json
 - 统一响应格式：`{ isSuccess, data, message }`
 - `isSuccess` 为字符串 `"true"` 表示成功，`"false"` 表示失败
 - `Para` 为字符串数组，空位传 `""`，不传 null/undefined
-- `data.Table` 支持两种格式：
-  - 新格式：`{ schema: ["字段名", ...], data: [["值", ...]] }`
-  - 旧格式：`[{ "字段名": "值" }, ...]`
+- `data.Table` 格式：`{ schema: ["字段名", ...], data: [["值", ...]] }`
 - 分页返回额外包含 `pagination` 对象：`{ current_page, total_pages, total_items }`
 
 ## 场景化 Skill 如何引用基础 Skill

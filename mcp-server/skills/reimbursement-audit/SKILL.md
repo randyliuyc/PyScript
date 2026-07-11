@@ -67,7 +67,7 @@ POST ${TOTALLINK_BASE_URL}/api/DataModel/linkDMAIResult
 }
 ```
 
-从 `data.Table.data` 中按 `TOOL_NAME` 定位上述 4 个工具，记录其 `TOOL_CODE`/`TOOL_NUM`/`TOOL_TYPE`，供后续步骤使用。
+从 `data.Table.data` 中按 `TOOL_NAME`/`TOOL_DESC` 定位上述 4 个工具，记录其 `TOOL_CODE`/`TOOL_NUM`/`TOOL_TYPE`，供后续步骤使用。
 
 ---
 

@@ -2,6 +2,7 @@
 from typing import Dict, Any, List, Optional
 import copy
 import datetime
+import json
 import httpx
 from loguru import logger
 
@@ -32,8 +33,24 @@ logger.add("server.log")
 
 # ============ 内部工具函数 ============
 def _build_linktoken(userid: str) -> str:
-    """构建认证令牌"""
-    return "tlk_a69a494fc83e97f0424366cf382e467263b92a20"
+    """构建认证令牌，优先级：环境变量 > 本地配置文件"""
+    import os
+
+    # 1. 环境变量
+    token = os.environ.get("TOTALLINK_AUTH_TOKEN", "").strip()
+    if token:
+        return token
+
+    # 2. 本地配置文件
+    config_path = os.path.expanduser("~/.totallink/config.json")
+    try:
+        with open(config_path) as f:
+            token = json.load(f).get("auth_token", "")
+            if token:
+                return token
+    except Exception:
+        return ""
+    return ""
 
 
 def paginate_data(data: Dict[str, Any], page: int = 1, page_size: int = DEFAULT_PAGE_SIZE) -> Dict[str, Any]:
@@ -492,7 +509,6 @@ def register_ai_tools(mcp):
         if table_data is None:
             table_data = []
         if isinstance(parameters, str):
-            import json
             try:
                 parameters = json.loads(parameters)
             except (json.JSONDecodeError, TypeError):

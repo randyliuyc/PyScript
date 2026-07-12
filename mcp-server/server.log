@@ -135,3 +135,8 @@
 2026-07-12 09:55:28.373 | WARNING  | utils:get_ai_result:180 - [AIResult] SEARCHLIST/100 failed: 没有操作权限
 2026-07-12 09:56:07.598 | INFO     | utils:get_ai_result:174 - [AIResult] SEARCHLIST/100, para=[]
 2026-07-12 09:56:07.598 | DEBUG    | utils:get_ai_result:175 - [AIResult] payload keys=['loginID', 'par']
+2026-07-12 10:16:32.320 | INFO     | utils:get_ai_result:174 - [AIResult] SEARCHLIST/100, para=[]
+2026-07-12 10:16:32.321 | DEBUG    | utils:get_ai_result:175 - [AIResult] payload keys=['loginID', 'par']
+2026-07-12 10:16:32.387 | WARNING  | utils:get_ai_result:180 - [AIResult] SEARCHLIST/100 failed: 没有操作权限
+2026-07-12 10:17:03.485 | INFO     | utils:get_ai_result:174 - [AIResult] SEARCHLIST/100, para=[]
+2026-07-12 10:17:03.485 | DEBUG    | utils:get_ai_result:175 - [AIResult] payload keys=['loginID', 'par']

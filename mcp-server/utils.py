@@ -384,14 +384,14 @@ def register_ai_tools(mcp):
     """注册 AI 工具 - 统一入口架构"""
 
     @mcp.tool()
-    async def get_tools(userid: str = "", force_refresh: Any = False) -> Dict[str, Any]:
+    async def get_tools(auth_token: str = "", force_refresh: Any = False) -> Dict[str, Any]:
         """
         【工具列表】获取当前用户可用的动态工具列表
 
         返回所有已授权的 TotalLINK 模型工具。工具较多时优先使用 match_tool，工具少时直接从此列表选择。
 
         Args:
-            userid: TotalLINK用户名
+            auth_token: 认证令牌（留空则自动从配置文件读取）
             force_refresh: 是否强制刷新缓存（默认 False，缓存15分钟）
 
         Returns:
@@ -401,6 +401,9 @@ def register_ai_tools(mcp):
         # 类型兜底
         if isinstance(force_refresh, str):
             force_refresh = force_refresh.lower() == "true"
+        userid = auth_token or _build_linktoken("")  # 空则自动用令牌
+        if not userid:
+            return {"isSuccess": "false", "message": "认证令牌未配置。请提供 auth_token 参数，或配置 ~/.totallink/config.json 中的 auth_token 字段"}
         tools = await get_user_tools(userid, force_refresh=force_refresh)
 
         return {
@@ -412,7 +415,7 @@ def register_ai_tools(mcp):
         }
 
     @mcp.tool()
-    async def match_tool(userid: str = "", query: str = "") -> Dict[str, Any]:
+    async def match_tool(auth_token: str = "", query: str = "") -> Dict[str, Any]:
         """
         【工具匹配】根据用户问题语义匹配最合适的工具
 
@@ -420,16 +423,19 @@ def register_ai_tools(mcp):
         匹配不准时返回 top 5 候选供 AI 二次判断。工具很少时直接用 get_tools 即可。
 
         Args:
-            userid: TotalLINK用户名
+            auth_token: 认证令牌（留空则自动从配置文件读取）
             query: 用户的自然语言需求描述
 
         Returns:
             matched: 是否唯一高置信度匹配
-            tool: 最佳匹配（含 tool_id、name、description、toolType），matched=true 时直接用 tool_id 调用
-            candidates: 候选列表（最多5个，含 tool_id、toolType），matched=false 时按描述选最合适的
+            tool: 最佳匹配（含 dmCode、dmNum、name、description、toolType），matched=true 时直接用 dmCode/dmNum 调用
+            candidates: 候选列表（最多5个，含 dmCode、dmNum、toolType），matched=false 时按描述选最合适的
             total_available: 用户可用工具总数
             message: 匹配结果提示
         """
+        userid = auth_token or _build_linktoken("")
+        if not userid:
+            return {"isSuccess": "false", "message": "认证令牌未配置。请提供 auth_token 参数，或配置 ~/.totallink/config.json 中的 auth_token 字段"}
         tools = await get_user_tools(userid)
         candidates = match_tool_by_query(query, tools, top_n=5)
 
@@ -443,7 +449,7 @@ def register_ai_tools(mcp):
 
         # 第一个候选分数最高，作为推荐
         best = candidates[0]
-        logger.info(f"[MatchTool] userid={userid}, query='{query}', total_tools={len(tools)},toools:{candidates}")
+        logger.info(f"[MatchTool] token={userid[:8]}..., query='{query}', total_tools={len(tools)}")
 
         high_confidence = len(candidates) == 1
 
@@ -475,7 +481,7 @@ def register_ai_tools(mcp):
         dmCode: str,
         dmNum: int = 10,
         parameters: List[str] = [],
-        userid: str = "",
+        auth_token: str = "",
         page: int = 1,
         page_size: int = DEFAULT_PAGE_SIZE,
         script_type: Any = -1,
@@ -486,13 +492,13 @@ def register_ai_tools(mcp):
         【统一入口】调用 TotalLINK 模型工具（3种模式自动路由，默认分页）
 
         通过 dmCode/dmNum 定位工具，根据 toolType 自动选择 AIResult / AIRowSubmit / AIDataSubmit 模式。
-        所有工具通用: dmCode（必填）+ dmNum（必填）+ userid（必填）+ parameters（按位置数组，空位传 ""）
+        所有工具通用: dmCode（必填）+ dmNum（必填）+ parameters（按位置数组，空位传 ""）。auth_token 可留空
 
         Args:
             dmCode: 模型编码（从 get_tools 或 match_tool 获取，必填）
             dmNum: 模型编号（从 get_tools 或 match_tool 获取，必填）
             parameters: 参数数组，按工具 description 中的顺序传入，空位传 ""。如 ["", "2026-06-14", ""]
-            userid: TotalLINK用户名（必填）
+            auth_token: 认证令牌（留空则自动从配置文件读取）
             page: 页码，从1开始（仅 AIResult 有效，默认1）
             page_size: 每页条数（仅 AIResult 有效，默认 {page_size}，最大50）
             script_type: 操作类型整数（仅 AIRowSubmit/AIDataSubmit 需要，从工具 description 获取）
@@ -532,6 +538,9 @@ def register_ai_tools(mcp):
         except (ValueError, TypeError):
             script_type = -1
         # =========================================
+        userid = auth_token or _build_linktoken("")
+        if not userid:
+            return {"isSuccess": "false", "message": "认证令牌未配置。请提供 auth_token 参数，或配置 ~/.totallink/config.json 中的 auth_token 字段"}
 
         tools = await get_user_tools(userid)
 

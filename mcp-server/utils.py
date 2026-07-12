@@ -31,21 +31,9 @@ logger.add("server.log")
 
 
 # ============ 内部工具函数 ============
-def calc_value() -> str:
-    """获取 TotalLINK 的 AI 调用令牌"""
-    now = datetime.datetime.now()
-    I = int(now.strftime("%S%M%H%y%m%d"))
-
-    result = (I - 12251) * 12253 - 31321
-
-    return str(result)
-
-
 def _build_linktoken(userid: str) -> str:
     """构建认证令牌"""
-    if len(userid) == 32 and userid.isalnum():
-        return userid
-    return f"{userid} {calc_value()}"
+    return "tlk_a69a494fc83e97f0424366cf382e467263b92a20"
 
 
 def paginate_data(data: Dict[str, Any], page: int = 1, page_size: int = DEFAULT_PAGE_SIZE) -> Dict[str, Any]:
@@ -390,8 +378,8 @@ def register_ai_tools(mcp):
             force_refresh: 是否强制刷新缓存（默认 False，缓存15分钟）
 
         Returns:
-            工具列表，每项包含 tool_id、name、description、toolType，以及 total 数量
-            ⚠️ 调用 call_dynamic_tool 时必须使用 tool_id
+            工具列表，每项包含 dmCode、dmNum、name、description、toolType，以及 total 数量
+            ⚠️ 调用 call_dynamic_tool 时必须使用 dmCode 和 dmNum
         """
         # 类型兜底
         if isinstance(force_refresh, str):
@@ -401,7 +389,7 @@ def register_ai_tools(mcp):
         return {
             "total": len(tools),
             "tools": [
-                {"tool_id": t["toolid"], "name": t["name"], "description": t["description"], "toolType": t["toolType"]}
+                {"tool_id": t["toolid"], "dmCode": t["dmCode"], "dmNum": t["dmNum"], "name": t["name"], "description": t["description"], "toolType": t["toolType"]}
                 for t in tools
             ]
         }
@@ -446,26 +434,29 @@ def register_ai_tools(mcp):
             "matched": high_confidence,
             "tool": {
                 "tool_id": best["toolid"],
+                "dmCode": best["dmCode"],
+                "dmNum": best["dmNum"],
                 "name": best["name"],
                 "description": best["description"],
                 "toolType": best["toolType"]
             },
             "candidates": [
-                {"tool_id": t["toolid"], "name": t["name"], "description": t["description"], "toolType": t["toolType"]}
+                {"tool_id": t["toolid"], "dmCode": t["dmCode"], "dmNum": t["dmNum"], "name": t["name"], "description": t["description"], "toolType": t["toolType"]}
                 for t in candidates
             ],
             "total_available": len(tools),
             "message": (
-                f"✅ 高置信度匹配「{best['name']}」，请直接使用 tool_id 调用 call_dynamic_tool"
+                f"✅ 高置信度匹配「{best['name']}」，请直接使用 dmCode/dmNum 调用 call_dynamic_tool"
                 if high_confidence
-                else f"找到 {len(candidates)} 个候选工具，推荐「{best['name']}」，请根据描述选择对应的 tool_id 调用"
+                else f"找到 {len(candidates)} 个候选工具，推荐「{best['name']}」，请根据描述选择对应的 dmCode/dmNum 调用"
             )
         }
 
 
     @mcp.tool()
     async def call_dynamic_tool(
-        tool_id: str,
+        dmCode: str,
+        dmNum: int = 10,
         parameters: List[str] = [],
         userid: str = "",
         page: int = 1,
@@ -477,11 +468,12 @@ def register_ai_tools(mcp):
         """
         【统一入口】调用 TotalLINK 模型工具（3种模式自动路由，默认分页）
 
-        通过 tool_id 定位工具，根据 toolType 自动选择 AIResult / AIRowSubmit / AIDataSubmit 模式。
-        所有工具通用: tool_id（必填）+ userid（必填）+ parameters（按位置数组，空位传 ""）
+        通过 dmCode/dmNum 定位工具，根据 toolType 自动选择 AIResult / AIRowSubmit / AIDataSubmit 模式。
+        所有工具通用: dmCode（必填）+ dmNum（必填）+ userid（必填）+ parameters（按位置数组，空位传 ""）
 
         Args:
-            tool_id: 工具唯一ID（从 get_tools 或 match_tool 获取，必填）
+            dmCode: 模型编码（从 get_tools 或 match_tool 获取，必填）
+            dmNum: 模型编号（从 get_tools 或 match_tool 获取，必填）
             parameters: 参数数组，按工具 description 中的顺序传入，空位传 ""。如 ["", "2026-06-14", ""]
             userid: TotalLINK用户名（必填）
             page: 页码，从1开始（仅 AIResult 有效，默认1）
@@ -527,9 +519,9 @@ def register_ai_tools(mcp):
 
         tools = await get_user_tools(userid)
 
-        # ===== 精确匹配 tool_id =====
+        # ===== 匹配工具：dmCode + dmNum =====
         tool_def = next(
-            (t for t in tools if str(t.get("toolid", "")) == str(tool_id)),
+            (t for t in tools if t.get("dmCode") == dmCode and int(t.get("dmNum", 0)) == dmNum),
             None
         )
 
@@ -537,14 +529,14 @@ def register_ai_tools(mcp):
             return {
                 "isSuccess": "false",
                 "message": (
-                    f"tool_id '{tool_id}' 不存在或未授权。"
-                    f"请先调用 get_tools 获取可用工具列表，从中获取正确的 tool_id"
+                    f"工具 dmCode='{dmCode}' dmNum={dmNum} 不存在或未授权。"
+                    f"请先调用 get_tools 获取可用工具列表"
                 )
             }
 
         tool_type = tool_def.get("toolType", "AIResult")
 
-        logger.info(f"[CallDynamicTool] {tool_type}, tool_id={tool_id}, scriptType={script_type}, para={parameters}")
+        logger.info(f"[CallDynamicTool] {tool_type}, dmCode={dmCode}, dmNum={dmNum}, scriptType={script_type}, para={parameters}")
         import re
         desc = tool_def.get("description", "")
         # ===== 按 ToolType 路由 =====
@@ -556,8 +548,8 @@ def register_ai_tools(mcp):
 
         if tool_type == "AIRowSubmit":
             return await ai_row_submit(
-                code=tool_def["dmCode"],
-                num=tool_def["dmNum"],
+                code=dmCode,
+                num=dmNum,
                 script_type=script_type,
                 para=parameters,
                 row_data=row_data,
@@ -566,8 +558,8 @@ def register_ai_tools(mcp):
 
         elif tool_type == "AIDataSubmit":
             return await ai_data_submit(
-                code=tool_def["dmCode"],
-                num=tool_def["dmNum"],
+                code=dmCode,
+                num=dmNum,
                 script_type=script_type,
                 para=parameters,
                 row_data=row_data,
@@ -577,8 +569,8 @@ def register_ai_tools(mcp):
 
         else:
             return await get_ai_result(
-                code=tool_def["dmCode"],
-                num=tool_def["dmNum"],
+                code=dmCode,
+                num=dmNum,
                 para=parameters,
                 userid=userid,
                 page=page,

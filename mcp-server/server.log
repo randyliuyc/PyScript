@@ -117,3 +117,16 @@
 2026-07-10 21:04:35.268 | INFO     | utils:call_dynamic_tool:547 - [CallDynamicTool] AIRowSubmit, tool_id=26940, scriptType=4, para=['EXP260600009']
 2026-07-10 21:04:35.269 | INFO     | utils:ai_row_submit:238 - [AIRowSubmit] LINKEXP0110X/503, script_type=4
 2026-07-10 21:04:35.269 | DEBUG    | utils:ai_row_submit:239 - [AIRowSubmit] row_data={'DOCNUM': 'EXP260600009', 'REMARK': '发票类型不符'}
+2026-07-12 08:44:55.022 | INFO     | utils:get_ai_result:169 - [AIResult] SEARCHLIST/100, para=[]
+2026-07-12 08:44:55.022 | DEBUG    | utils:get_ai_result:170 - [AIResult] payload keys=['loginID', 'par']
+2026-07-12 08:45:12.878 | WARNING  | utils:get_ai_result:175 - [AIResult] SEARCHLIST/100 failed: 没有操作权限
+2026-07-12 08:45:22.887 | INFO     | utils:get_ai_result:169 - [AIResult] SEARCHLIST/100, para=[]
+2026-07-12 08:45:22.887 | DEBUG    | utils:get_ai_result:170 - [AIResult] payload keys=['loginID', 'par']
+2026-07-12 08:45:22.908 | WARNING  | utils:get_ai_result:175 - [AIResult] SEARCHLIST/100 failed: 没有操作权限
+2026-07-12 08:48:09.976 | INFO     | utils:get_ai_result:157 - [AIResult] SEARCHLIST/100, para=[]
+2026-07-12 08:48:09.976 | DEBUG    | utils:get_ai_result:158 - [AIResult] payload keys=['loginID', 'par']
+2026-07-12 09:20:17.665 | INFO     | utils:get_ai_result:157 - [AIResult] SEARCHLIST/100, para=[]
+2026-07-12 09:20:17.665 | DEBUG    | utils:get_ai_result:158 - [AIResult] payload keys=['loginID', 'par']
+2026-07-12 09:20:23.452 | INFO     | utils:call_dynamic_tool:539 - [CallDynamicTool] AIResult, dmCode=LINKEXP01, dmNum=9, scriptType=-1, para=['', '2026-06-20', '2026-07-10', '']
+2026-07-12 09:20:23.452 | INFO     | utils:get_ai_result:157 - [AIResult] LINKEXP01/9, para=['', '2026-06-20', '2026-07-10', '']
+2026-07-12 09:20:23.452 | DEBUG    | utils:get_ai_result:158 - [AIResult] payload keys=['loginID', 'par']

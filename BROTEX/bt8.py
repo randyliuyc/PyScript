@@ -12,7 +12,7 @@ import scipy.optimize
 # 2026年5月29日，相同分布签名去除处理
 # 2026年5月29日，相邻颜色相同时对调，打乱颜色
 # ======================
-TOL = 0.02                  # 粗搜容差 1.5%
+TOL = 0.015                  # 粗搜容差 1.5%
 TOP_N = 100                   # 结果返回的数量
 MAX_SEEDS = 150              # 限制种子数量，平衡速度与精度
 MAX_PER_X_SIGNATURE = 5      # 每种 X 区域签名最多保留的结果数
@@ -317,7 +317,7 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
         errors = [v[0] for v in eval_cache.values()]
         valid_errors = [e for e in errors if e < 0.5]
         good_errors = [e for e in valid_errors if e < 0.015]
-        print(f"[诊断] 评估点数: {len(eval_cache)}, 有效X组合: {len(valid_errors)}, 误差<1.5%: {len(good_errors)}")
+        print(f"[诊断] 评估点数: {len(eval_cache)}, 有效X组合: {len(valid_errors)}, 误差<{TOL*100:.0f}%: {len(good_errors)}")
         if valid_errors:
             print(f"[诊断] 最佳误差: {min(valid_errors):.4f}, 最差误差: {max(valid_errors):.4f}")
         else:

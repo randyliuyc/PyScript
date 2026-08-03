@@ -12,22 +12,21 @@ import scipy.optimize
 # 2026年5月29日，相同分布签名去除处理
 # 2026年5月29日，相邻颜色相同时对调，打乱颜色
 # ======================
-TOL = 0.015                  # 粗搜容差 1.5%
+TOL = 0.02                  # 粗搜容差 1.5%
 TOP_N = 100                   # 结果返回的数量
 MAX_SEEDS = 150              # 限制种子数量，平衡速度与精度
 MAX_PER_X_SIGNATURE = 5      # 每种 X 区域签名最多保留的结果数
 PRIORITY_ERROR_THRESHOLD = 0.0005   # 0.05%
 NON_PRIORITY_ERROR_THRESHOLD = 0.005 # 0.5%
 D_RANGE = (0.5, 10.0)
-X4_RATIO_LIMIT = 4.0
-MAX_X4 = 6.0
 MAX_RUNTIME = 60             # 最大运行时间60秒
 
 # 物理结构定义
 BUCKETS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
-# 速度组映射：A:G0, B:G1, C:G2, D:G2, E:G3, F:G3, G:G1, H:G4
-GROUP_SIZES = np.array([1, 2, 2, 2, 1])  
-BUCKET_TO_GROUP = np.array([0, 1, 2, 2, 3, 3, 1, 4])
+# 速度组映射：A:G0, B:G0, C:G1, D:G1, E:G2, F:G2, G:G3, H:G3
+# AB同速(1/X1), CD固定(1.0), EF同速(1/X2), GH同速(1/X3)
+GROUP_SIZES = np.array([2, 2, 2, 2])  
+BUCKET_TO_GROUP = np.array([0, 0, 1, 1, 2, 2, 3, 3])
 
 # ======================
 # 核心计算函数
@@ -39,10 +38,10 @@ def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
     """
     results = []
     current_sums = [0.0] * num_colors
-    current_assign = [None] * 5
+    current_assign = [None] * 4
 
     def dfs(g_idx):
-        if g_idx == 5:
+        if g_idx == 4:
             total_err = 0.0
             final_pcts = []
             for i in range(num_colors):
@@ -53,19 +52,20 @@ def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
                 if err > 0.015: return # 种子阶段单色误差阈值，略微放宽
             
             # 还原为 8 桶位分配 (存储颜色索引)
-            # 对于大小为2的组，按固定顺序展开（小索引在前，大索引在后）
+            # 每组大小为2，按顺序展开到具体桶位
             flat = [None] * 8
-            flat[0] = current_assign[0][0] # A (组0, 大小1)
-            # 组1 (BG): 按顺序展开，确保 B < G 的索引顺序
+            # 组0 (AB): 桶位0=A, 1=B
+            c1, c2 = current_assign[0]
+            flat[0], flat[1] = (c1, c2) if c1 <= c2 else (c2, c1)
+            # 组1 (CD): 桶位2=C, 3=D
             c1, c2 = current_assign[1]
-            flat[1], flat[6] = (c1, c2) if c1 <= c2 else (c2, c1)
-            # 组2 (CD): 按顺序展开，确保 C < D 的索引顺序
-            c1, c2 = current_assign[2]
             flat[2], flat[3] = (c1, c2) if c1 <= c2 else (c2, c1)
-            # 组3 (EF): 按顺序展开，确保 E < F 的索引顺序
-            c1, c2 = current_assign[3]
+            # 组2 (EF): 桶位4=E, 5=F
+            c1, c2 = current_assign[2]
             flat[4], flat[5] = (c1, c2) if c1 <= c2 else (c2, c1)
-            flat[7] = current_assign[4][0] # H (组4, 大小1)
+            # 组3 (GH): 桶位6=G, 7=H
+            c1, c2 = current_assign[3]
+            flat[6], flat[7] = (c1, c2) if c1 <= c2 else (c2, c1)
             results.append((flat, total_err, final_pcts))
             return
 
@@ -98,7 +98,7 @@ def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
                 if pct > targets[i] + 0.03:
                     pass_check = False; break
             if pass_check:
-                remaining = sum(weights[g] for g in range(g_idx + 1, 5))
+                remaining = sum(weights[g] for g in range(g_idx + 1, 4))
                 for i in range(num_colors):
                     max_possible = (current_sums[i] + remaining) / D
                     if max_possible < targets[i] - 0.03:
@@ -120,10 +120,10 @@ def refine_vectorized(seeds, targets, json_data):
     """
     if not seeds: return []
     
-    # 定义微调网格 7^4 = 2401 组
+    # 定义微调网格 7^3 = 343 组
     offsets = np.linspace(-0.03, 0.03, 7) 
-    d1, d2, d3, d4 = np.meshgrid(offsets, offsets, offsets, offsets)
-    d1, d2, d3, d4 = d1.ravel(), d2.ravel(), d3.ravel(), d4.ravel()
+    d1, d2, d3 = np.meshgrid(offsets, offsets, offsets)
+    d1, d2, d3 = d1.ravel(), d2.ravel(), d3.ravel()
     
     target_arr = np.array(targets)
     is_priority = np.array([item["PRIORITY"] for item in json_data])
@@ -131,25 +131,24 @@ def refine_vectorized(seeds, targets, json_data):
     
     # 仅精修前 TOP_N 个优质种子
     for sol in seeds[:TOP_N]:
-        mX1, mX2, mX3, mX4 = sol['X1']+d1, sol['X2']+d2, sol['X3']+d3, sol['X4']+d4
+        mX1, mX2, mX3 = sol['X1']+d1, sol['X2']+d2, sol['X3']+d3
         
         # 物理与工艺约束过滤
-        mask = (mX1 >= 1.0) & (mX2 >= 1.0) & (mX3 >= 1.0) & (mX4 > mX1 + 0.01) & \
-            (mX4 > mX3 + 0.01) & (mX4 <= MAX_X4) & \
-            (mX4/mX1 <= X4_RATIO_LIMIT) & (mX4/mX3 <= X4_RATIO_LIMIT)
+        mask = (mX1 >= 1.0) & (mX2 >= 1.0) & (mX3 >= 1.0)
         
         if not np.any(mask): 
             refined_results.append(sol)
             continue
             
-        mX1, mX2, mX3, mX4 = mX1[mask], mX2[mask], mX3[mask], mX4[mask]
+        mX1, mX2, mX3 = mX1[mask], mX2[mask], mX3[mask]
         
         # 矢量化计算总牵伸 D
-        W = np.array([1/mX1, 1/mX4, np.ones_like(mX1), 1/mX2, 1/mX3]) # 5 x N
+        # 组速度: G0(AB)=1/X1, G1(CD)=1.0, G2(EF)=1/X2, G3(GH)=1/X3
+        W = np.array([1/mX1, np.ones_like(mX1), 1/mX2, 1/mX3]) # 4 x N
         D_vec = np.dot(GROUP_SIZES, W) # N
         
         # 计算该分配方案下各颜色的权重矩阵
-        c_weights = np.zeros((len(targets), 5))
+        c_weights = np.zeros((len(targets), 4))
         for b_idx, color_idx in enumerate(sol['assign']):
             c_weights[color_idx, BUCKET_TO_GROUP[b_idx]] += 1
         
@@ -164,7 +163,7 @@ def refine_vectorized(seeds, targets, json_data):
             total_errs = np.sum(errors_matrix, axis=0)
             best_idx = np.argmin(np.where(valid_mask, total_errs, 9.9))
             refined_results.append({
-                'X1': mX1[best_idx], 'X2': mX2[best_idx], 'X3': mX3[best_idx], 'X4': mX4[best_idx],
+                'X1': mX1[best_idx], 'X2': mX2[best_idx], 'X3': mX3[best_idx],
                 'assign': sol['assign'], 'dev': total_errs[best_idx], 'D': D_vec[best_idx],
                 'final_pcts': final_pcts_matrix[:, best_idx].tolist(),
                 'stage_label': sol.get('stage_label', 'Unknown')
@@ -187,15 +186,14 @@ def select_diverse_top(results, top_n=TOP_N):
     sorted_results = sorted(results, key=lambda x: (round(x['dev'], 2), -x['D']))
     
     selected = []
-    used_x_zones = set()       # (X1~0.3, X2~0.3, X3~0.3, X4~0.3)
+    used_x_zones = set()       # (X1~0.3, X2~0.3, X3~0.3)
     used_assign_sigs = set()   # tuple of 8 assignments
     
     for s in sorted_results:
         # X 区域签名：~0.3 步长聚类
         x_zone = (round(s['X1'] / 0.3) * 0.3,
                   round(s['X2'] / 0.3) * 0.3,
-                  round(s['X3'] / 0.3) * 0.3,
-                  round(s['X4'] / 0.3) * 0.3)
+                  round(s['X3'] / 0.3) * 0.3)
         # 分配方案签名
         assign_sig = tuple(s['assign'])
         
@@ -233,26 +231,16 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
         if time.time() - start_time > MAX_RUNTIME:
             return 100.0
 
-        x1, x2, x3, x4 = x
+        x1, x2, x3 = x
         penalty = 0.0
 
         # 连续惩罚：违反越多惩罚越大，为 Nelder-Mead 提供梯度方向
         if x1 < 1.0: penalty += (1.0 - x1) * 0.5
         if x2 < 1.0: penalty += (1.0 - x2) * 0.5
         if x3 < 1.0: penalty += (1.0 - x3) * 0.5
-        if x4 < 1.0: penalty += (1.0 - x4) * 0.5
 
-        if x4 <= x1 + 0.01: penalty += (x1 + 0.01 - x4) * 0.5
-        if x4 <= x3 + 0.01: penalty += (x3 + 0.01 - x4) * 0.5
-
-        ratio1 = x4 / max(x1, 1e-6)
-        ratio3 = x4 / max(x3, 1e-6)
-        if ratio1 > X4_RATIO_LIMIT: penalty += (ratio1 - X4_RATIO_LIMIT) * 0.1
-        if ratio3 > X4_RATIO_LIMIT: penalty += (ratio3 - X4_RATIO_LIMIT) * 0.1
-
-        if x4 > MAX_X4: penalty += (x4 - MAX_X4) * 0.1
-
-        w = np.array([1/max(x1,1e-6), 1/max(x4,1e-6), 1.0, 1/max(x2,1e-6), 1/max(x3,1e-6)])
+        # 组速度: G0(AB)=1/X1, G1(CD)=1.0, G2(EF)=1/X2, G3(GH)=1/X3
+        w = np.array([1/max(x1,1e-6), 1.0, 1/max(x2,1e-6), 1/max(x3,1e-6)])
         D = np.sum(w * GROUP_SIZES)
         if D <= D_RANGE[0]: penalty += (D_RANGE[0] - D) * 0.1
         if D >= D_RANGE[1]: penalty += (D - D_RANGE[1]) * 0.1
@@ -261,7 +249,7 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
         if penalty > 0:
             return 0.1 + penalty
 
-        key = (round(x1, 2), round(x2, 2), round(x3, 2), round(x4, 2))
+        key = (round(x1, 2), round(x2, 2), round(x3, 2))
         if key in eval_cache:
             return eval_cache[key][0]
 
@@ -275,10 +263,9 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
         return min_err
 
     scipy_bounds = [
-        (max(1.0, bounds['x1'][0]), min(4.0, bounds['x1'][1])),
-        (max(1.0, bounds['x2'][0]), min(4.0, bounds['x2'][1])),
-        (max(1.0, bounds['x3'][0]), min(4.0, bounds['x3'][1])),
-        (max(1.0, bounds['x4'][0]), min(MAX_X4, bounds['x4'][1]))
+        (max(1.0, bounds['x1'][0]), bounds['x1'][1]),
+        (max(1.0, bounds['x2'][0]), bounds['x2'][1]),
+        (max(1.0, bounds['x3'][0]), bounds['x3'][1])
     ]
 
     n_explore = 200
@@ -309,8 +296,8 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
             break
 
         base = random.choice(good_keys)
-        x0 = [round(base[j] + random.uniform(-0.08, 0.08), 2) for j in range(4)]
-        for j in range(4):
+        x0 = [round(base[j] + random.uniform(-0.08, 0.08), 2) for j in range(3)]
+        for j in range(3):
             x0[j] = max(scipy_bounds[j][0], min(scipy_bounds[j][1], x0[j]))
 
         scipy.optimize.minimize(
@@ -322,13 +309,13 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX
     for key, (err, assignments, D) in eval_cache.items():
         if err >= 0.015:
             continue
-        x_sig = (round(key[0], 1), round(key[1], 1), round(key[2], 1), round(key[3], 1))
+        x_sig = (round(key[0], 1), round(key[1], 1), round(key[2], 1))
         if x_signature_count.get(x_sig, 0) >= MAX_PER_X_SIGNATURE:
             continue
         x_signature_count[x_sig] = x_signature_count.get(x_sig, 0) + 1
         for af, dev, pcts in assignments:
             seeds.append({
-                'X1': key[0], 'X2': key[1], 'X3': key[2], 'X4': key[3],
+                'X1': key[0], 'X2': key[1], 'X3': key[2],
                 'assign': af, 'dev': dev, 'D': D, 'final_pcts': pcts,
                 'stage_label': 'scipy'
             })
@@ -354,13 +341,12 @@ def find_seeds_grid(targets, num_colors, pos_constraints, bounds, max_seeds=MAX_
     seeds = []
     x_sig_count = {}
 
-    grid_step = 0.1
+    grid_step = 0.03
     x1_vals = np.arange(bounds['x1'][0], bounds['x1'][1] + grid_step/2, grid_step)
     x2_vals = np.arange(bounds['x2'][0], bounds['x2'][1] + grid_step/2, grid_step)
     x3_vals = np.arange(bounds['x3'][0], bounds['x3'][1] + grid_step/2, grid_step)
-    x4_vals = np.arange(bounds['x4'][0], bounds['x4'][1] + grid_step/2, grid_step)
 
-    total = len(x1_vals) * len(x2_vals) * len(x3_vals) * len(x4_vals)
+    total = len(x1_vals) * len(x2_vals) * len(x3_vals)
     checked = 0
 
     for x1 in x1_vals:
@@ -370,45 +356,37 @@ def find_seeds_grid(targets, num_colors, pos_constraints, bounds, max_seeds=MAX_
             if len(seeds) >= max_seeds or time.time() - start_time > MAX_RUNTIME * 0.8:
                 break
             for x3 in x3_vals:
+                checked += 1
                 if len(seeds) >= max_seeds or time.time() - start_time > MAX_RUNTIME * 0.8:
                     break
-                for x4 in x4_vals:
-                    checked += 1
-                    if len(seeds) >= max_seeds or time.time() - start_time > MAX_RUNTIME * 0.8:
-                        break
 
-                    x1r, x2r, x3r, x4r = round(x1, 2), round(x2, 2), round(x3, 2), round(x4, 2)
+                x1r, x2r, x3r = round(x1, 2), round(x2, 2), round(x3, 2)
 
-                    if x1r < 1.0 or x2r < 1.0 or x3r < 1.0 or x4r < 1.0:
-                        continue
-                    if x4r <= x1r + 0.01 or x4r <= x3r + 0.01:
-                        continue
-                    if x4r / x1r > X4_RATIO_LIMIT or x4r / x3r > X4_RATIO_LIMIT:
-                        continue
-                    if x4r > MAX_X4:
-                        continue
+                if x1r < 1.0 or x2r < 1.0 or x3r < 1.0:
+                    continue
 
-                    w = np.array([1/x1r, 1/x4r, 1.0, 1/x2r, 1/x3r])
-                    D = np.sum(w * GROUP_SIZES)
-                    if not (D_RANGE[0] < D < D_RANGE[1]):
-                        continue
+                # 组速度: G0(AB)=1/X1, G1(CD)=1.0, G2(EF)=1/X2, G3(GH)=1/X3
+                w = np.array([1/x1r, 1.0, 1/x2r, 1/x3r])
+                D = np.sum(w * GROUP_SIZES)
+                if not (D_RANGE[0] < D < D_RANGE[1]):
+                    continue
 
-                    res = fast_backtrack(targets, w, D, num_colors, pos_constraints)
-                    if not res:
-                        continue
+                res = fast_backtrack(targets, w, D, num_colors, pos_constraints)
+                if not res:
+                    continue
 
-                    for af, dev, pcts in res:
-                        if dev >= 0.015:
-                            continue
-                        x_sig = (round(x1r, 1), round(x2r, 1), round(x3r, 1), round(x4r, 1))
-                        if x_sig_count.get(x_sig, 0) >= 2:
-                            continue
-                        x_sig_count[x_sig] = x_sig_count.get(x_sig, 0) + 1
-                        seeds.append({
-                            'X1': x1r, 'X2': x2r, 'X3': x3r, 'X4': x4r,
-                            'assign': af, 'dev': dev, 'D': D, 'final_pcts': pcts,
-                            'stage_label': 'grid'
-                        })
+                for af, dev, pcts in res:
+                    if dev >= 0.015:
+                        continue
+                    x_sig = (round(x1r, 1), round(x2r, 1), round(x3r, 1))
+                    if x_sig_count.get(x_sig, 0) >= 2:
+                        continue
+                    x_sig_count[x_sig] = x_sig_count.get(x_sig, 0) + 1
+                    seeds.append({
+                        'X1': x1r, 'X2': x2r, 'X3': x3r,
+                        'assign': af, 'dev': dev, 'D': D, 'final_pcts': pcts,
+                        'stage_label': 'grid'
+                    })
 
     print(f"网格兜底: 遍历 {checked}/{total} 个点, 找到 {len(seeds)} 个种子")
     return seeds
@@ -447,15 +425,13 @@ def linkrun(json_str):
     # Stage 1: 使用 scipy.optimize.minimize 进行多起点局部优化搜索
     start_time = time.time()
 
-    xmin = linkargs.get("xmin", 1.1)
-    x1_3max = linkargs.get("x1_3max", 4.0)
-    x4max = linkargs.get("x4max", 6.0)
+    xmin = linkargs.get("xmin", 1.03)
+    xmax = linkargs.get("xmax", 3.5)
 
     bounds = {
-        'x1': (xmin, x1_3max),
-        'x2': (xmin, x1_3max),
-        'x3': (xmin, x1_3max),
-        'x4': (xmin, x4max)
+        'x1': (xmin, xmax),
+        'x2': (xmin, xmax),
+        'x3': (xmin, xmax)
     }
 
     seeds = find_seeds_scipy(targets, len(json_data), pos_constraints, bounds)
@@ -468,9 +444,9 @@ def linkrun(json_str):
         # 合并去重（按 X 签名）
         seen_sigs = set()
         for s in seeds:
-            seen_sigs.add((round(s['X1'], 1), round(s['X2'], 1), round(s['X3'], 1), round(s['X4'], 1)))
+            seen_sigs.add((round(s['X1'], 1), round(s['X2'], 1), round(s['X3'], 1)))
         for gs in grid_seeds:
-            sig = (round(gs['X1'], 1), round(gs['X2'], 1), round(gs['X3'], 1), round(gs['X4'], 1))
+            sig = (round(gs['X1'], 1), round(gs['X2'], 1), round(gs['X3'], 1))
             if sig not in seen_sigs:
                 seen_sigs.add(sig)
                 seeds.append(gs)
@@ -506,23 +482,22 @@ def linkrun(json_str):
     
     final_results = []
     for s in top_results:
-        w_map = [1/s['X1'], 1/s['X4'], 1.0, 1/s['X2'], 1/s['X3']]
+        # 组速度: G0(AB)=1/X1, G1(CD)=1.0, G2(EF)=1/X2, G3(GH)=1/X3
+        w_map = [1/s['X1'], 1.0, 1/s['X2'], 1/s['X3']]
         
         # 根据 bucket_constraints 调整组内分配顺序
-        # bucket_constraints: {color_idx: [bucket_indices]} - 记录每个颜色被约束到的桶位
-        # 组1(BG): 桶位1(B)和6(G), 组2(CD): 桶位2(C)和3(D), 组3(EF): 桶位4(E)和5(F)
+        # 组0(AB): 桶位0和1, 组1(CD): 桶位2和3, 组2(EF): 桶位4和5, 组3(GH): 桶位6和7
         adjusted_assign = s['assign'].copy()
         
-        # 检查组1 (BG): 桶位1和6
-        b_color = adjusted_assign[1]  # B位置当前颜色索引
-        g_color = adjusted_assign[6]  # G位置当前颜色索引
-        # 检查B位置的颜色是否被约束到G位置(桶位6)，或者G位置的颜色是否被约束到B位置(桶位1)
-        b_constrained_to_g = b_color in bucket_constraints and 6 in bucket_constraints[b_color]
-        g_constrained_to_b = g_color in bucket_constraints and 1 in bucket_constraints[g_color]
-        if b_constrained_to_g or g_constrained_to_b:
-            adjusted_assign[1], adjusted_assign[6] = adjusted_assign[6], adjusted_assign[1]
+        # 检查组0 (AB): 桶位0和1
+        a_color = adjusted_assign[0]
+        b_color = adjusted_assign[1]
+        a_constrained_to_b = a_color in bucket_constraints and 1 in bucket_constraints[a_color]
+        b_constrained_to_a = b_color in bucket_constraints and 0 in bucket_constraints[b_color]
+        if a_constrained_to_b or b_constrained_to_a:
+            adjusted_assign[0], adjusted_assign[1] = adjusted_assign[1], adjusted_assign[0]
         
-        # 检查组2 (CD): 桶位2和3
+        # 检查组1 (CD): 桶位2和3
         c_color = adjusted_assign[2]
         d_color = adjusted_assign[3]
         c_constrained_to_d = c_color in bucket_constraints and 3 in bucket_constraints[c_color]
@@ -530,7 +505,7 @@ def linkrun(json_str):
         if c_constrained_to_d or d_constrained_to_c:
             adjusted_assign[2], adjusted_assign[3] = adjusted_assign[3], adjusted_assign[2]
         
-        # 检查组3 (EF): 桶位4和5
+        # 检查组2 (EF): 桶位4和5
         e_color = adjusted_assign[4]
         f_color = adjusted_assign[5]
         e_constrained_to_f = e_color in bucket_constraints and 5 in bucket_constraints[e_color]
@@ -538,8 +513,18 @@ def linkrun(json_str):
         if e_constrained_to_f or f_constrained_to_e:
             adjusted_assign[4], adjusted_assign[5] = adjusted_assign[5], adjusted_assign[4]
         
-        # 尝试 B↔G、C↔D、E↔F 的交换组合，减少圆环相邻同色
-        final_assign = optimize_arrangement(adjusted_assign, bucket_constraints)
+        # 检查组3 (GH): 桶位6和7
+        g_color = adjusted_assign[6]
+        h_color = adjusted_assign[7]
+        g_constrained_to_h = g_color in bucket_constraints and 7 in bucket_constraints[g_color]
+        h_constrained_to_g = h_color in bucket_constraints and 6 in bucket_constraints[h_color]
+        if g_constrained_to_h or h_constrained_to_g:
+            adjusted_assign[6], adjusted_assign[7] = adjusted_assign[7], adjusted_assign[6]
+        
+        # 尝试跨组+组内交换组合，减少圆环相邻同色
+        # X 值跟随组一起移动
+        orig_x = [s['X1'], s['X2'], s['X3']]
+        final_assign, final_x = optimize_arrangement(adjusted_assign, bucket_constraints, orig_x)
         
         assign_list = []
         for i, b_name in enumerate(BUCKETS):
@@ -547,11 +532,10 @@ def linkrun(json_str):
             color_idx = final_assign[i]
             
             # X 值显示逻辑
-            if i == 0: x_val = s['X1']
-            elif i in [1, 6]: x_val = s['X4']
-            elif i in [4, 5]: x_val = s['X2']
-            elif i == 7: x_val = s['X3']
-            else: x_val = 1.0
+            if i in [0, 1]: x_val = final_x[0]          # AB: X1
+            elif i in [2, 3]: x_val = 1.0                # CD: 固定1.0
+            elif i in [4, 5]: x_val = final_x[1]          # EF: X2
+            elif i in [6, 7]: x_val = final_x[2]          # GH: X3
             
             assign_list.append({
                 'bucket': b_name,
@@ -563,10 +547,9 @@ def linkrun(json_str):
             })
             
         final_results.append({
-            'X1': round(s['X1'], 2),
-            'X2': round(s['X2'], 2),
-            'X3': round(s['X3'], 2),
-            'X4': round(s['X4'], 2),
+            'X1': round(final_x[0], 2),
+            'X2': round(final_x[1], 2),
+            'X3': round(final_x[2], 2),
             'cum_error': round(s['dev'], 2),
             'total_feed_speed_D': round(s['D'], 6),
             'stage_label': s.get('stage_label', 'Unknown'),
@@ -580,47 +563,97 @@ def linkrun(json_str):
     return json.dumps({'results': final_results}, indent=2, ensure_ascii=False)
     # return json.dumps({'results': final_results}, ensure_ascii=False)
 
-def optimize_arrangement(assign, bucket_constraints):
+def optimize_arrangement(assign, bucket_constraints, x_vals=None):
     """
-    对 B↔G(1↔6)、C↔D(2↔3)、E↔F(4↔5) 尝试交换组合，
+    双层优化：
+    1. 跨组交换：AB(X1)、EF(X2)、GH(X3) 三个可变组整体交换位置，
+       牵伸倍数跟随颜色一起移动。CD 组(固定1.0)不参与跨组交换。
+    2. 组内交换：A↔B(0↔1)、C↔D(2↔3)、E↔F(4↔5)、G↔H(6↔7)。
+    
     选择圆环 A-B-C-D-E-F-G-H-A 上相邻同色最少的排布。
-    交换时不违反 bucket_constraints 约束。
-    牵伸不变，仅改变颜色分布。
+    返回 (best_assign, best_x_vals)。
     """
     # 先检查是否有相邻同色，没有则直接返回
     adj_init = sum(1 for i in range(8) if assign[i] == assign[(i + 1) % 8])
     if adj_init == 0:
-        return assign
+        return assign, x_vals
 
-    pairs = [(1, 6), (2, 3), (4, 5)]
-    best = assign[:]
+    # 可变组：AB(0,1, X1), EF(4,5, X2), GH(6,7, X3)
+    movable_groups = [
+        [(0, 1), 'X1'],
+        [(4, 5), 'X2'],
+        [(6, 7), 'X3'],
+    ]
+    
+    best_assign = assign[:]
+    best_x = x_vals[:] if x_vals else None
     best_adj = adj_init
-
-    for mask in range(1, 8):  # 跳过全不交换(0)，因为已经检查过了
-        test = assign[:]
+    
+    # 组内交换：每组内部 A↔B / C↔D / E↔F / G↔H
+    group_pairs = [(0, 1), (2, 3), (4, 5), (6, 7)]
+    
+    import itertools
+    # 可变组跨组置换：3! = 6 种
+    for perm in itertools.permutations(range(3)):
+        # 构建新分配：CD 固定不动
+        test = [None] * 8
+        test[2] = assign[2]  # CD 固定
+        test[3] = assign[3]
+        
+        # 可变组按 perm 重新排列
+        for new_gi, old_gi in enumerate(perm):
+            (a, b), _ = movable_groups[old_gi]
+            (new_a, new_b), _ = movable_groups[new_gi]
+            test[new_a] = assign[a]
+            test[new_b] = assign[b]
+        
+        # 检查跨组约束
         valid = True
-
-        for pi in range(3):
-            if mask & (1 << pi):
-                a, b = pairs[pi]
-                ca, cb = test[a], test[b]
-                if ca in bucket_constraints and b not in bucket_constraints[ca]:
+        for i in range(8):
+            ci = test[i]
+            if ci in bucket_constraints:
+                if i not in bucket_constraints[ci]:
                     valid = False; break
-                if cb in bucket_constraints and a not in bucket_constraints[cb]:
-                    valid = False; break
-                test[a], test[b] = cb, ca
-
         if not valid:
             continue
+        
+        # 组内交换：16 种
+        for mask in range(16):
+            inner_test = test[:]
+            inner_valid = True
+            for pi in range(4):
+                if mask & (1 << pi):
+                    a, b = group_pairs[pi]
+                    ca, cb = inner_test[a], inner_test[b]
+                    if ca in bucket_constraints and b not in bucket_constraints[ca]:
+                        inner_valid = False; break
+                    if cb in bucket_constraints and a not in bucket_constraints[cb]:
+                        inner_valid = False; break
+                    inner_test[a], inner_test[b] = cb, ca
+            
+            if not inner_valid:
+                continue
+            
+            adj = sum(1 for i in range(8) if inner_test[i] == inner_test[(i + 1) % 8])
+            if adj < best_adj:
+                best_adj = adj
+                best_assign = inner_test[:]
+                # X 值跟随可变组移动
+                if x_vals:
+                    new_x = list(x_vals)  # 默认不变
+                    for new_gi, old_gi in enumerate(perm):
+                        if new_gi == old_gi:
+                            continue
+                        old_key = movable_groups[old_gi][1]
+                        new_key = movable_groups[new_gi][1]
+                        old_idx = ['X1', 'X2', 'X3'].index(old_key)
+                        new_idx = ['X1', 'X2', 'X3'].index(new_key)
+                        new_x[new_idx] = x_vals[old_idx]
+                    best_x = new_x
+                if best_adj == 0:
+                    return best_assign, best_x
 
-        adj = sum(1 for i in range(8) if test[i] == test[(i + 1) % 8])
-        if adj < best_adj:
-            best_adj = adj
-            best = test[:]
-            if best_adj == 0:  # 已找到最优，提前退出
-                break
-
-    return best
+    return best_assign, best_x
 
 # ======================
 # 程序入口
@@ -628,11 +661,10 @@ def optimize_arrangement(assign, bucket_constraints):
 if __name__ == "__main__":
     json_str = """{
     "pyFile": "bt8",
-    "xmin": 1.01,
-    "x1_3max": 4.0,
-    "x4max": 6.0,
+    "xmin": 1.03,
+    "xmax": 3.5,
     "xstep": 0.1,
-    "data1": 
+    "data": 
 [
   {
     "MFMLIN": 62,
@@ -667,7 +699,7 @@ if __name__ == "__main__":
     "POSITION": ""
   }
 ]
-,"data":[
+,"data2":[
   {
     "MFMLIN": 50,
     "MFMDES": "W 白棉条 VB050M ",

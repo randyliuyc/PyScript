@@ -72,12 +72,8 @@ def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
         size = GROUP_SIZES[g_idx]
         w = weights[g_idx]
         
-        # 对于大小为2的组(BG, CD, EF)，使用 combinations 避免组内顺序重复
-        # 对于大小为1的组(A, H)，直接迭代
-        if size == 2:
-            combo_iter = itertools.combinations(range(num_colors), size)
-        else:
-            combo_iter = itertools.combinations_with_replacement(range(num_colors), size)
+        # 所有组大小都为2，使用 combinations_with_replacement 允许同一颜色在组内重复
+        combo_iter = itertools.combinations_with_replacement(range(num_colors), size)
         
         for combo in combo_iter:
             # POSITION 约束检查
@@ -114,14 +110,14 @@ def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
     dfs(0)
     return results
 
-def refine_vectorized(seeds, targets, json_data):
+def refine_vectorized(seeds, targets, json_data, bounds=None):
     """
     NumPy 矢量化精修：并行计算小范围内的最优解
     """
     if not seeds: return []
     
-    # 定义微调网格 7^3 = 343 组
-    offsets = np.linspace(-0.03, 0.03, 7) 
+    # 定义微调网格 7^3 = 343 组，步长 0.01
+    offsets = np.linspace(-0.01, 0.01, 3) 
     d1, d2, d3 = np.meshgrid(offsets, offsets, offsets)
     d1, d2, d3 = d1.ravel(), d2.ravel(), d3.ravel()
     
@@ -129,12 +125,18 @@ def refine_vectorized(seeds, targets, json_data):
     is_priority = np.array([item["PRIORITY"] for item in json_data])
     refined_results = []
     
+    # 获取边界约束
+    x_min = bounds['x1'][0] if bounds else 1.0
+    x_max = bounds['x1'][1] if bounds else 10.0
+    
     # 仅精修前 TOP_N 个优质种子
     for sol in seeds[:TOP_N]:
         mX1, mX2, mX3 = sol['X1']+d1, sol['X2']+d2, sol['X3']+d3
         
-        # 物理与工艺约束过滤
-        mask = (mX1 >= 1.0) & (mX2 >= 1.0) & (mX3 >= 1.0)
+        # 物理与工艺约束过滤：受输入 xmin/xmax 约束
+        mask = (mX1 >= x_min) & (mX1 <= x_max) & \
+               (mX2 >= x_min) & (mX2 <= x_max) & \
+               (mX3 >= x_min) & (mX3 <= x_max)
         
         if not np.any(mask): 
             refined_results.append(sol)
@@ -177,46 +179,36 @@ def refine_vectorized(seeds, targets, json_data):
 def select_diverse_top(results, top_n=TOP_N):
     """
     多样性感知的 Top-N 选择：
-    按误差排序，但在最终输出时跳过 (X区域, 分配方案) 都相同的结果，
-    确保输出涵盖不同牵伸倍数组合和不同颜色分配方案。
+    1. 跨组等效去重：将 assign 按 (AB段, CD段, EF段, GH段) 分组后排序，
+       相同的颜色分布签名视为等效，只保留误差最小的。
+    2. 按误差排序，输出 TOP_N 个不同颜色分布。
     """
     if not results:
         return []
     
-    sorted_results = sorted(results, key=lambda x: (round(x['dev'], 2), -x['D']))
+    # 生成归一化签名：将4组排序后拼接，消除组间交换的等效性
+    def color_dist_sig(assign):
+        groups = [
+            tuple(sorted(assign[0:2])),   # AB
+            tuple(sorted(assign[2:4])),   # CD
+            tuple(sorted(assign[4:6])),   # EF
+            tuple(sorted(assign[6:8])),   # GH
+        ]
+        # 固定 CD 在位置1，其余3组排序
+        movable = [groups[0], groups[2], groups[3]]
+        movable.sort()
+        return (movable[0], groups[1], movable[1], movable[2])
     
-    selected = []
-    used_x_zones = set()       # (X1~0.3, X2~0.3, X3~0.3)
-    used_assign_sigs = set()   # tuple of 8 assignments
+    # 按颜色分布签名分组，每组只保留误差最小的
+    sig_best = {}
+    for s in results:
+        sig = color_dist_sig(s['assign'])
+        if sig not in sig_best or s['dev'] < sig_best[sig]['dev']:
+            sig_best[sig] = s
     
-    for s in sorted_results:
-        # X 区域签名：~0.3 步长聚类
-        x_zone = (round(s['X1'] / 0.3) * 0.3,
-                  round(s['X2'] / 0.3) * 0.3,
-                  round(s['X3'] / 0.3) * 0.3)
-        # 分配方案签名
-        assign_sig = tuple(s['assign'])
-        
-        # (X区域, 分配) 同时相同才跳过
-        if x_zone in used_x_zones and assign_sig in used_assign_sigs:
-            continue
-        
-        selected.append(s)
-        used_x_zones.add(x_zone)
-        used_assign_sigs.add(assign_sig)
-        
-        if len(selected) >= top_n:
-            break
+    sorted_results = sorted(sig_best.values(), key=lambda x: (round(x['dev'], 2), -x['D']))
     
-    # 不足 TOP_N 则从剩余补充
-    if len(selected) < top_n:
-        for s in sorted_results:
-            if s not in selected:
-                selected.append(s)
-                if len(selected) >= top_n:
-                    break
-    
-    return selected
+    return sorted_results[:top_n]
 
 def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, max_seeds=MAX_SEEDS):
     """
@@ -436,20 +428,16 @@ def linkrun(json_str):
 
     seeds = find_seeds_scipy(targets, len(json_data), pos_constraints, bounds)
 
-    # 兜底：scipy 随机搜索不稳定时，用确定性网格搜索保证覆盖率
-    MIN_SEEDS_FALLBACK = 10
-    if len(seeds) < MIN_SEEDS_FALLBACK:
-        print(f"scipy 仅找到 {len(seeds)} 个种子，启动网格搜索兜底...")
-        grid_seeds = find_seeds_grid(targets, len(json_data), pos_constraints, bounds)
-        # 合并去重（按 X 签名）
-        seen_sigs = set()
-        for s in seeds:
-            seen_sigs.add((round(s['X1'], 1), round(s['X2'], 1), round(s['X3'], 1)))
-        for gs in grid_seeds:
-            sig = (round(gs['X1'], 1), round(gs['X2'], 1), round(gs['X3'], 1))
-            if sig not in seen_sigs:
-                seen_sigs.add(sig)
-                seeds.append(gs)
+    # 始终追加网格搜索保证覆盖率，去重后合并
+    grid_seeds = find_seeds_grid(targets, len(json_data), pos_constraints, bounds)
+    seen_sigs = set()
+    for s in seeds:
+        seen_sigs.add((round(s['X1'], 1), round(s['X2'], 1), round(s['X3'], 1)))
+    for gs in grid_seeds:
+        sig = (round(gs['X1'], 1), round(gs['X2'], 1), round(gs['X3'], 1))
+        if sig not in seen_sigs:
+            seen_sigs.add(sig)
+            seeds.append(gs)
 
     # 检查是否有有效结果
     if not seeds:
@@ -474,7 +462,7 @@ def linkrun(json_str):
 
     # Stage 3: 矢量化精修
     # 排序：误差越小越好，total_feed_speed_D 越大越好（误差四舍五入到两位小数后比较）
-    refined = refine_vectorized(sorted(deduped_seeds, key=lambda x: (round(x['dev'], 2), -x['D'])), targets, json_data)
+    refined = refine_vectorized(sorted(deduped_seeds, key=lambda x: (round(x['dev'], 2), -x['D'])), targets, json_data, bounds)
 
     # Stage 3: 多样性感知的 Top-N 选择
     # 按误差排序，但跳过 (X区域, 分配方案) 完全相同的冗余解
@@ -663,80 +651,72 @@ if __name__ == "__main__":
     "pyFile": "bt8",
     "xmin": 1.03,
     "xmax": 3.5,
-    "xstep": 0.1,
+    "xstep": 0.02,
     "data": 
 [
   {
-    "MFMLIN": 62,
-    "MFMDES": "SWP本白 VG010M ",
-    "MFMSHO": "SWP本白",
-    "MATRATCALC": 36.900000,
-    "PRIORITY": 0,
-    "POSITION": "AD"
-  },
-  {
-    "MFMLIN": 70,
-    "MFMDES": "BC02W VE001M-U-001 ",
-    "MFMSHO": "BC02W",
-    "MATRATCALC": 11.200000,
+    "MFMLIN": 10,
+    "MFMDES": "R004W  ",
+    "MFMSHO": "R004W",
+    "MATRATCALC": 1.600000,
     "PRIORITY": 0,
     "POSITION": ""
   },
   {
-    "MFMLIN": 80,
-    "MFMDES": "WJ 白棉 VG055M ",
-    "MFMSHO": "WJ 白棉",
-    "MATRATCALC": 29.800000,
+    "MFMLIN": 20,
+    "MFMDES": "R007SW33  ",
+    "MFMSHO": "R007SW33",
+    "MATRATCALC": 3.000000,
     "PRIORITY": 0,
     "POSITION": ""
   },
   {
-    "MFMLIN": 81,
-    "MFMDES": "W 白棉 VG055M ",
-    "MFMSHO": "W 白棉",
-    "MATRATCALC": 22.100000,
+    "MFMLIN": 30,
+    "MFMDES": "FW  ",
+    "MFMSHO": "FW",
+    "MATRATCALC": 14.200000,
+    "PRIORITY": 0,
+    "POSITION": ""
+  },
+  {
+    "MFMLIN": 40,
+    "MFMDES": "SW VF029 ",
+    "MFMSHO": "SW",
+    "MATRATCALC": 6.200000,
     "PRIORITY": 0,
     "POSITION": ""
   }
 ]
 ,"data2":[
   {
-    "MFMLIN": 50,
-    "MFMDES": "W 白棉条 VB050M ",
-    "MFMSHO": "W 白棉条",
-    "MATRATCALC": 41.390000,
+    "MFMLIN": 10,
+    "MFMDES": "R004W  ",
+    "MFMSHO": "R004W",
+    "MATRATCALC": 1.600000,
     "PRIORITY": 0,
     "POSITION": ""
   },
   {
-    "MFMLIN": 60,
-    "MFMDES": "K004W20 VE001M-001 ",
-    "MFMSHO": "K004W20",
-    "MATRATCALC": 42.250000,
-    "PRIORITY": 0,
-    "POSITION": "ACE"
-  },
-  {
-    "MFMLIN": 70,
-    "MFMDES": "Y006W VE001M-001 ",
-    "MFMSHO": "Y006W",
-    "MATRATCALC": 7.920000,
+    "MFMLIN": 20,
+    "MFMDES": "R016SW33  ",
+    "MFMSHO": "R016SW33",
+    "MATRATCALC": 3.600000,
     "PRIORITY": 0,
     "POSITION": ""
   },
   {
-    "MFMLIN": 80,
-    "MFMDES": "K002W20 VE001M-001 ",
-    "MFMSHO": "K002W20",
-    "MATRATCALC": 3.610000,
+    "MFMLIN": 30,
+    "MFMDES": "FW  ",
+    "MFMSHO": "FW",
+    "MATRATCALC": 16.400000,
     "PRIORITY": 0,
     "POSITION": ""
   },
   {
-    "MFMLIN": 90,
-    "MFMDES": "Y01W20 VE001M-001 ",
-    "MFMSHO": "Y01W20",
-    "MATRATCALC": 4.830000,
+    "MFMLIN": 40,
+    "MFMDES": "SW VF029 ",
+    "MFMSHO": "SW",
+    "MATRATCALC": 3.400000,
     "PRIORITY": 0,
     "POSITION": ""
   }

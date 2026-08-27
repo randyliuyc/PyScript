@@ -1,3 +1,4 @@
 .DS_Store
 mcp-server/server.log
 mcp-server/__pycache__
+Tamper/__pycache__

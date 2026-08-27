@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<SysDataModelXML xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ModelCode>TSALESSOAPIM10</ModelCode>
+  <ModelNum>700</ModelNum>
+  <ModelDesc>销售订单推送输入</ModelDesc>
+  <KeyWords />
+  <DataMineCode />
+  <FunctionCode />
+  <ChartType />
+  <SQLScript>-- 说明：本 SQL 产出 LinkPython 销售订单程序的输入 orders 数组（扁平结构，字段名与用友接口一致）。
+-- 表名/列名均为占位，请按 TotalLINK 实际订单表结构调整。
+-- 目标输出（每张订单一行主表 + children 由明细子查询提供）：
+--   ExternalCode / VoucherDate / CustomerCode / Memo / children[]
+DECLARE @MFGNUM VARCHAR(30) = '{0}'
+
+SELECT M.EXTERNALCODE AS ExternalCode
+  , CONVERT(VARCHAR(10), M.VOUCHERDATE, 120) AS VoucherDate
+  , M.CUSTOMERCODE AS CustomerCode
+  , M.MEMO AS Memo
+  , (
+      SELECT JSON_QUERY((
+        SELECT I.INVENTORYCODE AS InventoryCode
+          , U.UNITNAME AS UnitName
+          , D.QUANTITY AS Quantity
+          , CAST(D.ORIGTAXPRICE AS VARCHAR(20)) AS OrigTaxPrice
+        FROM TSALESODETAIL D
+        LEFT JOIN TINVENTORY I ON D.INVENTORYID = I.ID
+        LEFT JOIN TUNIT U ON D.UNITID = U.ID
+        WHERE D.ORDERID = M.ID
+        FOR JSON PATH
+      )) AS children
+    ) AS children
+FROM TSALESORDER M
+WHERE M.MFGNUM = @MFGNUM
+  AND M.PUSHSTATUS = 0 -- 待推送
+  -- AND M.ID = 0{1}  -- 可选：按单据筛选</SQLScript>
+  <SQLUpdateScript />
+  <Ret1>0</Ret1>
+  <Ret2>0</Ret2>
+  <Ret3>0</Ret3>
+  <Ret4>0</Ret4>
+  <Ret5>0</Ret5>
+  <UseParameter>true</UseParameter>
+  <ConnString>LINK01</ConnString>
+  <ModuleCode />
+  <ParaLabel01>MFGNUM</ParaLabel01>
+  <ParaType01>STR</ParaType01>
+  <ParaSearchCode01 />
+  <ParaDefVal01 />
+  <ParaLabel02 />
+  <ParaType02 />
+  <ParaSearchCode02 />
+  <ParaDefVal02 />
+  <ParaLabel03 />
+  <ParaType03 />
+  <ParaSearchCode03 />
+  <ParaDefVal03 />
+  <ParaLabel04 />
+  <ParaType04 />
+  <ParaSearchCode04 />
+  <ParaDefVal04 />
+  <ParaLabel05 />
+  <ParaType05 />
+  <ParaSearchCode05 />
+  <ParaDefVal05 />
+  <ParaLabel06 />
+  <ParaType06 />
+  <ParaSearchCode06 />
+  <ParaDefVal06 />
+  <ParaLabel07 />
+  <ParaType07 />
+  <ParaSearchCode07 />
+  <ParaDefVal07 />
+  <ParaLabel08 />
+  <ParaType08 />
+  <ParaSearchCode08 />
+  <ParaDefVal08 />
+  <ParaLabel09 />
+  <ParaType09 />
+  <ParaSearchCode09 />
+  <ParaDefVal09 />
+  <ParaLabel10 />
+  <ParaType10 />
+  <ParaSearchCode10 />
+  <ParaDefVal10 />
+  <SQLNew />
+  <SQLRemove />
+  <SQLClear />
+  <H5List />
+  <H5Detail />
+  <H5Edit />
+  <H5Chart />
+  <H5MaxLines>0</H5MaxLines>
+  <AllDataTreatTitle />
+  <H5NewRec />
+  <H5Para />
+  <H5AttPara />
+  <CallFunction />
+  <JavaScript />
+  <H5GridHeader />
+  <H5GridDetail />
+  <ImageFile>#LINKRES#38</ImageFile>
+  <ListPrint />
+  <MD5HASH>a2e31367edddcb1a3a7e3560d25c7db6</MD5HASH>
+  <ModelSetting />
+  <ShowInMenu>false</ShowInMenu>
+  <SysModelFlag>false</SysModelFlag>
+</SysDataModelXML>

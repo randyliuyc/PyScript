@@ -1,0 +1,142 @@
+<?xml version="1.0"?>
+<SysDataModelXML xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ModelCode>TSALESSOAPIM10</ModelCode>
+  <ModelNum>501</ModelNum>
+  <ModelDesc>销售订单推送执行</ModelDesc>
+  <KeyWords />
+  <DataMineCode />
+  <FunctionCode />
+  <ChartType />
+  <SQLScript />
+  <SQLUpdateScript />
+  <Ret1>0</Ret1>
+  <Ret2>0</Ret2>
+  <Ret3>0</Ret3>
+  <Ret4>0</Ret4>
+  <Ret5>0</Ret5>
+  <UseParameter>false</UseParameter>
+  <ConnString>LINK01</ConnString>
+  <ModuleCode />
+  <ParaLabel01 />
+  <ParaType01 />
+  <ParaSearchCode01 />
+  <ParaDefVal01 />
+  <ParaLabel02 />
+  <ParaType02 />
+  <ParaSearchCode02 />
+  <ParaDefVal02 />
+  <ParaLabel03 />
+  <ParaType03 />
+  <ParaSearchCode03 />
+  <ParaDefVal03 />
+  <ParaLabel04 />
+  <ParaType04 />
+  <ParaSearchCode04 />
+  <ParaDefVal04 />
+  <ParaLabel05 />
+  <ParaType05 />
+  <ParaSearchCode05 />
+  <ParaDefVal05 />
+  <ParaLabel06 />
+  <ParaType06 />
+  <ParaSearchCode06 />
+  <ParaDefVal06 />
+  <ParaLabel07 />
+  <ParaType07 />
+  <ParaSearchCode07 />
+  <ParaDefVal07 />
+  <ParaLabel08 />
+  <ParaType08 />
+  <ParaSearchCode08 />
+  <ParaDefVal08 />
+  <ParaLabel09 />
+  <ParaType09 />
+  <ParaSearchCode09 />
+  <ParaDefVal09 />
+  <ParaLabel10 />
+  <ParaType10 />
+  <ParaSearchCode10 />
+  <ParaDefVal10 />
+  <SQLNew>--LINKEXECOUTPUT
+-- 说明：表名/列名为占位，请按实际推送结果落库表调整。
+DECLARE @MFGNUM VARCHAR(30) = '{0}';
+
+DECLARE @JSON VARCHAR(MAX) = '#LINKPYTHON_RESULT#';
+
+-- 逐单记录推送结果
+DECLARE @ExternalCode VARCHAR(30);
+DECLARE @Status VARCHAR(10);
+DECLARE @YonyouCode VARCHAR(30);
+DECLARE @YonyouId BIGINT;
+DECLARE @Error VARCHAR(500);
+
+DECLARE cur CURSOR FOR
+  SELECT JSON_VALUE(r.value, '$.ExternalCode')
+    , JSON_VALUE(r.value, '$.status')
+    , JSON_VALUE(r.value, '$.yonyouCode')
+    , JSON_VALUE(r.value, '$.yonyouId')
+    , JSON_VALUE(r.value, '$.error')
+  FROM OPENJSON(@JSON, '$.results') AS r;
+
+OPEN cur;
+FETCH NEXT FROM cur INTO @ExternalCode, @Status, @YonyouCode, @YonyouId, @Error;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+  -- 更新销售订单推送状态（占位表：TSALESORDER.PUSHSTATUS）
+  UPDATE TSALESORDER
+  SET PUSHSTATUS = CASE WHEN @Status = 'success' THEN 1 ELSE 2 END,
+      YONYOUCODE = ISNULL(@YonyouCode, YONYOUCODE),
+      YONYOUID = ISNULL(@YonyouId, YONYOUID),
+      PUSHERRMSG = @Error,
+      PUSHTIME = GETDATE()
+  WHERE EXTERNALCODE = @ExternalCode;
+
+  FETCH NEXT FROM cur INTO @ExternalCode, @Status, @YonyouCode, @YonyouId, @Error;
+END;
+
+CLOSE cur;
+DEALLOCATE cur;
+
+-- 返回推送汇总
+SELECT JSON_VALUE(@JSON, '$.isSuccess') AS isSuccess
+  , JSON_VALUE(@JSON, '$.message') AS message
+  , (SELECT COUNT(*) FROM OPENJSON(@JSON, '$.results')) AS TotalCount
+  , (SELECT COUNT(*) FROM OPENJSON(@JSON, '$.results') WHERE JSON_VALUE(value, '$.status') = 'success') AS SuccessCount
+  , (SELECT COUNT(*) FROM OPENJSON(@JSON, '$.results') WHERE JSON_VALUE(value, '$.status') = 'failed') AS FailCount;</SQLNew>
+  <SQLRemove />
+  <SQLClear>--LINKREFRESH</SQLClear>
+  <H5List />
+  <H5Detail />
+  <H5Edit />
+  <H5Chart />
+  <H5MaxLines>0</H5MaxLines>
+  <AllDataTreatTitle />
+  <H5NewRec />
+  <H5Para />
+  <H5AttPara />
+  <CallFunction>CALLFUNCTION~LINKPYTHON~
+{
+  "pyFile": "sale_order",
+  "input": #LINKLEVELDATA(TSALESSOAPIM10,700,{0})#,
+  "resultFormula": "销售订单推送完成.",
+  "resultList":{
+      "colv1":"$.isSuccess",
+      "colv2":"$.message"
+  },
+  "resultSetValue":{
+      "v1":"$.isSuccess",
+      "v2":"$.message"
+  },
+  "resultAutoHide": true
+}</CallFunction>
+  <JavaScript />
+  <H5GridHeader />
+  <H5GridDetail />
+  <ImageFile>#LINKRES#94</ImageFile>
+  <ListPrint />
+  <MD5HASH>5efb4fef0d6a81701b217ee31cb59b43</MD5HASH>
+  <ModelSetting />
+  <ShowInMenu>false</ShowInMenu>
+  <SysModelFlag>false</SysModelFlag>
+</SysDataModelXML>

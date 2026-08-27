@@ -1,0 +1,163 @@
+<?xml version="1.0"?>
+<SysDataModelXML xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ModelCode>TMESMFGPLN10X727X</ModelCode>
+  <ModelNum>700</ModelNum>
+  <ModelDesc>牵伸计算输入</ModelDesc>
+  <KeyWords />
+  <DataMineCode />
+  <FunctionCode />
+  <ChartType />
+  <SQLScript>DECLARE @MFGNUM VARCHAR(30) = '{0}'
+DECLARE @MFBLIN INT = 0{1};
+DECLARE @YARNGRP VARCHAR(30) = '{2}';
+
+-- 累计克重
+DECLARE @TOLKZ DECIMAL(18, 2);
+
+SELECT @TOLKZ = SUM(GRPQTY * GRPBAS)
+FROM MFGOPD
+WHERE MFGNUM = @MFGNUM
+  AND MFBLIN = @MFBLIN
+  AND YARNGRP = @YARNGRP
+  AND OPDTYP = 'MATGRP';
+
+-- 未填写条子克重时
+IF @TOLKZ = 0
+  SET @TOLKZ = 160;
+
+WITH CTE_MAT
+AS (
+  SELECT M.MFMLIN
+    , CONCAT_WS(' ', M.CPNITMVER, M.CPNLOT, M.CPNSUBLOT) AS MFMDES
+    , M.CPNITMVER MFMSHO
+    -- , M.CPNITMNO
+    -- , I.ITMNAM + I.ITMNAM1 ITMNAM
+    -- , M.CPNITMVER
+    -- , M.CPNLOT
+    -- , M.CPNSUBLOT
+    , CAST(M.MATRAT AS DECIMAL(18, 2)) MATRAT
+    , ISNULL(M.MATRATHY, 0) MATRATHY
+    -- , M.MATRAT - ISNULL(M.MATRATHY, 0) - CAST(ISNULL(D.GRPBAS, 0) * ISNULL(M.TDGS, 0) / @TOLKZ * 100 AS DECIMAL(18, 6)) MATRATGY
+    , CAST(ISNULL(D.GRPBAS, 0) * ISNULL(M.TDGS, 0) / @TOLKZ * 100 AS DECIMAL(18, 6)) MATRATTD
+    , M.MATPOS POSITION
+  FROM MFGMAT M
+  LEFT JOIN ITM I
+    ON M.CPNITMNO = I.ITMNO
+  LEFT JOIN MFGOPD D
+    ON M.MFGNUM = D.MFGNUM
+      AND M.MFBLIN = D.MFBLIN
+      AND M.YARNGRP = D.YARNGRP
+      AND M.OPECOD = D.OPECOD
+      -- AND D.OPECOD &lt;&gt; '0'
+      AND D.OPDTYP = 'MATGRP'
+  WHERE M.MFGNUM = @MFGNUM
+    AND M.MFBLIN = @MFBLIN
+    AND M.YARNGRP = @YARNGRP
+  )
+  , CTE_GY
+AS (
+  SELECT MFMLIN
+    , MFMDES
+    , MFMSHO
+    , M.MATRAT - M.MATRATHY - M.MATRATTD MATRATCALC
+    , POSITION
+  FROM CTE_MAT M
+  WHERE M.MATRAT - M.MATRATHY - M.MATRATTD &gt; 0
+  )
+  , CTE_CALC
+AS (
+  SELECT *
+  FROM CTE_GY
+  
+  UNION ALL
+  
+  -- HY条子 
+  SELECT 99999 MFMLIN
+    , 'HY 条子' MFMDES
+    , 'HY 条子' MFMSHO
+    , SUM(MATRATHY) MATRATCALC
+    , '' POSITION
+  FROM CTE_MAT M
+  WHERE M.MATRATHY &gt; 0
+  )
+SELECT MFMLIN
+  , MFMDES
+  , MFMSHO
+  , MATRATCALC
+  , CAST(0 AS INT) PRIORITY
+  , ISNULL(POSITION, '') POSITION
+FROM CTE_CALC
+WHERE MATRATCALC &gt; 0
+ORDER BY MFMLIN</SQLScript>
+  <SQLUpdateScript />
+  <Ret1>0</Ret1>
+  <Ret2>0</Ret2>
+  <Ret3>0</Ret3>
+  <Ret4>0</Ret4>
+  <Ret5>0</Ret5>
+  <UseParameter>true</UseParameter>
+  <ConnString>LINK01</ConnString>
+  <ModuleCode />
+  <ParaLabel01>MFGNUM</ParaLabel01>
+  <ParaType01>STR</ParaType01>
+  <ParaSearchCode01 />
+  <ParaDefVal01 />
+  <ParaLabel02>MFBLIN</ParaLabel02>
+  <ParaType02>STR</ParaType02>
+  <ParaSearchCode02 />
+  <ParaDefVal02 />
+  <ParaLabel03>YARNGRP</ParaLabel03>
+  <ParaType03>STR</ParaType03>
+  <ParaSearchCode03 />
+  <ParaDefVal03 />
+  <ParaLabel04 />
+  <ParaType04 />
+  <ParaSearchCode04 />
+  <ParaDefVal04 />
+  <ParaLabel05 />
+  <ParaType05 />
+  <ParaSearchCode05 />
+  <ParaDefVal05 />
+  <ParaLabel06 />
+  <ParaType06 />
+  <ParaSearchCode06 />
+  <ParaDefVal06 />
+  <ParaLabel07 />
+  <ParaType07 />
+  <ParaSearchCode07 />
+  <ParaDefVal07 />
+  <ParaLabel08 />
+  <ParaType08 />
+  <ParaSearchCode08 />
+  <ParaDefVal08 />
+  <ParaLabel09 />
+  <ParaType09 />
+  <ParaSearchCode09 />
+  <ParaDefVal09 />
+  <ParaLabel10 />
+  <ParaType10 />
+  <ParaSearchCode10 />
+  <ParaDefVal10 />
+  <SQLNew />
+  <SQLRemove />
+  <SQLClear />
+  <H5List />
+  <H5Detail />
+  <H5Edit />
+  <H5Chart />
+  <H5MaxLines>0</H5MaxLines>
+  <AllDataTreatTitle />
+  <H5NewRec />
+  <H5Para />
+  <H5AttPara />
+  <CallFunction />
+  <JavaScript />
+  <H5GridHeader />
+  <H5GridDetail />
+  <ImageFile>#LINKRES#38</ImageFile>
+  <ListPrint />
+  <MD5HASH>a2e31367edddcb1a3a7e3560d25c7db6</MD5HASH>
+  <ModelSetting />
+  <ShowInMenu>false</ShowInMenu>
+  <SysModelFlag>false</SysModelFlag>
+</SysDataModelXML>

@@ -1,0 +1,393 @@
+<?xml version="1.0"?>
+<SysDataModelXML xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ModelCode>TMESMFGPLN10X727X</ModelCode>
+  <ModelNum>501</ModelNum>
+  <ModelDesc>牵伸计算执行</ModelDesc>
+  <KeyWords />
+  <DataMineCode />
+  <FunctionCode />
+  <ChartType />
+  <SQLScript />
+  <SQLUpdateScript />
+  <Ret1>0</Ret1>
+  <Ret2>0</Ret2>
+  <Ret3>0</Ret3>
+  <Ret4>0</Ret4>
+  <Ret5>0</Ret5>
+  <UseParameter>false</UseParameter>
+  <ConnString>LINK01</ConnString>
+  <ModuleCode />
+  <ParaLabel01 />
+  <ParaType01 />
+  <ParaSearchCode01 />
+  <ParaDefVal01 />
+  <ParaLabel02 />
+  <ParaType02 />
+  <ParaSearchCode02 />
+  <ParaDefVal02 />
+  <ParaLabel03 />
+  <ParaType03 />
+  <ParaSearchCode03 />
+  <ParaDefVal03 />
+  <ParaLabel04 />
+  <ParaType04 />
+  <ParaSearchCode04 />
+  <ParaDefVal04 />
+  <ParaLabel05 />
+  <ParaType05 />
+  <ParaSearchCode05 />
+  <ParaDefVal05 />
+  <ParaLabel06 />
+  <ParaType06 />
+  <ParaSearchCode06 />
+  <ParaDefVal06 />
+  <ParaLabel07 />
+  <ParaType07 />
+  <ParaSearchCode07 />
+  <ParaDefVal07 />
+  <ParaLabel08 />
+  <ParaType08 />
+  <ParaSearchCode08 />
+  <ParaDefVal08 />
+  <ParaLabel09 />
+  <ParaType09 />
+  <ParaSearchCode09 />
+  <ParaDefVal09 />
+  <ParaLabel10 />
+  <ParaType10 />
+  <ParaSearchCode10 />
+  <ParaDefVal10 />
+  <SQLNew>--LINKEXECOUTPUT
+DECLARE @MFGNUM VARCHAR(30) = '{0}';
+DECLARE @MFBLIN INT = 0{1};
+DECLARE @YARNGRP VARCHAR(30) = '{2}';
+
+DECLARE @JSON VARCHAR(MAX) = '#LINKPYTHON_RESULT#';
+
+-- 清理现有数据
+DELETE
+FROM MFGMATBTS
+WHERE MFGNUM = @MFGNUM
+  AND MFBLIN = @MFBLIN
+  AND YARNGRP = @YARNGRP;
+
+IF @JSON LIKE N'%运行超时或未找到有效解%'
+BEGIN
+  SELECT N'运行超时或未找到有效解 Thời gian chạy quá lâu hoặc không tìm thấy giải pháp hợp lệ.' RPTMSG
+    , 0 RPTSTA
+END
+ELSE
+BEGIN
+  WITH BaseData
+  AS (
+    SELECT @MFGNUM AS MFGNUM
+      , @MFBLIN AS MFBLIN
+      , @YARNGRP AS YARNGRP
+      , results.[key] + 1 AS RESNUM
+      , JSON_VALUE(results.value, '$.X1') AS X1
+      , JSON_VALUE(results.value, '$.X2') AS X2
+      , JSON_VALUE(results.value, '$.X3') AS X3
+      -- , JSON_VALUE(results.value, '$.X4') AS X4
+      , JSON_VALUE(results.value, '$.cum_error') AS cum_error
+      , JSON_VALUE(results.value, '$.total_feed_speed_D') AS total_feed_speed_D
+      , JSON_VALUE(results.value, '$.stage_label') AS stage_label
+      , JSON_VALUE(assign.value, '$.bucket') AS bucket
+      , JSON_VALUE(assign.value, '$.color') AS color
+      , JSON_VALUE(assign.value, '$.colordes') AS colordes
+      , JSON_VALUE(assign.value, '$.colorsho') AS colorsho
+      , JSON_VALUE(assign.value, '$.x') AS x
+      , JSON_VALUE(assign.value, '$.speed') AS speed
+      , '#LOGIN_USER#' AS CREUSR
+      , GETDATE() AS CRETIM
+    FROM OPENJSON(@JSON, '$.results') AS results
+    CROSS APPLY OPENJSON(results.value, '$.assign') AS assign
+    )
+  INSERT INTO [MFGMATBTS] (
+    [MFGNUM]
+    , [MFBLIN]
+    , [YARNGRP]
+    , [RESNUM]
+    , [RESFLG]
+    -- , [STGLBL]
+    , [STRX]
+    , STRX1
+    , STRX2
+    , STRX3
+    -- , STRX4
+    , [CUMVAR]
+    , [FEEDSPEED]
+    , [MFMLINA]
+    , [MFMLINB]
+    , [MFMLINC]
+    , [MFMLIND]
+    , [MFMLINE]
+    , [MFMLINF]
+    , [MFMLING]
+    , [MFMLINH]
+    , [COLDESA]
+    , [COLDESB]
+    , [COLDESC]
+    , [COLDESD]
+    , [COLDESE]
+    , [COLDESF]
+    , [COLDESG]
+    , [COLDESH]
+    , [COLSHOA]
+    , [COLSHOB]
+    , [COLSHOC]
+    , [COLSHOD]
+    , [COLSHOE]
+    , [COLSHOF]
+    , [COLSHOG]
+    , [COLSHOH]
+    , [STRRATA]
+    , [STRRATB]
+    , [STRRATC]
+    , [STRRATD]
+    , [STRRATE]
+    , [STRRATF]
+    , [STRRATG]
+    , [STRRATH]
+    , [SPEEDA]
+    , [SPEEDB]
+    , [SPEEDC]
+    , [SPEEDD]
+    , [SPEEDE]
+    , [SPEEDF]
+    , [SPEEDG]
+    , [SPEEDH]
+    , [CREUSR]
+    , [CRETIM]
+    )
+  SELECT MFGNUM
+    , MFBLIN
+    , YARNGRP
+    , RESNUM
+    , 0 RESFLG
+    -- , MAX(stage_label) AS STGLBL
+    -- , MAX(CONCAT_WS('/', CAST(X1 AS decimal(18, 2)), CAST(X2 AS decimal(18, 2)), CAST(X3 AS decimal(18, 2)), CAST(X4 AS decimal(18, 2)))) AS STRX
+    , MAX(CONCAT_WS('/', CAST(X1 AS DECIMAL(18, 2)), CAST(X2 AS DECIMAL(18, 2)), CAST(X3 AS DECIMAL(18, 2)))) AS 
+    STRX
+    , MAX(X1) AS X1
+    , MAX(X2) AS X2
+    , MAX(X3) AS X3
+    -- , MAX(X4) AS X4
+    , MAX(cum_error) AS CUMVAR
+    , MAX(total_feed_speed_D) AS FEEDSPEED
+    -- Color 转置
+    , MAX(CASE 
+        WHEN bucket = 'A'
+          THEN color
+        END) AS MFMLINA
+    , MAX(CASE 
+        WHEN bucket = 'B'
+          THEN color
+        END) AS MFMLINB
+    , MAX(CASE 
+        WHEN bucket = 'C'
+          THEN color
+        END) AS MFMLINC
+    , MAX(CASE 
+        WHEN bucket = 'D'
+          THEN color
+        END) AS MFMLIND
+    , MAX(CASE 
+        WHEN bucket = 'E'
+          THEN color
+        END) AS MFMLINE
+    , MAX(CASE 
+        WHEN bucket = 'F'
+          THEN color
+        END) AS MFMLINF
+    , MAX(CASE 
+        WHEN bucket = 'G'
+          THEN color
+        END) AS MFMLING
+    , MAX(CASE 
+        WHEN bucket = 'H'
+          THEN color
+        END) AS MFMLINH
+    -- Colordes 转置
+    , MAX(CASE 
+        WHEN bucket = 'A'
+          THEN colordes
+        END) AS COLDESA
+    , MAX(CASE 
+        WHEN bucket = 'B'
+          THEN colordes
+        END) AS COLDESB
+    , MAX(CASE 
+        WHEN bucket = 'C'
+          THEN colordes
+        END) AS COLDESC
+    , MAX(CASE 
+        WHEN bucket = 'D'
+          THEN colordes
+        END) AS COLDESD
+    , MAX(CASE 
+        WHEN bucket = 'E'
+          THEN colordes
+        END) AS COLDESE
+    , MAX(CASE 
+        WHEN bucket = 'F'
+          THEN colordes
+        END) AS COLDESF
+    , MAX(CASE 
+        WHEN bucket = 'G'
+          THEN colordes
+        END) AS COLDESG
+    , MAX(CASE 
+        WHEN bucket = 'H'
+          THEN colordes
+        END) AS COLDESH
+    -- Colorsho 转置
+    , MAX(CASE 
+        WHEN bucket = 'A'
+          THEN colorsho
+        END) AS COLSHOA
+    , MAX(CASE 
+        WHEN bucket = 'B'
+          THEN colorsho
+        END) AS COLSHOB
+    , MAX(CASE 
+        WHEN bucket = 'C'
+          THEN colorsho
+        END) AS COLSHOC
+    , MAX(CASE 
+        WHEN bucket = 'D'
+          THEN colorsho
+        END) AS COLSHOD
+    , MAX(CASE 
+        WHEN bucket = 'E'
+          THEN colorsho
+        END) AS COLSHOE
+    , MAX(CASE 
+        WHEN bucket = 'F'
+          THEN colorsho
+        END) AS COLSHOF
+    , MAX(CASE 
+        WHEN bucket = 'G'
+          THEN colorsho
+        END) AS COLSHOG
+    , MAX(CASE 
+        WHEN bucket = 'H'
+          THEN colorsho
+        END) AS COLSHOH
+    -- X 转置
+    , MAX(CASE 
+        WHEN bucket = 'A'
+          THEN x
+        END) AS STRRATA
+    , MAX(CASE 
+        WHEN bucket = 'B'
+          THEN x
+        END) AS STRRATB
+    , MAX(CASE 
+        WHEN bucket = 'C'
+          THEN x
+        END) AS STRRATC
+    , MAX(CASE 
+        WHEN bucket = 'D'
+          THEN x
+        END) AS STRRATD
+    , MAX(CASE 
+        WHEN bucket = 'E'
+          THEN x
+        END) AS STRRATE
+    , MAX(CASE 
+        WHEN bucket = 'F'
+          THEN x
+        END) AS STRRATF
+    , MAX(CASE 
+        WHEN bucket = 'G'
+          THEN x
+        END) AS STRRATG
+    , MAX(CASE 
+        WHEN bucket = 'H'
+          THEN x
+        END) AS STRRATH
+    -- Speed 转置
+    , MAX(CASE 
+        WHEN bucket = 'A'
+          THEN speed
+        END) AS SPEEDA
+    , MAX(CASE 
+        WHEN bucket = 'B'
+          THEN speed
+        END) AS SPEEDB
+    , MAX(CASE 
+        WHEN bucket = 'C'
+          THEN speed
+        END) AS SPEEDC
+    , MAX(CASE 
+        WHEN bucket = 'D'
+          THEN speed
+        END) AS SPEEDD
+    , MAX(CASE 
+        WHEN bucket = 'E'
+          THEN speed
+        END) AS SPEEDE
+    , MAX(CASE 
+        WHEN bucket = 'F'
+          THEN speed
+        END) AS SPEEDF
+    , MAX(CASE 
+        WHEN bucket = 'G'
+          THEN speed
+        END) AS SPEEDG
+    , MAX(CASE 
+        WHEN bucket = 'H'
+          THEN speed
+        END) AS SPEEDH
+    , CREUSR
+    , CRETIM
+  FROM BaseData
+  GROUP BY MFGNUM
+    , MFBLIN
+    , YARNGRP
+    , RESNUM
+    , CREUSR
+    , CRETIM
+  ORDER BY RESNUM;
+END</SQLNew>
+  <SQLRemove />
+  <SQLClear>--LINKREFRESH</SQLClear>
+  <H5List />
+  <H5Detail />
+  <H5Edit />
+  <H5Chart />
+  <H5MaxLines>0</H5MaxLines>
+  <AllDataTreatTitle />
+  <H5NewRec />
+  <H5Para />
+  <H5AttPara />
+  <CallFunction>CALLFUNCTION~LINKPYTHON~
+{
+  "pyFile": "bt8",
+  "input":{"xmin": 1.03, "xmax": 3.5, "xstep": 0.02,
+           "data": #LINKLEVELDATA(TMESMFGPLN10X727X,700,{0},{1},{2})#},
+  "resultFormula":"并条牵伸计算完成.",
+  "resultList":{
+      "colv1":"$.isSuccess",
+      "colv2":"$.message"
+  },
+  "resultSetValue":{
+      "v1":"$.isSuccess",
+      "v2":"$.message"
+  },
+  "resultAutoHide": true
+}</CallFunction>
+  <JavaScript />
+  <H5GridHeader />
+  <H5GridDetail />
+  <ImageFile>#LINKRES#94</ImageFile>
+  <ListPrint />
+  <MD5HASH>5efb4fef0d6a81701b217ee31cb59b43</MD5HASH>
+  <ModelSetting>{
+    "GridDataSave": [
+        "TMESMFGPLN10X#727"
+    ]
+}</ModelSetting>
+  <ShowInMenu>false</ShowInMenu>
+  <SysModelFlag>false</SysModelFlag>
+</SysDataModelXML>

@@ -1,0 +1,494 @@
+<?xml version="1.0"?>
+<SysDataModelXML xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ModelCode>TMESMFGPLN10X727X</ModelCode>
+  <ModelNum>701</ModelNum>
+  <ModelDesc>牵伸计算结果</ModelDesc>
+  <KeyWords />
+  <DataMineCode />
+  <FunctionCode />
+  <ChartType />
+  <SQLScript>--LINKNOGROUP
+DECLARE @MFGNUM VARCHAR(30) = '{0}';
+DECLARE @MFBLIN INT = 0{1};
+DECLARE @YARNGRP VARCHAR(30) = '{2}';
+
+SELECT [RESNUM]
+      ,[RESFLG]
+      ,[STRX1] X1
+      ,[STRX2] X2
+      ,[STRX3] X3
+      ,CAST([CUMVAR] AS DECIMAL(18,4)) CUMVAR
+      ,[COLSHOA] [COLDESA]
+      ,[COLSHOB] [COLDESB]
+      ,[COLSHOC] [COLDESC]
+      ,[COLSHOD] [COLDESD]
+      ,[COLSHOE] [COLDESE]
+      ,[COLSHOF] [COLDESF]
+      ,[COLSHOG] [COLDESG]
+      ,[COLSHOH] [COLDESH]
+      ,[CREUSR]
+      ,[CRETIM]
+      ,CASE WHEN [RESFLG]=1 THEN 'H03' END LINKAPPRROW
+FROM [MFGMATBTS]
+WHERE MFGNUM = @MFGNUM
+  AND MFBLIN = @MFBLIN
+  AND YARNGRP = @YARNGRP;</SQLScript>
+  <SQLUpdateScript />
+  <Ret1>0</Ret1>
+  <Ret2>0</Ret2>
+  <Ret3>0</Ret3>
+  <Ret4>0</Ret4>
+  <Ret5>0</Ret5>
+  <UseParameter>true</UseParameter>
+  <ConnString>LINK01</ConnString>
+  <ModuleCode />
+  <ParaLabel01>MFGNUM</ParaLabel01>
+  <ParaType01>STR</ParaType01>
+  <ParaSearchCode01 />
+  <ParaDefVal01 />
+  <ParaLabel02>MFBLIN</ParaLabel02>
+  <ParaType02>STR</ParaType02>
+  <ParaSearchCode02 />
+  <ParaDefVal02 />
+  <ParaLabel03>YARNGRP</ParaLabel03>
+  <ParaType03>STR</ParaType03>
+  <ParaSearchCode03 />
+  <ParaDefVal03 />
+  <ParaLabel04 />
+  <ParaType04 />
+  <ParaSearchCode04 />
+  <ParaDefVal04 />
+  <ParaLabel05 />
+  <ParaType05 />
+  <ParaSearchCode05 />
+  <ParaDefVal05 />
+  <ParaLabel06 />
+  <ParaType06 />
+  <ParaSearchCode06 />
+  <ParaDefVal06 />
+  <ParaLabel07 />
+  <ParaType07 />
+  <ParaSearchCode07 />
+  <ParaDefVal07 />
+  <ParaLabel08 />
+  <ParaType08 />
+  <ParaSearchCode08 />
+  <ParaDefVal08 />
+  <ParaLabel09 />
+  <ParaType09 />
+  <ParaSearchCode09 />
+  <ParaDefVal09 />
+  <ParaLabel10 />
+  <ParaType10 />
+  <ParaSearchCode10 />
+  <ParaDefVal10 />
+  <SQLNew />
+  <SQLRemove />
+  <SQLClear />
+  <H5List />
+  <H5Detail />
+  <H5Edit />
+  <H5Chart />
+  <H5MaxLines>0</H5MaxLines>
+  <AllDataTreatTitle />
+  <H5NewRec />
+  <H5Para />
+  <H5AttPara />
+  <CallFunction />
+  <JavaScript />
+  <H5GridHeader />
+  <H5GridDetail />
+  <ImageFile>#LINKRES#97</ImageFile>
+  <ListPrint />
+  <MD5HASH>fd72525bebf760ec82d1d4d14ee42b22</MD5HASH>
+  <ModelSetting />
+  <ShowInMenu>false</ShowInMenu>
+  <SysModelFlag>false</SysModelFlag>
+  <CubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME />
+      <CAPTION>牵伸范围</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>COLDESA</COLNAME>
+      <CAPTION>物料A</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>COLDESB</COLNAME>
+      <CAPTION>物料B</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>COLDESC</COLNAME>
+      <CAPTION>物料C</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>COLDESD</COLNAME>
+      <CAPTION>物料D</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>COLDESE</COLNAME>
+      <CAPTION>物料E</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>COLDESF</COLNAME>
+      <CAPTION>物料F</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>COLDESG</COLNAME>
+      <CAPTION>物料G</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>COLDESH</COLNAME>
+      <CAPTION>物料H</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>CRETIM</COLNAME>
+      <CAPTION />
+      <COLTYPE>COLFORMAT</COLTYPE>
+      <COLFORMAT>g</COLFORMAT>
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>CRETIM</COLNAME>
+      <CAPTION>计算时间</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>CREUSR</COLNAME>
+      <CAPTION>计算人</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>CUMVAR</COLNAME>
+      <CAPTION />
+      <COLTYPE>COLFORMAT</COLTYPE>
+      <COLFORMAT>P0</COLFORMAT>
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>CUMVAR</COLNAME>
+      <CAPTION>差异值%</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>FEEDSPEED</COLNAME>
+      <CAPTION>喂入速度</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>RESFLG</COLNAME>
+      <CAPTION>确认方案</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>RESNUM</COLNAME>
+      <CAPTION>序号</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>SPEEDA</COLNAME>
+      <CAPTION>速度A</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>SPEEDB</COLNAME>
+      <CAPTION>速度B</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>SPEEDC</COLNAME>
+      <CAPTION>速度C</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>SPEEDD</COLNAME>
+      <CAPTION>速度D</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>SPEEDE</COLNAME>
+      <CAPTION>速度E</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>SPEEDF</COLNAME>
+      <CAPTION>速度F</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>SPEEDG</COLNAME>
+      <CAPTION>速度G</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>SPEEDH</COLNAME>
+      <CAPTION>速度H</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>STGLBL</COLNAME>
+      <CAPTION>牵伸范围</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>STRRATA</COLNAME>
+      <CAPTION>牵引倍数A</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>STRRATB</COLNAME>
+      <CAPTION>牵引倍数B</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>STRRATC</COLNAME>
+      <CAPTION>牵引倍数C</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>STRRATD</COLNAME>
+      <CAPTION>牵引倍数D</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>STRRATE</COLNAME>
+      <CAPTION>牵引倍数E</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>STRRATF</COLNAME>
+      <CAPTION>牵引倍数F</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>STRRATG</COLNAME>
+      <CAPTION>牵引倍数G</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>STRRATH</COLNAME>
+      <CAPTION>牵引倍数H</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+    <DMCubeSetting>
+      <DMCODE>TMESMFGPLN10X727X</DMCODE>
+      <DMNUM>701</DMNUM>
+      <COLNAME>STRX</COLNAME>
+      <CAPTION>牵伸倍数</CAPTION>
+      <COLTYPE>LANGUAGE-zh</COLTYPE>
+      <COLFORMAT />
+      <COLAGGREGATE />
+      <DISPORDER>0</DISPORDER>
+      <FORMULA />
+    </DMCubeSetting>
+  </CubeSetting>
+</SysDataModelXML>

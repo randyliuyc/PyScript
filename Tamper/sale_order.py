@@ -2,18 +2,26 @@
 """
 销售订单新增接口（用友 T+ `saleOrder/Create`）LinkPython 程序。
 
-输入（TotalLINK 通过 #LINKLEVELDATA# 传入，字段名与用友接口一致但结构扁平）：
+输入（TotalLINK 通过 #LINKLEVELDATA# 传入的真实模型输出，字段为 TotalLINK 惯例）：
 [
   {
-    "ExternalCode": "SOH26080001",     # TotalLINK 业务订单号（幂等键）
-    "VoucherDate": "2026-08-27",
-    "CustomerCode": "102311037",       # 客户编码 -> dto.Customer.Code
-    "Memo": "测试OpenAPI",
-    "children": [                       # 明细 -> dto.SaleOrderDetails
-      { "InventoryCode": "...", "UnitName": "...", "Quantity": 1, "OrigTaxPrice": "188.87" }
+    "id": "SOH260800001",            # TotalLINK 单据号 -> dto.ExternalCode（幂等键）
+    "DOCDAT": "2026-08-03",          # 单据日期 -> dto.VoucherDate
+    "BPCNO": "01024001",             # 客户编码 -> dto.Customer.Code
+    "REMARK": "",                    # 备注 -> dto.Memo（可选）
+    "children": [                    # 明细 -> dto.SaleOrderDetails
+      {
+        "ITMNO": "1504126",          # 存货编码 -> Inventory.Code
+        "STU": "盒",                 # 计量单位 -> Unit.Name
+        "QTYSAU": 1000.0,            # 销售数量 -> Quantity
+        "GROPRI": 20.5               # 含税单价 -> OrigTaxPrice
+      }
     ]
   }
 ]
+
+说明：采用白名单映射，只挑上表列出的字段转换，其余 TotalLINK 内部字段
+（pid/leaf/LVL/审计/SITE/BPCNAM/金额汇总等）全部丢弃，不发给用友。
 
 输出（统一返回契约）：
 {
@@ -32,58 +40,96 @@ from chanjet_client import ChanjetError
 
 SALE_ORDER_CREATE = "/saleOrder/Create"
 
-# 输入明细行里，需要在转换时包一层嵌套对象的字段及其目标键
+# ========== TotalLINK -> 用友 字段映射（白名单） ==========
+
+# 主表原样透传字段：(TotalLINK字段名, 用友dto字段名)
+_MAIN_PASSTHROUGH = (
+    ("id", "ExternalCode"),     # 单据号 -> 幂等键
+    ("DOCDAT", "VoucherDate"),  # 单据日期
+    ("REMARK", "Memo"),         # 备注（可选）
+)
+
+# 主表客户编码字段（单独映射为嵌套对象 dto.Customer.Code）
+_CUSTOMER_CODE_KEY = "BPCNO"
+
+# 明细原样透传字段：(TotalLINK字段名, 用友明细字段名)
+_DETAIL_PASSTHROUGH = (
+    ("QTYSAU", "Quantity"),     # 销售数量
+    ("GROPRI", "OrigTaxPrice"), # 含税单价
+)
+
+# 明细里需要在转换时包一层嵌套对象的字段及其目标键
 # { 输入键: (目标父键, 目标子键) }
-_DETAIL_INVENTORY = ("Inventory", "Code")
-_DETAIL_UNIT = ("Unit", "Name")
+_DETAIL_INVENTORY = ("ITMNO", "Inventory", "Code")
+_DETAIL_UNIT = ("STU", "Unit", "Name")
 
 
 def _build_dto(order):
     """
-    把 TotalLINK 扁平订单转换为用友 saleOrder/Create 的 dto 请求体。
+    把 TotalLINK 销售订单转换为用友 saleOrder/Create 的 dto 请求体（白名单映射）。
 
     规则：
-    - ExternalCode / VoucherDate / Memo 等主表字段原样透传进 dto
-    - CustomerCode -> dto.Customer.Code
+    - id/DOCDAT/REMARK 映射为主表字段
+    - BPCNO -> dto.Customer.Code
     - children -> dto.SaleOrderDetails，其中：
-        InventoryCode -> SaleOrderDetails[].Inventory.Code
-        UnitName      -> SaleOrderDetails[].Unit.Name
-        Quantity / OrigTaxPrice 等原样透传
+        ITMNO -> SaleOrderDetails[].Inventory.Code
+        STU   -> SaleOrderDetails[].Unit.Name
+        QTYSAU -> Quantity、GROPRI -> OrigTaxPrice
+    - 未列出的字段一律丢弃
     """
     dto = {}
     children = order.pop("children", []) or []
 
-    for key, value in order.items():
+    for src, dst in _MAIN_PASSTHROUGH:
+        value = order.get(src)
         if value is None or value == "":
             continue  # 跳过空值，避免传空字段
-        if key == "CustomerCode":
-            dto["Customer"] = {"Code": value}
-        else:
-            dto[key] = value
+        dto[dst] = value
+
+    customer_code = order.get(_CUSTOMER_CODE_KEY)
+    if customer_code:
+        dto["Customer"] = {"Code": customer_code}
 
     details = []
     for row in children:
         detail = {}
-        for key, value in row.items():
+        for src, dst in _DETAIL_PASSTHROUGH:
+            value = row.get(src)
             if value is None or value == "":
                 continue
-            if key == "InventoryCode":
-                detail.setdefault(_DETAIL_INVENTORY[0], {})[_DETAIL_INVENTORY[1]] = value
-            elif key == "UnitName":
-                detail.setdefault(_DETAIL_UNIT[0], {})[_DETAIL_UNIT[1]] = value
-            else:
-                detail[key] = value
-        details.append(detail)
+            detail[dst] = value
+        inv = row.get(_DETAIL_INVENTORY[0])
+        if inv:
+            detail.setdefault(_DETAIL_INVENTORY[1], {})[_DETAIL_INVENTORY[2]] = inv
+        unit = row.get(_DETAIL_UNIT[0])
+        if unit:
+            detail.setdefault(_DETAIL_UNIT[1], {})[_DETAIL_UNIT[2]] = unit
+        if detail:
+            details.append(detail)
 
     if details:
         dto["SaleOrderDetails"] = details
+
+    # 手工指定单据号：用友单据号 = ExternalCode（TotalLINK 单号）
+    # 原因：T+ 13.0 旧版 saleOrder/Create 不返回用友自动生成的单号（result: null），
+    # 公共网关也无查询接口（GetVoucherDTO/FindVoucherList 需 16.0+）。
+    # 通过 Code + IsModifiedCode 让用友直接使用我们的单号，保证单号一一对应、始终可知。
+    external_code = dto.get("ExternalCode")
+    if external_code:
+        dto["Code"] = external_code
+        dto["IsModifiedCode"] = True
+
+    # 创建后自动审核（T+ 动态属性 isautoaudit，官方推荐的创建即审核方式）
+    # 若账套开启审批流，需另加 isneedwfsubmit=1（见 chanjet 销售订单文档）
+    dto.setdefault("DynamicPropertyKeys", []).append("isautoaudit")
+    dto.setdefault("DynamicPropertyValues", []).append(True)
 
     return dto
 
 
 def _push_one_order(order):
     """
-    推送单张订单，返回 (status, 用友信息或错误)。
+    推送单张销售订单，返回 (status, 用友信息或错误)。
     """
     try:
         dto = _build_dto(dict(order))
@@ -92,7 +138,7 @@ def _push_one_order(order):
     except ChanjetError as e:
         return {"status": "failed", "error": str(e)}
 
-    # 解析响应：取用友单据号/ID（字段名以实际响应为准，这里做兼容读取）
+    # 解析响应：创建成功时 T+ 返回 HTTP 200 + null，用友单号回退到 ExternalCode
     data = resp.get("data") or resp.get("result") or {}
     yonyou_code = data.get("code") or data.get("Code") or dto.get("ExternalCode")
     yonyou_id = data.get("id") or data.get("Id")
@@ -108,7 +154,7 @@ def _push_one_order(order):
 
 def linkrun(json_str):
     """
-    LinkPython 程序统一入口。接收订单数组 JSON，逐单推送，返回统一结果契约。
+    LinkPython 程序统一入口。接收销售订单数组 JSON，逐单推送，返回统一结果契约。
     """
     try:
         data = json.loads(json_str)
@@ -156,18 +202,23 @@ def linkrun(json_str):
 
 
 if __name__ == "__main__":
-    sample = """
+
+    sample = """{
+    "orders": 
 [
   {
-    "ExternalCode": "SOH26080001",
-    "VoucherDate": "2026-08-27",
-    "CustomerCode": "102311037",
-    "Memo": "测试OpenAPI",
+    "id": "SOH260800001",
+    "DOCDAT": "2026-08-03",
+    "BPCNO": "01024001",
+    "BPCNAM": "烟台靖众商贸有限公司（老佛爷）",
+    "SITE": "YT",
+    "REMARK": "",
     "children": [
-      {"InventoryCode": "06020502", "UnitName": "台", "Quantity": 1, "OrigTaxPrice": "188.87"},
-      {"InventoryCode": "0501GX01003", "UnitName": "1000g装", "Quantity": 5, "OrigTaxPrice": "20.5"}
+      {"ITMNO": "1504126", "STU": "盒", "QTYSAU": 1000.0, "GROPRI": 20.5},
+      {"ITMNO": "1504200", "STU": "盒", "QTYSAU": 500.0, "GROPRI": 6.0}
     ]
   }
 ]
+}
 """
     print(linkrun(sample))

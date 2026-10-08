@@ -94,7 +94,7 @@ def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
                 if pct > targets[i] + 0.03:
                     pass_check = False; break
             if pass_check:
-                remaining = sum(weights[g] for g in range(g_idx + 1, 4))
+                remaining = sum(GROUP_SIZES[g] * weights[g] for g in range(g_idx + 1, 4))
                 for i in range(num_colors):
                     max_possible = (current_sums[i] + remaining) / D
                     if max_possible < targets[i] - 0.03:
@@ -655,34 +655,26 @@ if __name__ == "__main__":
     "data": 
 [
   {
-    "MFMLIN": 10,
-    "MFMDES": "R004W  ",
-    "MFMSHO": "R004W",
-    "MATRATCALC": 1.600000,
-    "PRIORITY": 0,
-    "POSITION": ""
-  },
-  {
     "MFMLIN": 20,
-    "MFMDES": "R007SW33  ",
-    "MFMSHO": "R007SW33",
-    "MATRATCALC": 3.000000,
+    "MFMDES": "B024W J ",
+    "MFMSHO": "B024W",
+    "MATRATCALC": 10.000000,
     "PRIORITY": 0,
     "POSITION": ""
   },
   {
     "MFMLIN": 30,
-    "MFMDES": "FW  ",
-    "MFMSHO": "FW",
-    "MATRATCALC": 14.200000,
+    "MFMDES": "G004W J ",
+    "MFMSHO": "G004W",
+    "MATRATCALC": 10.000000,
     "PRIORITY": 0,
     "POSITION": ""
   },
   {
     "MFMLIN": 40,
-    "MFMDES": "SW VF029 ",
-    "MFMSHO": "SW",
-    "MATRATCALC": 6.200000,
+    "MFMDES": "G008W QUA JC ",
+    "MFMSHO": "G008W",
+    "MATRATCALC": 80.000000,
     "PRIORITY": 0,
     "POSITION": ""
   }

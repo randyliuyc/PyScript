@@ -6,7 +6,8 @@ bt8.py 回归测试
 - 输入/输出契约（isSuccess、严格 JSON、紧凑输出、边界输入）
 - 数值自洽（speed 与 x、cum_error 与明细、种子 dev 与 X）
 - 结果可复现
-- POSITION 桶位约束
+- POSITION 桶位约束（单桶位、多桶位）
+- 多颜色与搜索框角落解（8 色等分）
 - 搜索预算参数 maxtime 与 debug 开关
 
 运行：
@@ -40,6 +41,14 @@ PAYLOAD = {"xmin": 1.03, "xmax": 3.5, "data": DATA}
 def run(payload):
     """调用 linkrun 并把返回的 JSON 文本解析成对象"""
     return json.loads(bt8.linkrun(json.dumps(payload)))
+
+
+def parse_color_line(line):
+    """解析 '名称: 目标 -> 实际 (误差%)'，返回 (名称, 实际, 误差)"""
+    left, right = line.split(": ", 1)
+    _, rest = right.split(" -> ")
+    actual, err = rest.split(" (")
+    return left.strip(), float(actual), float(err.rstrip(")%"))
 
 
 class Bt8RegressionTests(unittest.TestCase):
@@ -140,6 +149,42 @@ class Bt8RegressionTests(unittest.TestCase):
                 if color_idx in allowed:
                     self.assertIn(bucket_idx, allowed[color_idx],
                                   f"color {color_idx} 被放到 {entry['bucket']}")
+
+    def test_position_multi_bucket(self):
+        """POSITION='ACF'：该颜色必须同时出现在 A、C、F，且不能出现在别处。"""
+        data = [
+            {"MFMLIN": 10, "MFMDES": "A", "MATRATCALC": 30, "PRIORITY": 0, "POSITION": "ACF"},
+            {"MFMLIN": 20, "MFMDES": "B", "MATRATCALC": 30, "PRIORITY": 0, "POSITION": ""},
+            {"MFMLIN": 30, "MFMDES": "C", "MATRATCALC": 40, "PRIORITY": 0, "POSITION": ""},
+        ]
+        result = run({"data": data})
+        self.assertEqual(result.get("isSuccess"), 1, result.get("message"))
+        self.assertTrue(result["results"])
+        for plan in result["results"]:
+            positions = {entry["bucket"]: entry["color"] for entry in plan["assign"]}
+            for bucket in "ACF":
+                self.assertEqual(positions.get(bucket), 10, f"颜色 10 应出现在 {bucket}")
+            for bucket, color in positions.items():
+                if color == 10:
+                    self.assertIn(bucket, "ACF")
+            for line in plan["colors"]:
+                _, _, err = parse_color_line(line)
+                self.assertLessEqual(err, 1.5 + 0.01, line)
+
+    def test_many_colors_corner_solution(self):
+        """8 色等分：解在搜索框角落；累计误差会超过单色容差，但单色都应达标。"""
+        data = [
+            {"MFMLIN": i * 10, "MFMDES": f"C{i * 10}", "MATRATCALC": 100,
+             "PRIORITY": 0, "POSITION": ""}
+            for i in range(1, 9)
+        ]
+        result = run({"data": data, "maxtime": 5})
+        self.assertEqual(result.get("isSuccess"), 1, result.get("message"))
+        self.assertTrue(result["results"])
+        for plan in result["results"]:
+            for line in plan["colors"]:
+                _, _, err = parse_color_line(line)
+                self.assertLessEqual(err, 1.5 + 0.01, line)
 
     def test_infeasible_position_reports_error(self):
         data = [

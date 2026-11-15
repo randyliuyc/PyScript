@@ -231,7 +231,8 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, rng=None, dea
         if time.time() > deadline:
             return 100.0
 
-        x1, x2, x3 = x
+        # 先取整到 2 位小数再计算：缓存值、输出 X 与 dev 天然一一对应
+        x1, x2, x3 = (round(float(v), 2) for v in x)
         penalty = 0.0
 
         # 连续惩罚：违反越多惩罚越大，为 Nelder-Mead 提供梯度方向
@@ -249,7 +250,7 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, rng=None, dea
         if penalty > 0:
             return 0.1 + penalty
 
-        key = (round(x1, 2), round(x2, 2), round(x3, 2))
+        key = (x1, x2, x3)
         if key in eval_cache:
             return eval_cache[key][0]
 
@@ -267,6 +268,14 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, rng=None, dea
         (max(1.0, bounds['x2'][0]), bounds['x2'][1]),
         (max(1.0, bounds['x3'][0]), bounds['x3'][1])
     ]
+
+    # 确定性粗网格：每维 5 个点（含边界），共 125 点。
+    # 只在盒子的角落/边缘有解时（例如 8 色等分），随机起点容易漏掉。
+    grid_axes = [np.linspace(b[0], b[1], 5) for b in scipy_bounds]
+    for gx1 in grid_axes[0]:
+        for gx2 in grid_axes[1]:
+            for gx3 in grid_axes[2]:
+                objective([round(float(gx1), 2), round(float(gx2), 2), round(float(gx3), 2)])
 
     n_explore = 200
     for i in range(n_explore):
@@ -290,7 +299,7 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, rng=None, dea
                 print(f"[bt8] 局部搜索超时，已运行 {time.time() - start_time:.1f} 秒，共 {i} 轮")
             break
 
-        good_keys = [k for k, v in eval_cache.items() if v[0] < TOL]
+        good_keys = [k for k, v in eval_cache.items() if v[1]]
         if not good_keys:
             break
 
@@ -305,21 +314,17 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, rng=None, dea
             options={'maxiter': 80, 'xatol': 0.01, 'fatol': 0.0001}
         )
 
-    for key, (err, _assignments, _D) in eval_cache.items():
-        if err >= TOL:
+    for key, (_err, assignments, D_key) in eval_cache.items():
+        # fast_backtrack 返回的每条分配都已满足单色 TOL；这里只排除"无可行分配"的点。
+        # 注意不能用累计误差与 TOL 比较：颜色多时累计误差天然会超过单色容差。
+        if not assignments:
             continue
-        # 用输出实际采用的 2 位小数 X 重新计算，保证 dev 与 X 一一对应
         x1, x2, x3 = key
-        w = np.array([1.0 / x1, 1.0, 1.0 / x2, 1.0 / x3])
-        D_key = float(np.sum(w * GROUP_SIZES))
-        res = fast_backtrack(targets, w, D_key, num_colors, pos_constraints)
-        if not res:
-            continue
         x_sig = (round(x1, 1), round(x2, 1), round(x3, 1))
         if x_signature_count.get(x_sig, 0) >= MAX_PER_X_SIGNATURE:
             continue
         x_signature_count[x_sig] = x_signature_count.get(x_sig, 0) + 1
-        for af, dev, pcts in res:
+        for af, dev, pcts in assignments:
             seeds.append({
                 'X1': x1, 'X2': x2, 'X3': x3,
                 'assign': af, 'dev': dev, 'D': D_key, 'final_pcts': pcts,
@@ -328,14 +333,13 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, rng=None, dea
 
     # 诊断信息：无种子时帮助定位问题
     if verbose and not seeds:
-        errors = [v[0] for v in eval_cache.values()]
-        valid_errors = [e for e in errors if e < 0.5]
-        good_errors = [e for e in valid_errors if e < TOL]
-        print(f"[bt8] 评估点数: {len(eval_cache)}, 有效X组合: {len(valid_errors)}, 误差<{TOL*100:.1f}%: {len(good_errors)}")
-        if valid_errors:
-            print(f"[bt8] 最佳误差: {min(valid_errors):.4f}, 最差误差: {max(valid_errors):.4f}")
+        with_assign = [v for v in eval_cache.values() if v[1]]
+        print(f"[bt8] 评估点数: {len(eval_cache)}, 有可行分配: {len(with_assign)}")
+        if with_assign:
+            errs = [min(r[1] for r in v[1]) for v in with_assign]
+            print(f"[bt8] 最佳累计误差: {min(errs):.4f}, 最差累计误差: {max(errs):.4f}")
         else:
-            print(f"[bt8] 所有X组合均未通过物理约束或无法分配颜色")
+            print("[bt8] 所有 X 组合均未通过物理约束或无法分配颜色")
 
     return seeds
 

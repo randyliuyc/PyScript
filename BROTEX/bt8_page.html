@@ -1,0 +1,1245 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>BT8 · 牵伸配色计算</title>
+<style>
+:root{
+  --paper:#e6e9e4;
+  --panel:#eff1ec;
+  --panel-solid:#f3f4f0;
+  --ink:#15222b;
+  --ink-soft:#56666d;
+  --rule:#c2cac3;
+  --rule-strong:#93a09a;
+  --indigo:#1f4568;
+  --dye:#a8372a;
+  --ok:#3b6a4c;
+  --warn:#8a5a12;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",system-ui,sans-serif;
+  --serif:"Songti SC","Noto Serif CJK SC","Source Han Serif SC",Georgia,serif;
+  --mono:"SF Mono","JetBrains Mono",Menlo,ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{height:100%}
+body{
+  margin:0;height:100%;display:flex;flex-direction:column;
+  color:var(--ink);font:14px/1.55 var(--sans);
+  -webkit-font-smoothing:antialiased;
+  background:
+    linear-gradient(rgba(21,34,43,.035) 1px,transparent 1px) 0 0/24px 24px,
+    linear-gradient(90deg,rgba(21,34,43,.035) 1px,transparent 1px) 0 0/24px 24px,
+    var(--paper);
+}
+:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+
+/* ---------- masthead ---------- */
+.masthead{
+  flex:none;display:flex;align-items:center;justify-content:space-between;gap:24px;
+  padding:15px 28px;border-bottom:1.5px solid var(--ink);
+  background:rgba(239,241,236,.94);
+}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.mark{
+  font:700 12px/1 var(--mono);letter-spacing:.1em;color:var(--ink);
+  border:1.5px solid var(--ink);border-radius:2px;padding:7px 8px;flex:none;
+}
+.titles h1{font:600 20px/1.2 var(--serif);margin:0;letter-spacing:.02em}
+.titles p{margin:3px 0 0;font-size:12px;color:var(--ink-soft)}
+.runinfo{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-soft);white-space:nowrap}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(59,106,76,.14);flex:none}
+.runinfo code{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
+
+/* ---------- layout ---------- */
+main{flex:1;display:grid;grid-template-columns:minmax(380px,432px) minmax(0,1fr);min-height:0}
+.panel-input{
+  overflow-y:auto;padding:22px 24px 44px;
+  border-right:1px solid var(--rule);
+  background:rgba(239,241,236,.66);
+}
+.panel-results{overflow-y:auto;padding:22px 30px 60px}
+
+h2{font:600 13px/1.4 var(--sans);margin:0;letter-spacing:.03em}
+h3{font:600 12px/1.4 var(--sans);margin:0;letter-spacing:.03em}
+.block+.block{margin-top:26px;padding-top:22px;border-top:1px solid var(--rule)}
+.block-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.lede{margin:4px 0 14px;font-size:11.5px;line-height:1.55;color:var(--ink-soft)}
+.muted{color:var(--ink-soft)}
+
+/* ---------- fields ---------- */
+.field{display:flex;flex-direction:column;gap:3px;min-width:0}
+.lab{display:flex;align-items:baseline;gap:6px;font-size:10.5px;color:var(--ink-soft);letter-spacing:.02em;white-space:nowrap}
+.lab em{font-style:normal;color:var(--rule-strong)}
+.inp{
+  width:100%;min-width:0;background:transparent;border:none;border-bottom:1px solid var(--rule-strong);
+  border-radius:0;padding:4px 2px 3px;font:13px/1.35 var(--sans);color:var(--ink);
+  appearance:none;
+}
+.inp:hover{border-bottom-color:var(--ink-soft)}
+.inp:focus{outline:none;border-bottom-color:var(--indigo);box-shadow:0 1px 0 var(--indigo)}
+.inp.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.inp[type=number]::-webkit-inner-spin-button,.inp[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+
+/* ---------- color rows ---------- */
+.rows{display:flex;flex-direction:column;margin-top:10px}
+.color-row{position:relative;padding:12px 0 11px 14px;border-top:1px solid var(--rule)}
+.color-row:first-child{border-top:none}
+.swatch{position:absolute;left:0;top:12px;bottom:11px;width:3px;border-radius:2px;background:var(--c)}
+.row-head{display:grid;grid-template-columns:84px minmax(0,1fr) 96px 22px;gap:10px;align-items:end}
+.row-opts{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:9px}
+.pri{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-soft);cursor:pointer}
+.pri input{accent-color:var(--indigo);width:14px;height:14px;margin:0}
+.norm{
+  margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--indigo);
+  background:rgba(31,69,104,.08);border-radius:2px;padding:1px 4px;white-space:nowrap;
+}
+.del{
+  border:none;background:none;color:var(--rule-strong);font:16px/1 var(--sans);
+  cursor:pointer;padding:5px 2px;border-radius:2px;
+}
+.del:hover{color:var(--dye)}
+.pos{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pos .lab{flex:none}
+.chips{display:flex;gap:3px}
+.chip{
+  width:24px;height:22px;padding:0;border:1px solid var(--rule-strong);border-radius:2px;
+  background:transparent;color:var(--ink-soft);font:10.5px/1 var(--mono);
+  cursor:pointer;transition:background .12s,color .12s,border-color .12s;
+}
+.chip:hover{border-color:var(--ink);color:var(--ink)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.empty-row{padding:16px 0;font-size:12px;color:var(--ink-soft);border-top:1px solid var(--rule)}
+
+.sum-row{display:flex;align-items:baseline;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--rule);font-size:11.5px;color:var(--ink-soft)}
+.sum-row strong{font:600 15px/1 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* ---------- search params ---------- */
+.param-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px 16px;margin-top:12px}
+
+.fold summary{display:flex;align-items:baseline;gap:8px;list-style:none;cursor:pointer;user-select:none}
+.fold summary::-webkit-details-marker{display:none}
+.fold summary h2{margin:0}
+.fold .fold-meta{margin-left:auto;font:10px/1.3 var(--mono);color:var(--ink-soft);white-space:nowrap}
+.fold summary::after{content:"+";width:12px;text-align:center;font:14px/1 var(--mono);color:var(--ink-soft)}
+.fold[open] summary::after{content:"−"}
+
+.help{margin-top:18px;border-top:1px solid var(--rule);padding-top:10px}
+.help summary{
+  display:flex;align-items:center;gap:7px;cursor:pointer;list-style:none;
+  font-size:12px;color:var(--indigo);user-select:none;
+}
+.help summary::-webkit-details-marker{display:none}
+.help summary::before{content:"+";font:14px/1 var(--mono);width:10px;text-align:center}
+.help[open] summary::before{content:"−"}
+.help dl{margin:10px 0 0;font-size:11.5px;line-height:1.55}
+.help dt{font-weight:600;color:var(--ink);margin-top:9px}
+.help dt:first-child{margin-top:0}
+.help dd{margin:2px 0 0;color:var(--ink-soft)}
+
+/* ---------- actions ---------- */
+.actions{margin-top:24px}
+.primary{
+  width:100%;padding:13px;border:1.5px solid var(--ink);border-radius:2px;
+  background:var(--ink);color:var(--panel);font:600 13.5px/1 var(--sans);letter-spacing:.08em;
+  cursor:pointer;transition:background .15s,border-color .15s,opacity .15s;
+}
+.primary:hover:not(:disabled){background:var(--indigo);border-color:var(--indigo)}
+.primary:disabled{opacity:.5;cursor:progress}
+.actions-sub{display:flex;gap:16px;margin-top:11px}
+.ghost-btn{border:none;background:none;color:var(--indigo);font:12px/1.4 var(--sans);cursor:pointer;padding:2px 0}
+.ghost-btn:hover:not(:disabled){text-decoration:underline;text-underline-offset:3px}
+.ghost-btn:disabled{color:var(--rule-strong);cursor:default;text-decoration:none}
+.form-error{
+  margin-top:14px;padding:10px 12px;border-left:3px solid var(--dye);
+  background:rgba(168,55,42,.07);font-size:11.5px;line-height:1.55;color:#7d2a21;
+}
+.form-error strong{display:block;margin-bottom:3px;font-weight:600}
+.form-error ul{margin:3px 0 0;padding-left:16px}
+
+/* ---------- results shell ---------- */
+.results-head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  padding-bottom:12px;border-bottom:1px solid var(--rule);margin-bottom:20px;
+}
+.results-head h2{font:600 16px/1.3 var(--serif);letter-spacing:.02em}
+.runmeta{font-size:11.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums;text-align:right}
+
+.empty{display:grid;grid-template-columns:minmax(250px,340px) minmax(0,1fr);gap:38px;align-items:center;padding:8px 0 24px}
+.empty-ring{max-width:340px}
+.empty-ring svg{display:block;width:100%;height:auto}
+.empty-copy h3{font:600 17px/1.45 var(--serif);margin:0 0 8px;letter-spacing:.01em}
+.empty-copy p{font-size:12.5px;line-height:1.65;color:var(--ink-soft);max-width:52ch;margin:0 0 13px}
+.empty-copy ul{margin:0;padding-left:18px;font-size:12.5px;line-height:1.75;color:var(--ink-soft);display:grid;gap:3px}
+.empty-copy b{color:var(--ink);font-weight:600}
+
+.error{padding:16px 18px;border-left:3px solid var(--dye);background:rgba(168,55,42,.06);max-width:72ch}
+.error h3{font:600 14px/1.4 var(--sans);margin:0 0 6px;color:#7d2a21}
+.error p{margin:0;font-size:12.5px;line-height:1.65;color:#5c3a34;white-space:pre-wrap}
+
+.loading{display:flex;align-items:center;gap:18px;padding:44px 6px}
+.spinner{width:46px;height:46px;flex:none}
+.spinner svg{width:100%;height:100%;animation:spin 2.6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading strong{display:block;font:600 13.5px/1.4 var(--sans)}
+.loading p{margin:3px 0 0;font-size:11.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+
+/* ---------- plan detail ---------- */
+.plan{border-top:2px solid var(--ink);padding-top:14px}
+.plan-head{display:flex;align-items:center;justify-content:space-between;gap:12px 18px;flex-wrap:wrap;margin-bottom:18px}
+.plan-id{display:flex;align-items:baseline;gap:7px;font:600 12.5px/1.2 var(--sans);letter-spacing:.06em;color:var(--ink-soft)}
+.plan-id b{font:600 19px/1 var(--mono);color:var(--ink);letter-spacing:0}
+.badges{display:flex;gap:8px;flex-wrap:wrap}
+.badge{
+  font-size:11px;padding:3px 8px;border:1px solid var(--rule-strong);border-radius:2px;
+  color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.badge.ok{border-color:var(--ok);color:var(--ok)}
+.badge.bad{border-color:var(--dye);color:var(--dye)}
+
+.plan-grid{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);gap:32px;align-items:start}
+.ring-holder{max-width:390px;width:100%}
+.ring-holder svg{display:block;width:100%;height:auto}
+.seg{transition:opacity .16s}
+.seg.dim{opacity:.28}
+
+.ring-letter{font-family:var(--sans);font-size:13px;font-weight:600}
+.ring-name{font-family:var(--mono);font-size:9.8px;letter-spacing:.02em;opacity:.95}
+.ring-speed{font-family:var(--mono);font-size:9.5px;opacity:.85}
+.ring-d{font-family:var(--mono),var(--sans);font-size:26px;font-weight:600;letter-spacing:-.01em}
+.ring-ghost-title{font-family:var(--sans);font-size:16px;font-weight:600;letter-spacing:.06em;fill:var(--ink)}
+.ring-cap{font-family:var(--sans);font-size:10.5px;fill:var(--ink-soft);letter-spacing:.08em}
+
+.grp-sector path{fill:rgba(31,69,104,.07);transition:fill .12s}
+.grp-sector.ghost path{fill:rgba(21,34,43,.05)}
+.grp-sector:not(.ghost){cursor:pointer}
+.grp-sector:not(.ghost):hover path{fill:rgba(31,69,104,.15)}
+.grp-sector.picked path{fill:var(--indigo)}
+.grp-sector.picked .grp-k,.grp-sector.picked .grp-v{fill:var(--panel)}
+.grp-k{font-family:var(--sans);font-size:9.5px;fill:var(--ink-soft);letter-spacing:.06em}
+.grp-v{font-family:var(--mono);font-size:11.5px;font-weight:600;fill:var(--ink)}
+.ring-holder .seg{cursor:pointer}
+.ring-holder .seg:hover path{stroke:rgba(21,34,43,.4);stroke-width:1.5}
+.ring-holder .seg.picked path,.ring-holder .seg:focus-visible path{stroke:var(--ink);stroke-width:2.5}
+.ring-holder .grp-sector:focus-visible path{stroke:var(--ink);stroke-width:2}
+.ring-holder .seg:focus,.ring-holder .seg:focus-visible,
+.ring-holder .grp-sector:focus,.ring-holder .grp-sector:focus-visible{outline:none}
+.ring-hint{margin:8px auto 0;max-width:42ch;font-size:10.5px;line-height:1.55;color:var(--ink-soft);text-align:center}
+.ring-reset{display:block;margin:2px auto 0;font-size:11px}
+.arrange-line{margin:12px 0 0;font:11.5px/1.65 var(--sans);color:var(--ink-soft);letter-spacing:.01em}
+.arrange-group{white-space:nowrap}
+.arrange-vals{display:inline-block;margin-left:6px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.plan-metrics{display:flex;flex-direction:column;gap:16px;min-width:0}
+.check-block{margin-top:0;padding-top:0;border-top:none}
+.check-block h3{color:var(--ink-soft);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{
+  padding:5px 6px;border-bottom:1px solid var(--rule-strong);text-align:right;
+  font:500 10.5px/1.3 var(--sans);color:var(--ink-soft);letter-spacing:.03em;white-space:nowrap;
+}
+th:first-child,td:first-child{text-align:left}
+td{padding:5px 6px;border-bottom:1px solid var(--rule);text-align:right;font-variant-numeric:tabular-nums}
+td.num{font-family:var(--mono)}
+th:last-child,td:last-child{padding-right:0}
+th:first-child,td:first-child{padding-left:0}
+tbody tr:last-child td{border-bottom:none}
+.color-cell{display:flex;align-items:center;gap:7px;min-width:0}
+.color-cell span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.swatch-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--c)}
+.err-ok{color:var(--ok)}
+.err-bad{color:var(--dye);font-weight:600}
+.color-check tbody tr{transition:background .12s}
+.color-check tbody tr:hover{background:rgba(31,69,104,.06)}
+.pri-mark{font-size:9px;color:var(--indigo);border:1px solid rgba(31,69,104,.4);border-radius:2px;padding:0 3px;margin-left:5px;vertical-align:1px}
+
+/* ---------- plan list ---------- */
+.list-block{margin-top:36px;padding-top:18px;border-top:1px solid var(--rule)}
+.list-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:9px}
+.list-head .count{font-size:11.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.table-scroll{max-height:340px;overflow:auto;border-bottom:1px solid var(--rule)}
+.plan-table thead th{position:sticky;top:0;background:var(--paper);z-index:1}
+.plan-table tbody tr{cursor:pointer}
+.plan-table tbody tr:hover{background:rgba(31,69,104,.06)}
+.plan-table tbody tr.on{background:rgba(31,69,104,.1);box-shadow:inset 3px 0 0 var(--indigo)}
+.plan-table th:first-child,.plan-table td:first-child{padding-left:9px;font-family:var(--mono);color:var(--ink-soft);width:46px}
+.plan-table td{white-space:nowrap}
+
+.foot-note{margin-top:22px;font-size:11px;line-height:1.6;color:var(--rule-strong);max-width:70ch}
+
+@media (max-width:1200px){
+  html,body{height:auto}
+  body{min-height:100vh}
+  main{grid-template-columns:1fr;min-height:0}
+  .panel-input{overflow:visible;border-right:none;border-bottom:1px solid var(--rule)}
+  .panel-input form{max-width:620px;margin:0 auto}
+  .panel-results{overflow:visible}
+  .empty{grid-template-columns:1fr;gap:22px}
+  .empty-ring{max-width:320px}
+  .plan-grid{grid-template-columns:1fr;gap:26px}
+  .ring-holder{max-width:370px;margin:0 auto}
+}
+@media (max-width:600px){
+  .masthead{padding:13px 18px;flex-wrap:wrap;gap:10px}
+  .titles h1{font-size:18px}
+  .titles p{display:none}
+  .panel-input,.panel-results{padding-left:18px;padding-right:18px}
+  .runinfo{display:none}
+  .row-head{grid-template-columns:78px minmax(0,1fr) 84px 20px;gap:8px}
+  .inp{font-size:16px}          /* 避免 iOS 聚焦时自动放大页面 */
+}
+@media (prefers-reduced-motion:reduce){
+  .spinner svg{animation:none}
+  *{scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="brand">
+    <span class="mark">BT8</span>
+    <div class="titles">
+      <h1>牵伸配色计算</h1>
+      <p>输入混纺比例，求解 8 个桶位上的牵伸倍数与颜色排布</p>
+    </div>
+  </div>
+  <div class="runinfo"><span class="status-dot"></span><span>本地计算</span><code>bt8.linkrun</code></div>
+</header>
+
+<main>
+  <!-- ========== 输入 ========== -->
+  <section class="panel-input" aria-label="输入参数">
+    <form id="calc-form" novalidate>
+      <div class="block">
+        <div class="block-head">
+          <h2>颜色与色比</h2>
+          <button type="button" class="ghost-btn" id="add-color">添加颜色</button>
+        </div>
+        <div class="rows" id="rows"></div>
+        <div class="sum-row">
+          <span>色比合计</span>
+          <strong id="sum-value">0</strong>
+          <span id="sum-note" class="muted"></span>
+        </div>
+      </div>
+
+      <details class="block fold" id="search-settings">
+        <summary>
+          <h2>搜索设置</h2>
+          <span class="fold-meta" id="search-meta">1.03–3.5 · 10 秒</span>
+        </summary>
+        <div class="param-grid">
+          <label class="field">
+            <span class="lab">xmin <em>最小牵伸</em></span>
+            <input class="inp num" id="xmin" type="number" step="0.01" min="1" value="1.03">
+          </label>
+          <label class="field">
+            <span class="lab">xmax <em>最大牵伸</em></span>
+            <input class="inp num" id="xmax" type="number" step="0.01" min="1" value="3.5">
+          </label>
+          <label class="field">
+            <span class="lab">maxtime <em>秒</em></span>
+            <input class="inp num" id="maxtime" type="number" step="1" min="1" value="10">
+          </label>
+          <label class="field">
+            <span class="lab">seed <em>随机种子</em></span>
+            <input class="inp num" id="seed" type="number" step="1" value="0">
+          </label>
+        </div>
+      </details>
+
+      <details class="help">
+        <summary>参数说明</summary>
+        <dl>
+          <dt>行号 / 简称 MFMLIN / MFMSHO</dt>
+          <dd>行号标识该颜色（结果里回传为 color），简称用于页面显示与核对。名称 MFMDES 不在此页展示。</dd>
+          <dt>X1 / X2 / X3</dt>
+          <dd>AB、EF、GH 三组的牵伸倍数，由算法求解；CD 组固定为 1.00。同一组内两个桶位同速。</dd>
+          <dt>xmin / xmax</dt>
+          <dd>三个牵伸倍数的搜索边界，需满足 xmin ≥ 1.0 且 xmax &gt; xmin。范围越窄越快，越宽越容易找到解。</dd>
+          <dt>色比 MATRATCALC</dt>
+          <dd>每种颜色希望占的比例。数值本身不重要，只看相对大小；均为 0 时无法计算。</dd>
+          <dt>优先色 PRIORITY</dt>
+          <dd>勾选后该颜色误差需 ≤ 0.05%，普通颜色 ≤ 0.5%。达标的方案排在前面。</dd>
+          <dt>固定桶位 POSITION</dt>
+          <dd>选中后该颜色只能出现在这些桶位，留空表示不限。组内两格同速，具体落位由相邻同色最少的排布决定。</dd>
+          <dt>maxtime</dt>
+          <dd>搜索时间上限（秒）。到时停止，返回已找到的方案；颜色多或范围宽时可调大。</dd>
+          <dt>seed</dt>
+          <dd>随机种子。相同输入与种子会得到相同结果，便于对比和复现。</dd>
+        </dl>
+      </details>
+
+      <div class="actions">
+        <button class="primary" id="run" type="submit">开始计算</button>
+        <div class="actions-sub">
+          <button class="ghost-btn" id="sample" type="button">载入示例</button>
+          <button class="ghost-btn" id="reset" type="button">重置</button>
+        </div>
+        <div class="form-error" id="form-error" role="alert" hidden></div>
+      </div>
+    </form>
+  </section>
+
+  <!-- ========== 结果 ========== -->
+  <section class="panel-results" aria-label="计算结果">
+    <div class="results-head">
+      <h2>计算结果</h2>
+      <div class="runmeta" id="runmeta">尚未计算</div>
+    </div>
+
+    <div class="empty" id="empty">
+      <div class="empty-ring" id="ghost-ring"></div>
+      <div class="empty-copy">
+        <h3>八个桶位，围成一圈</h3>
+        <p>每种颜色占据一个或多个桶位。AB、CD、EF、GH 四组内部同速：CD 固定为 1.00，AB、EF、GH 分别由 X1、X2、X3 控制。圆环上相邻同色的排布会被自动打散。</p>
+        <ul>
+          <li><b>填写行号、简称与色比</b>，需要时勾选优先、指定固定桶位</li>
+          <li><b>开始计算</b>：在 xmin–xmax 之间搜索牵伸倍数，并枚举颜色排布</li>
+          <li><b>查看方案</b>：按优先色达标与累计误差排序，最多返回 100 个</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="loading" id="loading" hidden>
+      <div class="spinner" aria-hidden="true">
+        <svg viewBox="0 0 46 46" fill="none">
+          <circle cx="23" cy="23" r="18" stroke="#c2cac3" stroke-width="2"/>
+          <path d="M23 5a18 18 0 0 1 15.6 9" stroke="#1f4568" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <strong>正在搜索可行排布</strong>
+        <p id="load-line">已用 0.0 秒</p>
+      </div>
+    </div>
+
+    <div class="error" id="error" role="alert" hidden>
+      <h3>未能得出方案</h3>
+      <p id="error-text"></p>
+    </div>
+
+    <div id="output" hidden>
+      <div id="detail"></div>
+
+      <section class="list-block" id="list-block">
+        <div class="list-head">
+          <h3>全部方案</h3>
+          <span class="count" id="list-count"></span>
+        </div>
+        <div class="table-scroll">
+          <table class="plan-table">
+            <thead>
+              <tr>
+                <th>#</th><th>X1</th><th>X2</th><th>X3</th>
+                <th>总牵伸 D</th><th>累计误差</th><th>优先色</th>
+              </tr>
+            </thead>
+            <tbody id="plan-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <p class="foot-note">计算在本机完成。累计误差为各颜色实际比例与目标比例之差的总和；优先级误差阈值取 0.05%，普通颜色取 0.5%。</p>
+    </div>
+  </section>
+</main>
+
+<script>
+'use strict';
+
+/* ===================== 常量 ===================== */
+const BUCKETS = ['A','B','C','D','E','F','G','H'];
+const GROUP_OF = [0,0,1,1,2,2,3,3];
+const GROUP_LABEL = ['AB','CD','EF','GH'];
+const PALETTE = ['#35507a','#b3442f','#c9872b','#6f8140','#2e6d69','#6c4064','#5c6870','#b26975'];
+const PRIORITY_THRESHOLD = 0.05;
+const NORMAL_THRESHOLD = 0.5;
+const STORAGE_KEY = 'bt8-page-state-v1';
+
+const SAMPLE = {
+  xmin: 1.03, xmax: 3.5, seed: 0, maxtime: 10,
+  data: [
+    {MFMLIN: 20, MFMDES: 'FWP 特白条 UVA009BY', MFMSHO: 'FWP 特白条', MATRATCALC: 28, PRIORITY: 0, POSITION: ''},
+    {MFMLIN: 112, MFMDES: '再生白涤纶 BROSRPET-24080102-2 1.56DTEX*38MM百隆金和泰', MFMSHO: '再生白涤纶', MATRATCALC: 25.03, PRIORITY: 0, POSITION: ''},
+    {MFMLIN: 120, MFMDES: '白棉条 VA037ABY', MFMSHO: '白棉条', MATRATCALC: 8.49, PRIORITY: 0, POSITION: ''},
+    {MFMLIN: 150, MFMDES: 'FW 特白条 VA008M', MFMSHO: 'FW 特白条', MATRATCALC: 7.8, PRIORITY: 0, POSITION: ''},
+    {MFMLIN: 99999, MFMDES: 'HY 条子', MFMSHO: 'HY 条子', MATRATCALC: 5.68, PRIORITY: 0, POSITION: ''}
+  ]
+};
+
+/* ===================== 状态 ===================== */
+const state = {
+  rows: [],
+  sent: null,       // 最近一次提交的 data 快照，结果按它渲染
+  results: [],
+  selected: 0,
+  picked: null,
+  running: false,
+  elapsed: 0,
+  params: null
+};
+
+const refs = {
+  form: document.getElementById('calc-form'),
+  rows: document.getElementById('rows'),
+  addColor: document.getElementById('add-color'),
+  sum: document.getElementById('sum-value'),
+  sumNote: document.getElementById('sum-note'),
+  xmin: document.getElementById('xmin'),
+  xmax: document.getElementById('xmax'),
+  maxtime: document.getElementById('maxtime'),
+  seed: document.getElementById('seed'),
+  searchMeta: document.getElementById('search-meta'),
+  run: document.getElementById('run'),
+  sample: document.getElementById('sample'),
+  reset: document.getElementById('reset'),
+  formError: document.getElementById('form-error'),
+  runmeta: document.getElementById('runmeta'),
+  empty: document.getElementById('empty'),
+  ghostRing: document.getElementById('ghost-ring'),
+  loading: document.getElementById('loading'),
+  loadLine: document.getElementById('load-line'),
+  error: document.getElementById('error'),
+  errorText: document.getElementById('error-text'),
+  output: document.getElementById('output'),
+  detail: document.getElementById('detail'),
+  planRows: document.getElementById('plan-rows'),
+  listCount: document.getElementById('list-count')
+};
+
+/* ===================== 工具 ===================== */
+let uidSeq = 0;
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+const fmt2 = v => num(v).toFixed(2);
+const fmtErr = v => {
+  const n = num(v);
+  if (n === 0) return '0';
+  if (n < 0.01) return n.toFixed(4);
+  if (n < 1) return n.toFixed(3);
+  return n.toFixed(2);
+};
+const fmtD = v => { const n = Number(v); return Number.isFinite(n) ? String(Number(n.toFixed(6))) : '—'; };
+const fmtSum = v => { const n = Number(v); return Number.isFinite(n) ? String(Number(n.toFixed(2))) : '0'; };
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function textOn(hex){
+  const n = parseInt(hex.slice(1), 16);
+  const l = (0.2126*((n>>16)&255) + 0.7152*((n>>8)&255) + 0.0722*(n&255)) / 255;
+  return l > 0.38 ? '#15222b' : '#f3f4f0';
+}
+function shortName(entry){
+  const s = (entry.colorsho || entry.colordes || '').trim();
+  const chars = Array.from(s);
+  return chars.length > 8 ? chars.slice(0, 7).join('') + '…' : s;
+}
+function colorIndex(color){
+  const sent = state.sent || [];
+  const i = sent.findIndex(d => String(d.MFMLIN) === String(color));
+  if (i >= 0) return i;
+  let h = 0;
+  for (const ch of String(color)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % PALETTE.length;
+}
+/* 表单色块尽量沿用结果里的配色，删除/新增颜色后两边仍然对得上 */
+function swatchIndex(color, fallback){
+  const sent = state.sent || [];
+  const i = sent.findIndex(d => String(d.MFMLIN) === String(color));
+  return i >= 0 ? i : fallback;
+}
+
+/* ===================== 输入行 ===================== */
+function makeRow(d = {}){
+  return {
+    uid: ++uidSeq,
+    MFMLIN: d.MFMLIN ?? '',
+    MFMDES: d.MFMDES ?? '',
+    MFMSHO: d.MFMSHO ?? '',
+    MATRATCALC: d.MATRATCALC ?? '',
+    PRIORITY: !!d.PRIORITY,
+    POSITION: new Set(String(d.POSITION || '').split('').filter(ch => BUCKETS.includes(ch)))
+  };
+}
+function rowByUid(uid){ return state.rows.find(r => String(r.uid) === String(uid)); }
+
+function rowHTML(r, i){
+  const color = PALETTE[swatchIndex(r.MFMLIN, i) % PALETTE.length];
+  const chips = BUCKETS.map(b =>
+    `<button type="button" class="chip${r.POSITION.has(b) ? ' on' : ''}" data-bucket="${b}" aria-pressed="${r.POSITION.has(b)}" title="桶位 ${b}">${b}</button>`
+  ).join('');
+  return `
+  <article class="color-row" data-uid="${r.uid}">
+    <span class="swatch" style="--c:${color}"></span>
+    <div class="row-head">
+      <label class="field">
+        <span class="lab">行号</span>
+        <input class="inp num" data-k="MFMLIN" value="${esc(r.MFMLIN)}" placeholder="20" autocomplete="off">
+      </label>
+      <label class="field">
+        <span class="lab">简称</span>
+        <input class="inp" data-k="MFMSHO" value="${esc(r.MFMSHO)}" placeholder="B024W" autocomplete="off">
+      </label>
+      <label class="field">
+        <span class="lab">色比 <b class="norm">—</b></span>
+        <input class="inp num" data-k="MATRATCALC" type="number" min="0" step="0.01" value="${esc(r.MATRATCALC)}" placeholder="0">
+      </label>
+      <button type="button" class="del" data-act="del" title="删除该颜色" aria-label="删除该颜色">×</button>
+    </div>
+    <div class="row-opts">
+      <label class="pri" title="优先色：误差需 ≤ 0.05%">
+        <input type="checkbox" data-k="PRIORITY" ${r.PRIORITY ? 'checked' : ''}><span>优先</span>
+      </label>
+      <div class="pos">
+        <span class="lab">固定桶位</span>
+        <div class="chips" role="group" aria-label="固定桶位">${chips}</div>
+      </div>
+    </div>
+  </article>`;
+}
+
+function renderRows(){
+  refs.rows.innerHTML = state.rows.length
+    ? state.rows.map(rowHTML).join('')
+    : '<div class="empty-row">还没有颜色，点击右上角「添加颜色」开始。</div>';
+  refs.addColor.disabled = state.rows.length >= 8;
+  refs.addColor.title = state.rows.length >= 8 ? '最多 8 种颜色（8 个桶位）' : '添加一种颜色';
+  updateSums();
+  updateSearchMeta();
+}
+
+function updateSearchMeta(){
+  const xmin = refs.xmin.value || '—';
+  const xmax = refs.xmax.value || '—';
+  const mt = refs.maxtime.value || '—';
+  refs.searchMeta.textContent = `${xmin}–${xmax} · ${mt} 秒`;
+}
+
+function updateSums(){
+  const total = state.rows.reduce((s, r) => s + Math.max(0, num(r.MATRATCALC)), 0);
+  refs.sum.textContent = fmtSum(total);
+  refs.sumNote.textContent = total > 0 ? '按此合计归一化' : '需大于 0';
+  for (const el of refs.rows.querySelectorAll('.color-row')) {
+    const r = rowByUid(el.dataset.uid);
+    const norm = el.querySelector('.norm');
+    if (!r || !norm) continue;
+    norm.textContent = total > 0 ? (Math.max(0, num(r.MATRATCALC)) / total * 100).toFixed(1) + '%' : '—';
+  }
+}
+
+function applyPayload(p){
+  state.rows = (p.data || []).map(makeRow);
+  refs.xmin.value = p.xmin ?? 1.03;
+  refs.xmax.value = p.xmax ?? 3.5;
+  refs.maxtime.value = p.maxtime ?? 10;
+  refs.seed.value = p.seed ?? 0;
+  renderRows();
+}
+
+function clearResults(){
+  state.results = [];
+  state.sent = null;
+  state.selected = 0;
+  state.picked = null;
+  refs.output.hidden = true;
+  refs.error.hidden = true;
+  refs.empty.hidden = false;
+  refs.runmeta.textContent = '尚未计算';
+  refs.formError.hidden = true;
+}
+
+/* ===================== 表单事件 ===================== */
+refs.rows.addEventListener('input', e => {
+  const rowEl = e.target.closest('.color-row');
+  const k = e.target.dataset.k;
+  if (!rowEl || !k) return;
+  const row = rowByUid(rowEl.dataset.uid);
+  if (!row) return;
+  if (k === 'PRIORITY') row.PRIORITY = e.target.checked;
+  else row[k] = e.target.value;
+  refs.formError.hidden = true;
+  updateSums();
+});
+
+refs.rows.addEventListener('click', e => {
+  const rowEl = e.target.closest('.color-row');
+  if (!rowEl) return;
+  const row = rowByUid(rowEl.dataset.uid);
+  if (!row) return;
+
+  if (e.target.closest('[data-act="del"]')) {
+    state.rows = state.rows.filter(r => r !== row);
+    renderRows();
+    return;
+  }
+  const chip = e.target.closest('.chip');
+  if (chip) {
+    const b = chip.dataset.bucket;
+    if (row.POSITION.has(b)) row.POSITION.delete(b);
+    else row.POSITION.add(b);
+    chip.classList.toggle('on', row.POSITION.has(b));
+    chip.setAttribute('aria-pressed', String(row.POSITION.has(b)));
+  }
+});
+
+refs.addColor.addEventListener('click', () => {
+  if (state.rows.length >= 8) return;
+  state.rows.push(makeRow());
+  renderRows();
+  const inputs = refs.rows.querySelectorAll('.color-row');
+  const last = inputs[inputs.length - 1];
+  if (last) last.querySelector('[data-k="MFMSHO"]').focus();
+});
+
+[refs.xmin, refs.xmax, refs.maxtime].forEach(el => el.addEventListener('input', updateSearchMeta));
+
+refs.sample.addEventListener('click', () => {
+  applyPayload(SAMPLE);
+  clearResults();
+});
+
+refs.reset.addEventListener('click', () => {
+  state.rows = [makeRow()];
+  refs.xmin.value = 1.03;
+  refs.xmax.value = 3.5;
+  refs.maxtime.value = 10;
+  refs.seed.value = 0;
+  renderRows();
+  clearResults();
+});
+
+refs.form.addEventListener('submit', e => {
+  e.preventDefault();
+  run();
+});
+
+refs.form.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    e.preventDefault();
+    run();
+  }
+});
+
+/* ===================== 计算 ===================== */
+function buildPayload(){
+  const issues = [];
+  if (!state.rows.length) issues.push('至少添加一种颜色。');
+
+  const data = state.rows.map((r, i) => {
+    const label = r.MFMSHO.trim() || `第 ${i + 1} 行`;
+    const ratio = Number(r.MATRATCALC);
+    if (r.MFMLIN === '' || !Number.isFinite(Number(r.MFMLIN))) {
+      issues.push(`${label}：请填写数字行号（MFMLIN）。`);
+    }
+    if (!Number.isFinite(ratio) || ratio < 0) {
+      issues.push(`${label}：色比必须是非负数。`);
+    }
+    const lin = String(r.MFMLIN).trim();
+    return {
+      MFMLIN: lin !== '' && Number.isFinite(Number(lin)) ? Number(lin) : lin,
+      MFMDES: r.MFMDES.trim(),
+      MFMSHO: r.MFMSHO.trim(),
+      MATRATCALC: Number.isFinite(ratio) ? ratio : 0,
+      PRIORITY: r.PRIORITY ? 1 : 0,
+      POSITION: BUCKETS.filter(b => r.POSITION.has(b)).join('')
+    };
+  });
+
+  const sum = data.reduce((s, d) => s + d.MATRATCALC, 0);
+  if (sum <= 0) issues.push('色比合计必须大于 0。');
+
+  const xmin = Number(refs.xmin.value);
+  const xmax = Number(refs.xmax.value);
+  const maxtime = Number(refs.maxtime.value);
+  const seed = Number(refs.seed.value);
+
+  if (!Number.isFinite(xmin) || xmin < 1) issues.push('xmin 必须 ≥ 1.0。');
+  if (!Number.isFinite(xmax) || !(xmax > xmin)) issues.push('xmax 必须大于 xmin。');
+  if (!Number.isFinite(maxtime) || maxtime <= 0) issues.push('maxtime 必须是正数。');
+  if (!Number.isInteger(seed)) issues.push('seed 必须是整数。');
+
+  return {
+    payload: {xmin, xmax, maxtime, seed, data},
+    issues
+  };
+}
+
+function showFormError(issues){
+  refs.formError.innerHTML = '<strong>请检查输入</strong><ul>' +
+    issues.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>';
+  refs.formError.hidden = false;
+}
+
+async function run(){
+  if (state.running) return;
+  const {payload, issues} = buildPayload();
+  if (issues.length) { showFormError(issues); return; }
+  refs.formError.hidden = true;
+
+  state.running = true;
+  refs.run.disabled = true;
+  refs.run.textContent = '计算中…';
+  refs.error.hidden = true;
+  refs.output.hidden = true;
+  refs.empty.hidden = true;
+  refs.loading.hidden = false;
+
+  const started = performance.now();
+  const budget = payload.maxtime;
+  const tick = () => {
+    const s = (performance.now() - started) / 1000;
+    refs.loadLine.textContent = `已用 ${s.toFixed(1)} 秒 · 时间上限 ${budget} 秒`;
+  };
+  tick();
+  const timer = setInterval(tick, 100);
+
+  try {
+    const res = await fetch('/api/calc', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch (_) { throw new Error(`服务返回了非 JSON 内容（HTTP ${res.status}）。`); }
+
+    state.elapsed = (performance.now() - started) / 1000;
+    state.params = {xmin: payload.xmin, xmax: payload.xmax, maxtime: budget};
+
+    if (data.isSuccess !== 1) {
+      showError(data.message || data.error || '未知错误');
+      return;
+    }
+    state.results = data.results || [];
+    state.sent = payload.data;
+    state.selected = 0;
+    refs.loading.hidden = true;
+    refs.error.hidden = true;
+    refs.empty.hidden = true;
+    refs.output.hidden = false;
+    renderResults();
+    saveState(payload);
+  } catch (err) {
+    showError(`无法连接计算服务：${err.message}\n请确认页面由 bt8_page.py 启动，而不是直接打开 HTML 文件。`);
+  } finally {
+    clearInterval(timer);
+    state.running = false;
+    refs.run.disabled = false;
+    refs.run.textContent = '开始计算';
+    refs.loading.hidden = true;
+  }
+}
+
+function showError(message){
+  refs.loading.hidden = true;
+  refs.output.hidden = true;
+  refs.empty.hidden = true;
+  refs.error.hidden = false;
+  refs.errorText.textContent = message;
+  refs.runmeta.textContent = '计算未完成';
+}
+
+function saveState(payload){
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      xmin: payload.xmin, xmax: payload.xmax, maxtime: payload.maxtime, seed: payload.seed, data: payload.data
+    }));
+  } catch (_) { /* 隐私模式下忽略 */ }
+}
+
+/* ===================== 结果渲染 ===================== */
+function renderResults(){
+  const n = state.results.length;
+  const p = state.params || {};
+  const panel = document.querySelector('.panel-results');
+  refs.runmeta.textContent = `${n} 个方案 · ${state.elapsed.toFixed(1)} 秒 · 牵伸 ${p.xmin}–${p.xmax}`;
+  refs.listCount.textContent = n ? `共 ${n} 个，按优先色与累计误差排序` : '';
+  state.picked = null;
+  renderDetail();
+  renderList();
+  if (window.matchMedia('(max-width:1200px)').matches) {
+    panel.scrollIntoView({behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start'});
+  } else {
+    panel.scrollTop = 0;
+  }
+}
+
+function parseColorLine(line){
+  const s = String(line);
+  const open = s.lastIndexOf(' (');
+  if (open < 0) return {name: s.trim(), target: null, actual: null, err: null};
+  const err = parseFloat(s.slice(open + 2).replace('%)', ''));
+  const head = s.slice(0, open);
+  const arrow = head.lastIndexOf(' -> ');
+  if (arrow < 0) return {name: head.trim(), target: null, actual: null, err};
+  const actual = parseFloat(head.slice(arrow + 4));
+  const left = head.slice(0, arrow);
+  const colon = left.lastIndexOf(': ');
+  const name = (colon >= 0 ? left.slice(0, colon) : left).trim();
+  const target = colon >= 0 ? parseFloat(left.slice(colon + 2)) : null;
+  return {name, target, actual, err};
+}
+
+function renderDetail(){
+  const r = state.results[state.selected];
+  if (!r) { refs.detail.innerHTML = ''; return; }
+  const sent = state.sent || [];
+  const rank = String(state.selected + 1).padStart(2, '0');
+  const hasPriority = sent.some(d => d.PRIORITY);
+  const priorityBadge = !hasPriority
+    ? '<span class="badge">未设置优先色</span>'
+    : (r.priority_ok
+      ? '<span class="badge ok">优先色达标</span>'
+      : '<span class="badge bad">优先色未达标</span>');
+
+  const colorRows = (r.colors || []).map((line, i) => {
+
+    const c = parseColorLine(line);
+    const meta = sent[i] || {};
+    const threshold = meta.PRIORITY ? PRIORITY_THRESHOLD : NORMAL_THRESHOLD;
+    const err = c.err == null ? 0 : c.err;
+    const over = err > threshold + 1e-9;
+    const color = PALETTE[i % PALETTE.length];
+    const displayName = meta.MFMSHO || c.name || meta.MFMDES || '—';
+    return `<tr data-focus="${esc(meta.MFMLIN ?? i)}">
+      <td>
+        <span class="color-cell">
+          <span class="swatch-dot" style="--c:${color}"></span>
+          <span title="${esc(displayName)}">${esc(displayName)}</span>
+          ${meta.PRIORITY ? '<b class="pri-mark">优先</b>' : ''}
+        </span>
+      </td>
+      <td class="num">${c.target == null ? '—' : fmt2(c.target)}</td>
+      <td class="num">${c.actual == null ? '—' : fmt2(c.actual)}</td>
+      <td class="num ${over ? 'err-bad' : 'err-ok'}" title="阈值 ${threshold}%">${fmtErr(err)}%</td>
+    </tr>`;
+  }).join('');
+
+  const shortOf = e => String((e.colorsho || e.colordes || '').trim() || e.bucket);
+  const arrangeLine = (r.assign || []).length === 8
+    ? [0, 1, 2, 3]
+        .map(s => `<span class="arrange-group">${esc(shortOf(r.assign[s * 2]))} + ${esc(shortOf(r.assign[s * 2 + 1]))}</span>`)
+        .join(' / ') +
+      ` <span class="arrange-vals">(${[0, 1, 2, 3].map(s => fmt2(r.assign[s * 2].x)).join(' / ')})</span>`
+    : '';
+
+  refs.detail.innerHTML = `
+    <article class="plan">
+      <header class="plan-head">
+        <div class="plan-id">方案 <b>${rank}</b></div>
+        <div class="badges">
+          ${priorityBadge}
+          <span class="badge">累计误差 ${fmtErr(r.cum_error_pct)}%</span>
+          ${r._edited ? '<span class="badge">已手动调整</span>' : ''}
+        </div>
+      </header>
+      <div class="plan-grid">
+        <div class="ring-holder">
+          ${ringSVG(r, false)}
+          <p class="ring-hint">点扇区：组内两桶位对调<br>点内圈：选中一组，再点另一组整组对调（牵伸跟随）</p>
+          ${r._edited ? '<button type="button" class="ghost-btn ring-reset" id="reset-arrangement">恢复原始排布</button>' : ''}
+        </div>
+        <div class="plan-metrics">
+          <section class="check-block">
+            <h3>配色核对</h3>
+            <table class="color-check">
+              <thead><tr><th>颜色</th><th>目标 %</th><th>实际 %</th><th>误差</th></tr></thead>
+              <tbody>${colorRows || '<tr><td colspan="4" class="muted">无明细</td></tr>'}</tbody>
+            </table>
+            ${arrangeLine ? `<p class="arrange-line">${arrangeLine}</p>` : ''}
+          </section>
+        </div>
+      </div>
+    </article>`;
+
+  bindFocusHover();
+  bindRingInteractions();
+}
+
+/* ---------- 排布互动 ---------- */
+function currentResult(){ return state.results[state.selected]; }
+
+function ensureOriginal(r){
+  if (r._original) return;
+  r._original = {
+    assign: r.assign.map(e => ({...e})),
+    X1: r.X1, X2: r.X2, X3: r.X3
+  };
+}
+
+function isSameAsOriginal(r){
+  if (!r._original) return false;
+  return r.assign.every((e, i) => {
+    const o = r._original.assign[i];
+    return String(e.color) === String(o.color) && Number(e.x) === Number(o.x);
+  }) && Number(r.X1) === Number(r._original.X1)
+    && Number(r.X2) === Number(r._original.X2)
+    && Number(r.X3) === Number(r._original.X3);
+}
+
+/* 重新按桶位编号，并同步 AB / EF / GH 三组的牵伸倍数 */
+function reindexAssign(r){
+  r.assign.forEach((e, i) => { e.bucket = BUCKETS[i]; });
+  r.X1 = r.assign[0].x;
+  r.X2 = r.assign[4].x;
+  r.X3 = r.assign[6].x;
+  r._edited = !isSameAsOriginal(r);
+}
+
+function swapInGroup(r, slot){
+  ensureOriginal(r);
+  const a = slot * 2, b = a + 1;
+  [r.assign[a], r.assign[b]] = [r.assign[b], r.assign[a]];
+  reindexAssign(r);
+}
+
+function swapGroups(r, s, t){
+  ensureOriginal(r);
+  const groups = [0, 1, 2, 3].map(g => [r.assign[g * 2], r.assign[g * 2 + 1]]);
+  [groups[s], groups[t]] = [groups[t], groups[s]];
+  r.assign = groups.flat();
+  reindexAssign(r);
+}
+
+function resetArrangement(r){
+  if (!r._original) return;
+  r.assign = r._original.assign.map(e => ({...e}));
+  r.X1 = r._original.X1;
+  r.X2 = r._original.X2;
+  r.X3 = r._original.X3;
+  r._edited = false;
+}
+
+function refreshArrangement(){
+  state.picked = null;
+  renderDetail();
+  renderList();
+}
+
+function updatePicked(){
+  const svg = refs.detail.querySelector('#ring-svg');
+  if (!svg) return;
+  const picked = state.picked;
+  svg.querySelectorAll('.seg').forEach(el => {
+    el.classList.toggle('picked', picked != null && Number(el.dataset.slot) === picked);
+  });
+  svg.querySelectorAll('.grp-sector:not(.ghost)').forEach(el => {
+    el.classList.toggle('picked', picked != null && Number(el.dataset.slot) === picked);
+  });
+}
+
+function bindRingInteractions(){
+  const svg = refs.detail.querySelector('#ring-svg');
+  const r = currentResult();
+  if (!svg || !r) return;
+
+  svg.querySelectorAll('.seg').forEach(el => {
+    const swap = () => {
+      state.picked = null;
+      swapInGroup(r, Number(el.dataset.slot));
+      refreshArrangement();
+    };
+    el.addEventListener('click', swap);
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); swap(); }
+    });
+  });
+
+  svg.querySelectorAll('.grp-sector:not(.ghost)').forEach(el => {
+    const pick = () => {
+      const slot = Number(el.dataset.slot);
+      if (state.picked == null) {
+        state.picked = slot;
+        updatePicked();
+      } else if (state.picked === slot) {
+        state.picked = null;
+        updatePicked();
+      } else {
+        const from = state.picked;
+        state.picked = null;
+        swapGroups(r, from, slot);
+        refreshArrangement();
+      }
+    };
+    el.addEventListener('click', pick);
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+    });
+  });
+
+  const resetBtn = refs.detail.querySelector('#reset-arrangement');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      resetArrangement(r);
+      refreshArrangement();
+    });
+  }
+}
+
+function ringSVG(result, ghost){
+  const C = 200, R0 = 118, R1 = 176;
+  const gapBefore = i => (GROUP_OF[(i + 7) % 8] !== GROUP_OF[i]) ? 6 : 2.2;
+  const parts = [];
+
+  for (let i = 0; i < 8; i++) {
+    const a0 = -90 + i * 45 + gapBefore(i) / 2;
+    const a1 = -90 + (i + 1) * 45 - gapBefore(i + 1) / 2;
+    const mid = ((a0 + a1) / 2) * Math.PI / 180;
+    const x = C + 150 * Math.cos(mid);
+    const y = C + 150 * Math.sin(mid);
+
+    let fill, tcol, letter, label, speed, title, key;
+    if (ghost) {
+      fill = GROUP_OF[i] % 2 ? '#c8d1ca' : '#d5dcd6';
+      tcol = '#33454f';
+      letter = BUCKETS[i];
+      label = ['X1', '1.00', 'X2', 'X3'][GROUP_OF[i]];
+      speed = '';
+      title = `桶位 ${BUCKETS[i]} · ${GROUP_LABEL[GROUP_OF[i]]} 组`;
+      key = '';
+    } else {
+      const e = result.assign[i];
+      const idx = colorIndex(e.color);
+      fill = PALETTE[idx % PALETTE.length];
+      tcol = textOn(fill);
+      letter = e.bucket;
+      label = shortName(e);
+      speed = `${fmt2(e.speed)}%`;
+      title = `${e.bucket} · ${(e.colorsho || e.colordes || '').trim()} · 牵伸 ${fmt2(e.x)} · 速度 ${fmt2(e.speed)}%`;
+      key = String(e.color);
+    }
+
+    const interactive = ghost ? '' :
+      ` tabindex="0" role="button" aria-label="桶位 ${BUCKETS[i]}，点击与同组另一桶位对换"`;
+
+    parts.push(`
+      <g class="seg" data-color="${esc(key)}" data-slot="${Math.floor(i / 2)}"${interactive}>
+        <title>${esc(title)}</title>
+        <path d="${arcPath(C, C, R0, R1, a0, a1)}" fill="${fill}"/>
+        <text x="${x.toFixed(1)}" y="${(y - 10).toFixed(1)}" text-anchor="middle" class="ring-letter" fill="${tcol}">${esc(letter)}</text>
+        <text x="${x.toFixed(1)}" y="${(y + 2).toFixed(1)}" text-anchor="middle" class="ring-name" fill="${tcol}">${esc(label)}</text>
+        ${speed ? `<text x="${x.toFixed(1)}" y="${(y + 13).toFixed(1)}" text-anchor="middle" class="ring-speed" fill="${tcol}">${speed}</text>` : ''}
+      </g>`);
+  }
+
+  /* 内圈：四组各占 90°，显示该组当前牵伸倍数；点一组选中，再点另一组整组互换 */
+  const slotX = s => result.assign[s * 2] ? result.assign[s * 2].x : null;
+  const grpSectors = [0, 1, 2, 3].map(s => {
+    const a0 = -90 + s * 90 + 1.2;
+    const a1 = -90 + (s + 1) * 90 - 1.2;
+    const mid = ((a0 + a1) / 2) * Math.PI / 180;
+    const gx = C + 93 * Math.cos(mid);
+    const gy = C + 93 * Math.sin(mid);
+    const value = ghost ? ['X1', '1.00', 'X2', 'X3'][s] : fmt2(slotX(s));
+    const inter = ghost ? '' :
+      ` data-slot="${s}" tabindex="0" role="button" aria-label="${GROUP_LABEL[s]} 组，牵伸 ${value}，点击选中"`;
+    return `<g class="grp-sector${ghost ? ' ghost' : ''}"${inter}>
+      <path d="${arcPath(C, C, 74, 112, a0, a1)}"/>
+      <text x="${gx.toFixed(1)}" y="${(gy - 4).toFixed(1)}" text-anchor="middle" class="grp-k">${GROUP_LABEL[s]}</text>
+      <text x="${gx.toFixed(1)}" y="${(gy + 12).toFixed(1)}" text-anchor="middle" class="grp-v">${value}</text>
+    </g>`;
+  }).join('');
+
+  const center = ghost
+    ? `<text x="200" y="176" text-anchor="middle" class="ring-cap">8 个桶位</text>
+       <text x="200" y="204" text-anchor="middle" class="ring-ghost-title">4 组同速</text>`
+    : `<text x="200" y="176" text-anchor="middle" class="ring-cap">总牵伸 D</text>
+       <text x="200" y="206" text-anchor="middle" class="ring-d">${fmtD(result.total_feed_speed_D)}</text>`;
+
+  return `<svg viewBox="0 0 400 400" role="img" aria-label="${ghost ? '8 个桶位的分组示意' : '8 个桶位的颜色排布'}" id="ring-svg">
+    <circle cx="200" cy="200" r="182" fill="none" stroke="#93a09a" stroke-width=".7" opacity=".5"/>
+    <circle cx="200" cy="200" r="112" fill="none" stroke="#93a09a" stroke-width=".7" opacity=".5"/>
+    ${parts.join('')}
+    ${grpSectors}
+    ${center}
+  </svg>`;
+}
+
+function arcPath(cx, cy, r0, r1, a0, a1){
+  const pt = (r, a) => {
+    const rad = a * Math.PI / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  };
+  const [x0, y0] = pt(r1, a0), [x1, y1] = pt(r1, a1);
+  const [x2, y2] = pt(r0, a1), [x3, y3] = pt(r0, a0);
+  const large = (a1 - a0) > 180 ? 1 : 0;
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r1} ${r1} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} ` +
+         `L${x2.toFixed(2)} ${y2.toFixed(2)} A${r0} ${r0} 0 ${large} 0 ${x3.toFixed(2)} ${y3.toFixed(2)} Z`;
+}
+
+function bindFocusHover(){
+  const svg = refs.detail.querySelector('#ring-svg');
+  if (!svg) return;
+  const setFocus = color => {
+    svg.querySelectorAll('.seg').forEach(g => {
+      const on = color != null && g.dataset.color === color;
+      g.classList.toggle('dim', color != null && !on);
+    });
+  };
+  refs.detail.querySelectorAll('[data-focus]').forEach(el => {
+    const key = el.dataset.focus;
+    if (!key) return;
+    el.addEventListener('mouseenter', () => setFocus(key));
+    el.addEventListener('mouseleave', () => setFocus(null));
+  });
+}
+
+function renderList(){
+  const scrollBox = document.querySelector('.table-scroll');
+  const keepScroll = scrollBox ? scrollBox.scrollTop : 0;
+  if (!state.results.length) { refs.planRows.innerHTML = ''; return; }
+  const hasPriority = (state.sent || []).some(d => d.PRIORITY);
+  refs.planRows.innerHTML = state.results.map((r, i) => {
+    const pri = hasPriority
+      ? (r.priority_ok ? '<span class="err-ok">达标</span>' : '<span class="err-bad">未达标</span>')
+      : '<span class="muted">—</span>';
+    return `<tr data-i="${i}" tabindex="0" class="${i === state.selected ? 'on' : ''}" aria-selected="${i === state.selected}">
+      <td>${String(i + 1).padStart(2, '0')}</td>
+      <td class="num">${fmt2(r.X1)}</td>
+      <td class="num">${fmt2(r.X2)}</td>
+      <td class="num">${fmt2(r.X3)}</td>
+      <td class="num">${fmtD(r.total_feed_speed_D)}</td>
+      <td class="num">${fmtErr(r.cum_error_pct)}%</td>
+      <td>${pri}</td>
+    </tr>`;
+  }).join('');
+  if (scrollBox) scrollBox.scrollTop = keepScroll;
+}
+
+function selectPlan(i, scroll){
+  if (i === state.selected) return;
+  state.selected = i;
+  state.picked = null;
+  renderDetail();
+  renderList();
+  if (scroll) {
+    refs.detail.scrollIntoView({behavior: reducedMotion() ? 'auto' : 'smooth', block: 'nearest'});
+  }
+}
+
+refs.planRows.addEventListener('click', e => {
+  const tr = e.target.closest('tr[data-i]');
+  if (tr) selectPlan(Number(tr.dataset.i), true);
+});
+refs.planRows.addEventListener('keydown', e => {
+  const tr = e.target.closest('tr[data-i]');
+  if (tr && (e.key === 'Enter' || e.key === ' ')) {
+    e.preventDefault();
+    selectPlan(Number(tr.dataset.i), true);
+  }
+});
+
+/* ===================== 初始化 ===================== */
+(function init(){
+  refs.ghostRing.innerHTML = ringSVG(null, true);
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (_) { saved = null; }
+  applyPayload(saved && Array.isArray(saved.data) && saved.data.length ? saved : SAMPLE);
+})();
+</script>
+</body>
+</html>

@@ -53,6 +53,13 @@ body{
 .status-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(59,106,76,.14);flex:none}
 .runinfo code{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
 
+/* ---------- 顶部已确认状态条 ---------- */
+.confirm-banner{
+  flex:none;padding:9px 28px;border-bottom:1px solid var(--ok);
+  background:rgba(59,106,76,.1);color:var(--ok);
+  font:600 12.5px/1.4 var(--sans);letter-spacing:.02em;
+}
+
 /* ---------- layout ---------- */
 main{flex:1;display:grid;grid-template-columns:minmax(380px,432px) minmax(0,1fr);min-height:0}
 .panel-input{
@@ -60,7 +67,7 @@ main{flex:1;display:grid;grid-template-columns:minmax(380px,432px) minmax(0,1fr)
   border-right:1px solid var(--rule);
   background:rgba(239,241,236,.66);
 }
-.panel-results{overflow-y:auto;padding:22px 30px 60px}
+.panel-results{overflow-y:auto;padding:22px 30px 60px;min-width:0}
 
 h2{font:600 13px/1.4 var(--sans);margin:0;letter-spacing:.03em}
 h3{font:600 12px/1.4 var(--sans);margin:0;letter-spacing:.03em}
@@ -82,6 +89,9 @@ h3{font:600 12px/1.4 var(--sans);margin:0;letter-spacing:.03em}
 .inp:focus{outline:none;border-bottom-color:var(--indigo);box-shadow:0 1px 0 var(--indigo)}
 .inp.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
 .inp[type=number]::-webkit-inner-spin-button,.inp[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+/* 由 TotalLINK 打开时行号/简称/色比只读；用 readonly 而非 disabled，便于复制核对 */
+.inp[readonly]{border-bottom-style:dotted;color:var(--ink-soft);cursor:default}
+.inp[readonly]:hover,.inp[readonly]:focus{border-bottom-color:var(--rule);box-shadow:none}
 
 /* ---------- color rows ---------- */
 .rows{display:flex;flex-direction:column;margin-top:10px}
@@ -89,6 +99,7 @@ h3{font:600 12px/1.4 var(--sans);margin:0;letter-spacing:.03em}
 .color-row:first-child{border-top:none}
 .swatch{position:absolute;left:0;top:12px;bottom:11px;width:3px;border-radius:2px;background:var(--c)}
 .row-head{display:grid;grid-template-columns:84px minmax(0,1fr) 96px 22px;gap:10px;align-items:end}
+.row-head.ro{grid-template-columns:84px minmax(0,1fr) 96px}
 .row-opts{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:9px}
 .pri{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-soft);cursor:pointer}
 .pri input{accent-color:var(--indigo);width:14px;height:14px;margin:0}
@@ -232,6 +243,33 @@ h3{font:600 12px/1.4 var(--sans);margin:0;letter-spacing:.03em}
 .arrange-group{white-space:nowrap}
 .arrange-vals{display:inline-block;margin-left:6px;font-family:var(--mono);font-variant-numeric:tabular-nums}
 
+/* ---------- 方案确认 ---------- */
+.confirm-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:10px 20px;flex-wrap:wrap;
+  margin-top:18px;padding-top:12px;border-top:1px solid var(--rule);
+}
+.confirm-text{flex:1 1 280px;min-width:0;font-size:11.5px;line-height:1.6;color:var(--ink-soft)}
+.confirm-text b{color:var(--ink);font-weight:600}
+.confirm-text code{font-family:var(--mono);font-size:10.5px;color:var(--ink);word-break:break-all}
+.confirm-actions{display:flex;align-items:center;gap:16px;flex:none}
+.confirm-go{
+  padding:8px 16px;border:1.5px solid var(--ink);border-radius:2px;background:transparent;
+  color:var(--ink);font:600 12px/1 var(--sans);letter-spacing:.06em;cursor:pointer;
+  transition:background .15s,color .15s,opacity .15s;
+}
+.confirm-go:hover:not(:disabled){background:var(--ink);color:var(--panel)}
+.confirm-go:disabled{opacity:.5;cursor:progress}
+.confirm-bar[data-state="confirmed"]{border-top-color:var(--ok)}
+.confirm-bar[data-state="confirmed"] .confirm-text{color:var(--ok)}
+.confirm-bar[data-state="error"]{border-top-color:var(--dye)}
+.confirm-bar[data-state="error"] .confirm-text{color:var(--dye)}
+.ring-holder.locked .seg,.ring-holder.locked .grp-sector{cursor:default}
+.ring-holder.locked .seg:hover path{stroke:none;stroke-width:0}
+.ring-holder.locked .grp-sector:hover path{fill:rgba(31,69,104,.07)}
+.ring-holder.locked .grp-sector.picked path{fill:rgba(31,69,104,.07)}
+.row-ok{font-style:normal;color:var(--ok);margin-left:3px;font-size:10px}
+.confirm-bar[data-state="confirmed"] .confirm-actions{color:var(--ok);font-size:11.5px}
+
 .plan-metrics{display:flex;flex-direction:column;gap:16px;min-width:0}
 .check-block{margin-top:0;padding-top:0;border-top:none}
 .check-block h3{color:var(--ink-soft);margin-bottom:8px}
@@ -259,20 +297,24 @@ tbody tr:last-child td{border-bottom:none}
 .list-block{margin-top:36px;padding-top:18px;border-top:1px solid var(--rule)}
 .list-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:9px}
 .list-head .count{font-size:11.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
-.table-scroll{max-height:340px;overflow:auto;border-bottom:1px solid var(--rule)}
+.table-scroll{max-height:340px;max-width:100%;overflow:auto;border-bottom:1px solid var(--rule)}
+.plan-table{width:100%;min-width:720px;table-layout:fixed}
 .plan-table thead th{position:sticky;top:0;background:var(--paper);z-index:1}
 .plan-table tbody tr{cursor:pointer}
 .plan-table tbody tr:hover{background:rgba(31,69,104,.06)}
 .plan-table tbody tr.on{background:rgba(31,69,104,.1);box-shadow:inset 3px 0 0 var(--indigo)}
-.plan-table th:first-child,.plan-table td:first-child{padding-left:9px;font-family:var(--mono);color:var(--ink-soft);width:46px}
-.plan-table td{white-space:nowrap}
+.plan-table th:first-child,.plan-table td:first-child{padding-left:9px;font-family:var(--mono);color:var(--ink-soft)}
+.plan-table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-table th.arrange-h,.plan-table td.arrange{text-align:left}
+.plan-table td.arrange{font-size:11.5px;color:var(--ink-soft)}
+.plan-table td.arrange .arrange-group{white-space:nowrap}
 
 .foot-note{margin-top:22px;font-size:11px;line-height:1.6;color:var(--rule-strong);max-width:70ch}
 
 @media (max-width:1200px){
   html,body{height:auto}
   body{min-height:100vh}
-  main{grid-template-columns:1fr;min-height:0}
+  main{grid-template-columns:minmax(0,1fr);min-height:0}
   .panel-input{overflow:visible;border-right:none;border-bottom:1px solid var(--rule)}
   .panel-input form{max-width:620px;margin:0 auto}
   .panel-results{overflow:visible}
@@ -288,6 +330,7 @@ tbody tr:last-child td{border-bottom:none}
   .panel-input,.panel-results{padding-left:18px;padding-right:18px}
   .runinfo{display:none}
   .row-head{grid-template-columns:78px minmax(0,1fr) 84px 20px;gap:8px}
+  .row-head.ro{grid-template-columns:78px minmax(0,1fr) 84px}
   .inp{font-size:16px}          /* 避免 iOS 聚焦时自动放大页面 */
 }
 @media (prefers-reduced-motion:reduce){
@@ -306,8 +349,12 @@ tbody tr:last-child td{border-bottom:none}
       <p>输入混纺比例，求解 8 个桶位上的牵伸倍数与颜色排布</p>
     </div>
   </div>
-  <div class="runinfo"><span class="status-dot"></span><span>本地计算</span><code>bt8.linkrun</code></div>
+  <div class="runinfo">
+    <span class="status-dot"></span><span>本地计算</span><code>bt8.linkrun</code>
+  </div>
 </header>
+
+<div class="confirm-banner" id="confirm-banner" role="status" hidden></div>
 
 <main>
   <!-- ========== 输入 ========== -->
@@ -432,10 +479,15 @@ tbody tr:last-child td{border-bottom:none}
         </div>
         <div class="table-scroll">
           <table class="plan-table">
+            <colgroup>
+              <col style="width:50px"><col style="width:56px"><col style="width:56px"><col style="width:56px">
+              <col style="width:82px"><col style="width:84px"><col style="width:80px">
+              <col style="width:50px"><col>
+            </colgroup>
             <thead>
               <tr>
                 <th>#</th><th>X1</th><th>X2</th><th>X3</th>
-                <th>总牵伸 D</th><th>累计误差</th><th>优先色</th>
+                <th>总牵伸 D</th><th>累计误差</th><th>优先色误差</th><th>告警</th><th class="arrange-h">排布</th>
               </tr>
             </thead>
             <tbody id="plan-rows"></tbody>
@@ -443,7 +495,7 @@ tbody tr:last-child td{border-bottom:none}
         </div>
       </section>
 
-      <p class="foot-note">计算在本机完成。累计误差为各颜色实际比例与目标比例之差的总和；优先级误差阈值取 0.05%，普通颜色取 0.5%。</p>
+      <p class="foot-note">计算在本机完成。累计误差为各颜色实际比例与目标比例之差的总和；优先色误差阈值取 0.05%，普通颜色取 0.5%。确认后由本机服务把全部方案提交 TotalLINK。</p>
     </div>
   </section>
 </main>
@@ -471,6 +523,9 @@ const SAMPLE = {
   ]
 };
 
+/* 服务端注入的配置（page_server.py 写在 <body> 开头）；直接打开 HTML 文件时没有 */
+const SERVER = window.SERVER_CONFIG || {confirmEnabled: false, confirmReason: '未配置 TotalLINK 地址'};
+
 /* ===================== 状态 ===================== */
 const state = {
   rows: [],
@@ -480,7 +535,13 @@ const state = {
   picked: null,
   running: false,
   elapsed: 0,
-  params: null
+  params: null,
+  platform: false,  // 由 TotalLINK 打开：输入只读、方案可回传
+  ctx: {loginID: '', para: [], rowData: null, data: null,
+        dataValid: false, paraValid: false, rowDataValid: false, errors: []},
+  confirm: null,       // {rank, at, status, rowsAffected} —— 全页唯一的最终确认
+  confirmError: null,  // {rank, message}
+  confirming: 0        // 正在提交的方案 rank，0 表示没有
 };
 
 const refs = {
@@ -508,7 +569,8 @@ const refs = {
   output: document.getElementById('output'),
   detail: document.getElementById('detail'),
   planRows: document.getElementById('plan-rows'),
-  listCount: document.getElementById('list-count')
+  listCount: document.getElementById('list-count'),
+  banner: document.getElementById('confirm-banner')
 };
 
 /* ===================== 工具 ===================== */
@@ -554,40 +616,45 @@ function swatchIndex(color, fallback){
 
 /* ===================== 输入行 ===================== */
 function makeRow(d = {}){
+  const pos = Array.isArray(d.POSITION) ? d.POSITION.join('') : String(d.POSITION ?? '');
   return {
     uid: ++uidSeq,
     MFMLIN: d.MFMLIN ?? '',
     MFMDES: d.MFMDES ?? '',
     MFMSHO: d.MFMSHO ?? '',
     MATRATCALC: d.MATRATCALC ?? '',
-    PRIORITY: !!d.PRIORITY,
-    POSITION: new Set(String(d.POSITION || '').split('').filter(ch => BUCKETS.includes(ch)))
+    PRIORITY: d.PRIORITY === true || Number(d.PRIORITY) === 1,
+    POSITION: new Set(pos.split('').filter(ch => BUCKETS.includes(ch)))
   };
 }
 function rowByUid(uid){ return state.rows.find(r => String(r.uid) === String(uid)); }
 
 function rowHTML(r, i){
   const color = PALETTE[swatchIndex(r.MFMLIN, i) % PALETTE.length];
+  /* 带 data 打开时行号/简称/色比只读；PRIORITY 与 POSITION 仍可改 */
+  const ro = state.platform ? ' readonly' : '';
+  const del = state.platform ? '' :
+    '<button type="button" class="del" data-act="del" title="删除该颜色" aria-label="删除该颜色">×</button>';
   const chips = BUCKETS.map(b =>
     `<button type="button" class="chip${r.POSITION.has(b) ? ' on' : ''}" data-bucket="${b}" aria-pressed="${r.POSITION.has(b)}" title="桶位 ${b}">${b}</button>`
   ).join('');
   return `
   <article class="color-row" data-uid="${r.uid}">
     <span class="swatch" style="--c:${color}"></span>
-    <div class="row-head">
+    <div class="row-head${state.platform ? ' ro' : ''}">
       <label class="field">
         <span class="lab">行号</span>
-        <input class="inp num" data-k="MFMLIN" value="${esc(r.MFMLIN)}" placeholder="20" autocomplete="off">
+        <input class="inp num" data-k="MFMLIN" value="${esc(r.MFMLIN)}" placeholder="20" autocomplete="off"${ro}>
       </label>
       <label class="field">
         <span class="lab">简称</span>
-        <input class="inp" data-k="MFMSHO" value="${esc(r.MFMSHO)}" placeholder="B024W" autocomplete="off">
+        <input class="inp" data-k="MFMSHO" value="${esc(r.MFMSHO)}" placeholder="B024W" autocomplete="off"${ro}>
       </label>
       <label class="field">
         <span class="lab">色比 <b class="norm">—</b></span>
-        <input class="inp num" data-k="MATRATCALC" type="number" min="0" step="0.01" value="${esc(r.MATRATCALC)}" placeholder="0">
+        <input class="inp num" data-k="MATRATCALC" type="number" min="0" step="0.01" value="${esc(r.MATRATCALC)}" placeholder="0"${ro}>
       </label>
-      <button type="button" class="del" data-act="del" title="删除该颜色" aria-label="删除该颜色">×</button>
+      ${del}
     </div>
     <div class="row-opts">
       <label class="pri" title="优先色：误差需 ≤ 0.05%">
@@ -605,6 +672,10 @@ function renderRows(){
   refs.rows.innerHTML = state.rows.length
     ? state.rows.map(rowHTML).join('')
     : '<div class="empty-row">还没有颜色，点击右上角「添加颜色」开始。</div>';
+  // 平台模式下颜色行数固定为 TotalLINK 传入的条数
+  refs.addColor.hidden = state.platform;
+  refs.sample.hidden = state.platform;
+  refs.reset.hidden = state.platform;
   refs.addColor.disabled = state.rows.length >= 8;
   refs.addColor.title = state.rows.length >= 8 ? '最多 8 种颜色（8 个桶位）' : '添加一种颜色';
   updateSums();
@@ -630,13 +701,91 @@ function updateSums(){
   }
 }
 
-function applyPayload(p){
-  state.rows = (p.data || []).map(makeRow);
-  refs.xmin.value = p.xmin ?? 1.03;
-  refs.xmax.value = p.xmax ?? 3.5;
-  refs.maxtime.value = p.maxtime ?? 10;
-  refs.seed.value = p.seed ?? 0;
-  renderRows();
+function applyRows(rows){
+  state.rows = (rows || []).map(makeRow);
+}
+
+function applySearch(p){
+  refs.xmin.value = p && p.xmin != null ? p.xmin : 1.03;
+  refs.xmax.value = p && p.xmax != null ? p.xmax : 3.5;
+  refs.maxtime.value = p && p.maxtime != null ? p.maxtime : 10;
+  refs.seed.value = p && p.seed != null ? p.seed : 0;
+}
+
+/* ===================== URL 参数 ===================== */
+/* TotalLINK 打开页面时带这些参数（规格第 4 节）：
+     data     输入 JSON：{xmin,xmax,seed,maxtime,data:[...]}，或只给颜色数组
+     loginID  LinkToken，回传时原样放进请求体，页面不显示
+     para     模型参数数组的 JSON（par.dm.Para），没有参数传 []
+     rowData  业务列对象，恰好一个空字符串值由服务端填入方案 JSON
+   xmin / xmax / maxtime / seed 不出现在 URL 里，页面固定用默认值。
+*/
+function b64decode(s){
+  const norm = String(s).replace(/-/g, '+').replace(/_/g, '/').replace(/\s+/g, '');
+  const pad = norm.length % 4 ? '='.repeat(4 - norm.length % 4) : '';
+  const bin = atob(norm + pad);
+  return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+}
+
+function parseParamJSON(raw){
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  try { return JSON.parse(s); } catch (_) { /* 再试 base64 */ }
+  try { return JSON.parse(b64decode(s)); } catch (_) { return null; }
+}
+
+function readUrlContext(){
+  const q = new URLSearchParams(location.search);
+  const ctx = {
+    loginID: (q.get('loginID') || '').trim(),
+    para: [],
+    rowData: null,
+    data: null,
+    dataValid: false,
+    paraValid: false,
+    rowDataValid: false,
+    errors: []
+  };
+
+  const rawData = q.get('data');
+  if (!rawData) return ctx;   // 本地调试：不要求回传参数
+
+  const parsed = parseParamJSON(rawData);
+  if (Array.isArray(parsed)) {
+    ctx.data = {data: parsed};
+    ctx.dataValid = parsed.length > 0;
+  } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.data) && parsed.data.length) {
+    ctx.data = parsed;
+    ctx.dataValid = true;
+  }
+  if (!ctx.dataValid) {
+    ctx.errors.push('URL 里的 data 参数解析失败，已改用本地保存的输入。');
+  }
+
+  const rawPara = q.get('para');
+  if (rawPara == null) {
+    ctx.errors.push('URL 缺少 para 参数，无法回传，只能本地计算。');
+  } else {
+    const para = parseParamJSON(rawPara);
+    if (Array.isArray(para)) { ctx.para = para; ctx.paraValid = true; }
+    else ctx.errors.push('URL 参数 para 不是 JSON 数组，无法回传，只能本地计算。');
+  }
+
+  const rawRow = q.get('rowData');
+  if (rawRow == null) {
+    ctx.errors.push('URL 缺少 rowData 参数，无法回传，只能本地计算。');
+  } else {
+    const rowData = parseParamJSON(rawRow);
+    if (rowData && typeof rowData === 'object' && !Array.isArray(rowData)) {
+      ctx.rowData = rowData;
+      const empty = Object.keys(rowData).filter(k => rowData[k] === '');
+      if (empty.length === 1) ctx.rowDataValid = true;
+      else ctx.errors.push(`URL 参数 rowData 必须恰好有一个空值键，当前 ${empty.length} 个，无法回传，只能本地计算。`);
+    } else {
+      ctx.errors.push('URL 参数 rowData 不是 JSON 对象，无法回传，只能本地计算。');
+    }
+  }
+  return ctx;
 }
 
 function clearResults(){
@@ -697,16 +846,17 @@ refs.addColor.addEventListener('click', () => {
 [refs.xmin, refs.xmax, refs.maxtime].forEach(el => el.addEventListener('input', updateSearchMeta));
 
 refs.sample.addEventListener('click', () => {
-  applyPayload(SAMPLE);
+  if (state.platform) return;
+  applyRows(SAMPLE.data);
+  applySearch(SAMPLE);
+  renderRows();
   clearResults();
 });
 
 refs.reset.addEventListener('click', () => {
-  state.rows = [makeRow()];
-  refs.xmin.value = 1.03;
-  refs.xmax.value = 3.5;
-  refs.maxtime.value = 10;
-  refs.seed.value = 0;
+  if (state.platform) return;
+  applyRows([{}]);
+  applySearch(null);
   renderRows();
   clearResults();
 });
@@ -797,7 +947,7 @@ async function run(){
   const timer = setInterval(tick, 100);
 
   try {
-    const res = await fetch('/api/calc', {
+    const res = await fetch('/api/bt8/calc', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(payload)
@@ -817,14 +967,18 @@ async function run(){
     state.results = data.results || [];
     state.sent = payload.data;
     state.selected = 0;
+    // 方案换了，之前的确认对应的是旧方案，页面上的一律作废
+    state.confirm = null;
+    state.confirmError = null;
     refs.loading.hidden = true;
     refs.error.hidden = true;
     refs.empty.hidden = true;
     refs.output.hidden = false;
     renderResults();
-    saveState(payload);
+    renderBanner();
+    if (!state.platform) saveState(payload);
   } catch (err) {
-    showError(`无法连接计算服务：${err.message}\n请确认页面由 bt8_page.py 启动，而不是直接打开 HTML 文件。`);
+    showError(`无法连接计算服务：${err.message}\n请确认页面由 python page_server.py 启动，而不是直接打开 HTML 文件。`);
   } finally {
     clearInterval(timer);
     state.running = false;
@@ -884,11 +1038,42 @@ function parseColorLine(line){
   return {name, target, actual, err};
 }
 
+/* ---------- 排布文字 ---------- */
+function shortOf(e){ return String((e.colorsho || e.colordes || '').trim() || e.bucket); }
+function arrangementGroups(r){
+  if (!r.assign || r.assign.length !== 8) return [];
+  return [0, 1, 2, 3].map(s => `${shortOf(r.assign[s * 2])} + ${shortOf(r.assign[s * 2 + 1])}`);
+}
+/* 全部方案表格里的「排布」列：四组简写，名称超过 4 个字符截断为前 3 字加 … */
+function truncName(name){
+  const chars = Array.from(String(name || '').trim());
+  return chars.length > 4 ? chars.slice(0, 3).join('') + '…' : chars.join('');
+}
+function arrangementCell(r){
+  if (!r.assign || r.assign.length !== 8) return {html: '—', title: ''};
+  const groups = [0, 1, 2, 3].map(s => {
+    const a = shortOf(r.assign[s * 2]);
+    const b = shortOf(r.assign[s * 2 + 1]);
+    return {full: `${a}+${b}`, short: `${truncName(a)}+${truncName(b)}`};
+  });
+  return {
+    html: groups.map(g => `<span class="arrange-group" title="${esc(g.full)}">${esc(g.short)}</span>`).join(' / '),
+    title: groups.map(g => g.full).join(' / ')
+  };
+}
+function arrangementHTML(r){
+  const g = arrangementGroups(r);
+  if (!g.length) return '';
+  return g.map(s => `<span class="arrange-group">${esc(s)}</span>`).join(' / ') +
+    ` <span class="arrange-vals">(${[0, 1, 2, 3].map(s => fmt2(r.assign[s * 2].x)).join(' / ')})</span>`;
+}
+
 function renderDetail(){
   const r = state.results[state.selected];
   if (!r) { refs.detail.innerHTML = ''; return; }
   const sent = state.sent || [];
   const rank = String(state.selected + 1).padStart(2, '0');
+  const locked = isLocked(state.selected);
   const hasPriority = sent.some(d => d.PRIORITY);
   const priorityBadge = !hasPriority
     ? '<span class="badge">未设置优先色</span>'
@@ -919,13 +1104,7 @@ function renderDetail(){
     </tr>`;
   }).join('');
 
-  const shortOf = e => String((e.colorsho || e.colordes || '').trim() || e.bucket);
-  const arrangeLine = (r.assign || []).length === 8
-    ? [0, 1, 2, 3]
-        .map(s => `<span class="arrange-group">${esc(shortOf(r.assign[s * 2]))} + ${esc(shortOf(r.assign[s * 2 + 1]))}</span>`)
-        .join(' / ') +
-      ` <span class="arrange-vals">(${[0, 1, 2, 3].map(s => fmt2(r.assign[s * 2].x)).join(' / ')})</span>`
-    : '';
+  const arrangeLine = arrangementHTML(r);
 
   refs.detail.innerHTML = `
     <article class="plan">
@@ -935,13 +1114,16 @@ function renderDetail(){
           ${priorityBadge}
           <span class="badge">累计误差 ${fmtErr(r.cum_error_pct)}%</span>
           ${r._edited ? '<span class="badge">已手动调整</span>' : ''}
+          ${locked ? '<span class="badge ok">已确认</span>' : ''}
         </div>
       </header>
       <div class="plan-grid">
-        <div class="ring-holder">
+        <div class="ring-holder${locked ? ' locked' : ''}">
           ${ringSVG(r, false)}
-          <p class="ring-hint">点扇区：组内两桶位对调<br>点内圈：选中一组，再点另一组整组对调（牵伸跟随）</p>
-          ${r._edited ? '<button type="button" class="ghost-btn ring-reset" id="reset-arrangement">恢复原始排布</button>' : ''}
+          <p class="ring-hint">${locked
+            ? '方案已确认，排布已锁定'
+            : '点扇区：组内两桶位对调<br>点内圈：选中一组，再点另一组整组对调（牵伸跟随）'}</p>
+          ${r._edited && !locked ? '<button type="button" class="ghost-btn ring-reset" id="reset-arrangement">恢复原始排布</button>' : ''}
         </div>
         <div class="plan-metrics">
           <section class="check-block">
@@ -954,10 +1136,148 @@ function renderDetail(){
           </section>
         </div>
       </div>
+      ${renderConfirmBar(state.selected + 1)}
     </article>`;
 
   bindFocusHover();
   bindRingInteractions();
+  bindConfirm();
+}
+
+/* ---------- 方案确认（全页只有一个最终确认） ---------- */
+function isLocked(index){
+  return !!(state.confirm && state.confirm.rank === index + 1);
+}
+
+function confirmBlocker(){
+  if (!state.platform) return '仅本地计算，无法回传 TotalLINK';
+  if (!SERVER.confirmEnabled) return SERVER.confirmReason || '未配置 TotalLINK 地址';
+  if (!state.ctx.loginID) return '缺少登录凭据';
+  return '';
+}
+
+/* 发给本地服务的方案对象：bt8.linkrun 原始字段，只额外补 rank（规格 7.2） */
+function wireResult(r, i){
+  return {
+    rank: i + 1,
+    X1: r.X1, X2: r.X2, X3: r.X3,
+    cum_error: r.cum_error,
+    cum_error_pct: r.cum_error_pct,
+    total_feed_speed_D: r.total_feed_speed_D,
+    stage_label: r.stage_label,
+    priority_ok: r.priority_ok,
+    warnings: r.warnings || [],
+    assign: r.assign,
+    colors: r.colors
+  };
+}
+
+function confirmBody(rank){
+  return {
+    loginID: state.ctx.loginID,
+    para: state.ctx.para,
+    rowData: state.ctx.rowData,
+    payload: {
+      isSuccess: 1,
+      confirmedRank: rank,
+      results: state.results.map(wireResult)
+    }
+  };
+}
+
+function renderConfirmBar(rank){
+  const blocker = confirmBlocker();
+
+  if (state.confirming === rank) {
+    return `<div class="confirm-bar" data-state="pending">
+      <div class="confirm-text">正在把方案 <b>${rank}</b> 提交 TotalLINK…</div>
+      <div class="confirm-actions"><button type="button" class="confirm-go" disabled>提交中…</button></div>
+    </div>`;
+  }
+
+  const c = state.confirm;
+  if (c && c.rank === rank) {
+    const time = [c.at.getHours(), c.at.getMinutes()]
+      .map(n => String(n).padStart(2, '0')).join(':');
+    const rows = Number.isFinite(c.rowsAffected) ? `，影响 ${c.rowsAffected} 行` : '';
+    return `<div class="confirm-bar" data-state="confirmed">
+      <div class="confirm-text">已于 ${time} 提交 TotalLINK（HTTP ${esc(c.status)}）${rows}</div>
+      <div class="confirm-actions">排布已锁定</div>
+    </div>`;
+  }
+
+  if (state.confirmError && state.confirmError.rank === rank) {
+    return `<div class="confirm-bar" data-state="error">
+      <div class="confirm-text"><b>回传失败：</b>${esc(state.confirmError.message)}</div>
+      <div class="confirm-actions"><button type="button" class="confirm-go" id="confirm-plan"${blocker ? ' disabled' : ''}>重试回传</button></div>
+    </div>`;
+  }
+
+  const label = c ? '改为确认此方案' : `确认方案 ${rank}`;
+  const note = blocker ? `<b>${esc(blocker)}</b>`
+    : (c ? `提交后 TotalLINK 以方案 <b>${rank}</b> 为准` : '确认后提交 TotalLINK');
+  return `<div class="confirm-bar" data-state="idle">
+    <div class="confirm-text">${blocker ? note : `确定采用方案 <b>${rank}</b>？${note}`}</div>
+    <div class="confirm-actions"><button type="button" class="confirm-go" id="confirm-plan"${blocker ? ' disabled' : ''}>${label}</button></div>
+  </div>`;
+}
+
+async function confirmPlan(){
+  const rank = state.selected + 1;
+  if (!currentResult() || state.confirming) return;
+  const blocker = confirmBlocker();
+  if (blocker) {
+    state.confirmError = {rank, message: blocker};
+    renderDetail();
+    return;
+  }
+
+  state.confirming = rank;
+  state.confirmError = null;
+  renderDetail();
+  renderList();
+  try {
+    const res = await fetch('/api/bt8/confirm', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(confirmBody(rank))
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch (_) { throw new Error(`确认服务返回了非 JSON 内容（HTTP ${res.status}）`); }
+    if (data.isSuccess !== 1) throw new Error(data.message || `HTTP ${res.status}`);
+    state.confirm = {
+      rank,
+      at: new Date(),
+      status: data.status ?? '',
+      rowsAffected: Number.isFinite(data.rowsAffected) ? data.rowsAffected : null
+    };
+    state.confirmError = null;
+  } catch (err) {
+    // 回传失败不锁定方案，可以继续比较其他方案
+    state.confirmError = {rank, message: err.message || String(err)};
+  } finally {
+    state.confirming = 0;
+    renderDetail();
+    renderList();
+    renderBanner();
+  }
+}
+
+function renderBanner(){
+  if (!state.confirm) {
+    refs.banner.hidden = true;
+    refs.banner.textContent = '';
+    return;
+  }
+  refs.banner.textContent = `方案 ${String(state.confirm.rank).padStart(2, '0')} 已确认，可以关闭页面`;
+  refs.banner.hidden = false;
+}
+
+function bindConfirm(){
+  const go = refs.detail.querySelector('#confirm-plan');
+  if (go) go.addEventListener('click', () => confirmPlan());
 }
 
 /* ---------- 排布互动 ---------- */
@@ -1035,7 +1355,7 @@ function updatePicked(){
 function bindRingInteractions(){
   const svg = refs.detail.querySelector('#ring-svg');
   const r = currentResult();
-  if (!svg || !r) return;
+  if (!svg || !r || isLocked(state.selected) || state.confirming) return;
 
   svg.querySelectorAll('.seg').forEach(el => {
     const swap = () => {
@@ -1082,6 +1402,7 @@ function bindRingInteractions(){
 
 function ringSVG(result, ghost){
   const C = 200, R0 = 118, R1 = 176;
+  const locked = !ghost && isLocked(state.selected);
   const gapBefore = i => (GROUP_OF[(i + 7) % 8] !== GROUP_OF[i]) ? 6 : 2.2;
   const parts = [];
 
@@ -1113,7 +1434,7 @@ function ringSVG(result, ghost){
       key = String(e.color);
     }
 
-    const interactive = ghost ? '' :
+    const interactive = (ghost || locked) ? '' :
       ` tabindex="0" role="button" aria-label="桶位 ${BUCKETS[i]}，点击与同组另一桶位对换"`;
 
     parts.push(`
@@ -1135,7 +1456,7 @@ function ringSVG(result, ghost){
     const gx = C + 93 * Math.cos(mid);
     const gy = C + 93 * Math.sin(mid);
     const value = ghost ? ['X1', '1.00', 'X2', 'X3'][s] : fmt2(slotX(s));
-    const inter = ghost ? '' :
+    const inter = (ghost || locked) ? '' :
       ` data-slot="${s}" tabindex="0" role="button" aria-label="${GROUP_LABEL[s]} 组，牵伸 ${value}，点击选中"`;
     return `<g class="grp-sector${ghost ? ' ghost' : ''}"${inter}>
       <path d="${arcPath(C, C, 74, 112, a0, a1)}"/>
@@ -1188,23 +1509,45 @@ function bindFocusHover(){
   });
 }
 
+/* 优先色误差：所有 PRIORITY=1 的颜色里最大的实际误差（百分数）；没有优先色返回 null */
+function priorityError(r){
+  const sent = state.sent || [];
+  let worst = null;
+  (r.colors || []).forEach((line, i) => {
+    if (!sent[i] || !sent[i].PRIORITY) return;
+    const err = parseColorLine(line).err;
+    if (err == null || !Number.isFinite(err)) return;
+    if (worst == null || err > worst) worst = err;
+  });
+  return worst;
+}
+
 function renderList(){
   const scrollBox = document.querySelector('.table-scroll');
   const keepScroll = scrollBox ? scrollBox.scrollTop : 0;
   if (!state.results.length) { refs.planRows.innerHTML = ''; return; }
-  const hasPriority = (state.sent || []).some(d => d.PRIORITY);
   refs.planRows.innerHTML = state.results.map((r, i) => {
-    const pri = hasPriority
-      ? (r.priority_ok ? '<span class="err-ok">达标</span>' : '<span class="err-bad">未达标</span>')
+    const rank = i + 1;
+    const confirmed = !!state.confirm && state.confirm.rank === rank;
+    const errPct = priorityError(r);
+    const priCell = errPct == null
+      ? '<span class="muted">—</span>'
+      : `<span class="${errPct > PRIORITY_THRESHOLD + 1e-9 ? 'err-bad' : 'err-ok'}">${fmtErr(errPct)}%</span>`;
+    const warnings = r.warnings || [];
+    const warnCell = warnings.length
+      ? `<span class="err-bad" title="${esc(warnings.join('\n'))}">${warnings.length}</span>`
       : '<span class="muted">—</span>';
+    const arrange = arrangementCell(r);
     return `<tr data-i="${i}" tabindex="0" class="${i === state.selected ? 'on' : ''}" aria-selected="${i === state.selected}">
-      <td>${String(i + 1).padStart(2, '0')}</td>
+      <td>${String(rank).padStart(2, '0')}${confirmed ? '<i class="row-ok" title="已确认">✓</i>' : ''}</td>
       <td class="num">${fmt2(r.X1)}</td>
       <td class="num">${fmt2(r.X2)}</td>
       <td class="num">${fmt2(r.X3)}</td>
       <td class="num">${fmtD(r.total_feed_speed_D)}</td>
       <td class="num">${fmtErr(r.cum_error_pct)}%</td>
-      <td>${pri}</td>
+      <td class="num">${priCell}</td>
+      <td class="num">${warnCell}</td>
+      <td class="arrange" title="${esc(arrange.title)}">${arrange.html}</td>
     </tr>`;
   }).join('');
   if (scrollBox) scrollBox.scrollTop = keepScroll;
@@ -1236,9 +1579,26 @@ refs.planRows.addEventListener('keydown', e => {
 /* ===================== 初始化 ===================== */
 (function init(){
   refs.ghostRing.innerHTML = ringSVG(null, true);
-  let saved = null;
-  try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (_) { saved = null; }
-  applyPayload(saved && Array.isArray(saved.data) && saved.data.length ? saved : SAMPLE);
+
+  state.ctx = readUrlContext();
+  // 只有 data / para / rowData 都合法才进入平台模式（只读 + 可回传）
+  state.platform = state.ctx.dataValid && state.ctx.paraValid && state.ctx.rowDataValid;
+
+  if (state.ctx.dataValid) {
+    // 由 TotalLINK 打开：颜色按传入的来，搜索参数固定用页面默认值
+    applyRows(state.ctx.data.data);
+    applySearch(null);
+  } else {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (_) { saved = null; }
+    const base = (saved && Array.isArray(saved.data) && saved.data.length) ? saved : SAMPLE;
+    applyRows(base.data);
+    applySearch(base);
+  }
+  renderRows();
+
+  if (state.ctx.errors.length) showFormError(state.ctx.errors);
+  if (state.platform) run();   // data 传入后自动计算一次
 })();
 </script>
 </body>

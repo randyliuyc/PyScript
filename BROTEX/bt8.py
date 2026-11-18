@@ -585,8 +585,10 @@ def linkrun(json_str):
             'X1': round(final_x[0], 2),
             'X2': round(final_x[1], 2),
             'X3': round(final_x[2], 2),
-            'cum_error': round(s['dev'], 6),
-            'cum_error_pct': round(s['dev'] * 100.0, 3),
+            # 误差值可能极小（如 4.8e-05），保留 4 位小数后即以普通小数输出，
+            # 不会出现科学计数法（E 字符），下游 SQL 可直接转为数字
+            'cum_error': round(s['dev'], 4),
+            'cum_error_pct': round(s['dev'] * 100.0, 4),
             'total_feed_speed_D': round(D_final, 6),
             'stage_label': s.get('stage_label', 'Unknown'),
             'priority_ok': priority_ok,

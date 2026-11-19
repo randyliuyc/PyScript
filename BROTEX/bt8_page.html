@@ -225,8 +225,9 @@ h3{font:600 12px/1.4 var(--sans);margin:0;letter-spacing:.03em}
 
 .grp-sector path{fill:rgba(31,69,104,.07);transition:fill .12s}
 .grp-sector.ghost path{fill:rgba(21,34,43,.05)}
-.grp-sector:not(.ghost){cursor:pointer}
-.grp-sector:not(.ghost):hover path{fill:rgba(31,69,104,.15)}
+.grp-sector:not(.ghost):not(.fixed){cursor:pointer}
+.grp-sector:not(.ghost):not(.fixed):hover path{fill:rgba(31,69,104,.15)}
+.grp-sector.fixed{cursor:default}
 .grp-sector.picked path{fill:var(--indigo)}
 .grp-sector.picked .grp-k,.grp-sector.picked .grp-v{fill:var(--panel)}
 .grp-k{font-family:var(--sans);font-size:9.5px;fill:var(--ink-soft);letter-spacing:.06em}
@@ -237,8 +238,6 @@ h3{font:600 12px/1.4 var(--sans);margin:0;letter-spacing:.03em}
 .ring-holder .grp-sector:focus-visible path{stroke:var(--ink);stroke-width:2}
 .ring-holder .seg:focus,.ring-holder .seg:focus-visible,
 .ring-holder .grp-sector:focus,.ring-holder .grp-sector:focus-visible{outline:none}
-.ring-hint{margin:8px auto 0;max-width:42ch;font-size:10.5px;line-height:1.55;color:var(--ink-soft);text-align:center}
-.ring-reset{display:block;margin:2px auto 0;font-size:11px}
 .arrange-line{margin:12px 0 0;font:11.5px/1.65 var(--sans);color:var(--ink-soft);letter-spacing:.01em}
 .arrange-group{white-space:nowrap}
 .arrange-vals{display:inline-block;margin-left:6px;font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -298,13 +297,13 @@ tbody tr:last-child td{border-bottom:none}
 .list-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:9px}
 .list-head .count{font-size:11.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 .table-scroll{max-height:340px;max-width:100%;overflow:auto;border-bottom:1px solid var(--rule)}
-.plan-table{width:100%;min-width:720px;table-layout:fixed}
+.plan-table{width:100%;min-width:680px}
 .plan-table thead th{position:sticky;top:0;background:var(--paper);z-index:1}
 .plan-table tbody tr{cursor:pointer}
 .plan-table tbody tr:hover{background:rgba(31,69,104,.06)}
 .plan-table tbody tr.on{background:rgba(31,69,104,.1);box-shadow:inset 3px 0 0 var(--indigo)}
 .plan-table th:first-child,.plan-table td:first-child{padding-left:9px;font-family:var(--mono);color:var(--ink-soft)}
-.plan-table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-table td{white-space:nowrap}
 .plan-table th.arrange-h,.plan-table td.arrange{text-align:left}
 .plan-table td.arrange{font-size:11.5px;color:var(--ink-soft)}
 .plan-table td.arrange .arrange-group{white-space:nowrap}
@@ -481,13 +480,12 @@ tbody tr:last-child td{border-bottom:none}
           <table class="plan-table">
             <colgroup>
               <col style="width:50px"><col style="width:56px"><col style="width:56px"><col style="width:56px">
-              <col style="width:82px"><col style="width:84px"><col style="width:80px">
-              <col style="width:50px"><col>
+              <col style="width:60px"><col>
             </colgroup>
             <thead>
               <tr>
                 <th>#</th><th>X1</th><th>X2</th><th>X3</th>
-                <th>总牵伸 D</th><th>累计误差</th><th>优先色误差</th><th>告警</th><th class="arrange-h">排布</th>
+                <th>警告</th><th class="arrange-h">排布</th>
               </tr>
             </thead>
             <tbody id="plan-rows"></tbody>
@@ -507,6 +505,7 @@ tbody tr:last-child td{border-bottom:none}
 const BUCKETS = ['A','B','C','D','E','F','G','H'];
 const GROUP_OF = [0,0,1,1,2,2,3,3];
 const GROUP_LABEL = ['AB','CD','EF','GH'];
+const CD_GROUP = 1;   // CD 组牵伸固定为 1.00，不参与整组对换
 const PALETTE = ['#35507a','#b3442f','#c9872b','#6f8140','#2e6d69','#6c4064','#5c6870','#b26975'];
 const PRIORITY_THRESHOLD = 0.05;
 const NORMAL_THRESHOLD = 0.5;
@@ -1044,21 +1043,13 @@ function arrangementGroups(r){
   if (!r.assign || r.assign.length !== 8) return [];
   return [0, 1, 2, 3].map(s => `${shortOf(r.assign[s * 2])} + ${shortOf(r.assign[s * 2 + 1])}`);
 }
-/* 全部方案表格里的「排布」列：四组简写，名称超过 4 个字符截断为前 3 字加 … */
-function truncName(name){
-  const chars = Array.from(String(name || '').trim());
-  return chars.length > 4 ? chars.slice(0, 3).join('') + '…' : chars.join('');
-}
+/* 全部方案表格里的「排布」列：四组简写，颜色名称写全，不截断 */
 function arrangementCell(r){
-  if (!r.assign || r.assign.length !== 8) return {html: '—', title: ''};
-  const groups = [0, 1, 2, 3].map(s => {
-    const a = shortOf(r.assign[s * 2]);
-    const b = shortOf(r.assign[s * 2 + 1]);
-    return {full: `${a}+${b}`, short: `${truncName(a)}+${truncName(b)}`};
-  });
+  if (!r.assign || r.assign.length !== 8) return {html: '—'};
+  const groups = [0, 1, 2, 3].map(s =>
+    `${shortOf(r.assign[s * 2])}+${shortOf(r.assign[s * 2 + 1])}`);
   return {
-    html: groups.map(g => `<span class="arrange-group" title="${esc(g.full)}">${esc(g.short)}</span>`).join(' / '),
-    title: groups.map(g => g.full).join(' / ')
+    html: groups.map(g => `<span class="arrange-group">${esc(g)}</span>`).join(' / ')
   };
 }
 function arrangementHTML(r){
@@ -1120,10 +1111,6 @@ function renderDetail(){
       <div class="plan-grid">
         <div class="ring-holder${locked ? ' locked' : ''}">
           ${ringSVG(r, false)}
-          <p class="ring-hint">${locked
-            ? '方案已确认，排布已锁定'
-            : '点扇区：组内两桶位对调<br>点内圈：选中一组，再点另一组整组对调（牵伸跟随）'}</p>
-          ${r._edited && !locked ? '<button type="button" class="ghost-btn ring-reset" id="reset-arrangement">恢复原始排布</button>' : ''}
         </div>
         <div class="plan-metrics">
           <section class="check-block">
@@ -1318,20 +1305,13 @@ function swapInGroup(r, slot){
 }
 
 function swapGroups(r, s, t){
+  // CD 组牵伸固定为 1.00，不参与整组对换
+  if (s === CD_GROUP || t === CD_GROUP) return;
   ensureOriginal(r);
   const groups = [0, 1, 2, 3].map(g => [r.assign[g * 2], r.assign[g * 2 + 1]]);
   [groups[s], groups[t]] = [groups[t], groups[s]];
   r.assign = groups.flat();
   reindexAssign(r);
-}
-
-function resetArrangement(r){
-  if (!r._original) return;
-  r.assign = r._original.assign.map(e => ({...e}));
-  r.X1 = r._original.X1;
-  r.X2 = r._original.X2;
-  r.X3 = r._original.X3;
-  r._edited = false;
 }
 
 function refreshArrangement(){
@@ -1369,7 +1349,8 @@ function bindRingInteractions(){
     });
   });
 
-  svg.querySelectorAll('.grp-sector:not(.ghost)').forEach(el => {
+  // CD 组（fixed）既不作为选中源，也不作为对换目标
+  svg.querySelectorAll('.grp-sector:not(.ghost):not(.fixed)').forEach(el => {
     const pick = () => {
       const slot = Number(el.dataset.slot);
       if (state.picked == null) {
@@ -1381,6 +1362,10 @@ function bindRingInteractions(){
       } else {
         const from = state.picked;
         state.picked = null;
+        if (from === CD_GROUP || slot === CD_GROUP) {
+          updatePicked();
+          return;
+        }
         swapGroups(r, from, slot);
         refreshArrangement();
       }
@@ -1390,14 +1375,6 @@ function bindRingInteractions(){
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
     });
   });
-
-  const resetBtn = refs.detail.querySelector('#reset-arrangement');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      resetArrangement(r);
-      refreshArrangement();
-    });
-  }
 }
 
 function ringSVG(result, ghost){
@@ -1456,9 +1433,10 @@ function ringSVG(result, ghost){
     const gx = C + 93 * Math.cos(mid);
     const gy = C + 93 * Math.sin(mid);
     const value = ghost ? ['X1', '1.00', 'X2', 'X3'][s] : fmt2(slotX(s));
-    const inter = (ghost || locked) ? '' :
+    const fixed = !ghost && s === CD_GROUP;
+    const inter = (ghost || locked || fixed) ? '' :
       ` data-slot="${s}" tabindex="0" role="button" aria-label="${GROUP_LABEL[s]} 组，牵伸 ${value}，点击选中"`;
-    return `<g class="grp-sector${ghost ? ' ghost' : ''}"${inter}>
+    return `<g class="grp-sector${ghost ? ' ghost' : ''}${fixed ? ' fixed' : ''}"${inter}>
       <path d="${arcPath(C, C, 74, 112, a0, a1)}"/>
       <text x="${gx.toFixed(1)}" y="${(gy - 4).toFixed(1)}" text-anchor="middle" class="grp-k">${GROUP_LABEL[s]}</text>
       <text x="${gx.toFixed(1)}" y="${(gy + 12).toFixed(1)}" text-anchor="middle" class="grp-v">${value}</text>
@@ -1509,19 +1487,6 @@ function bindFocusHover(){
   });
 }
 
-/* 优先色误差：所有 PRIORITY=1 的颜色里最大的实际误差（百分数）；没有优先色返回 null */
-function priorityError(r){
-  const sent = state.sent || [];
-  let worst = null;
-  (r.colors || []).forEach((line, i) => {
-    if (!sent[i] || !sent[i].PRIORITY) return;
-    const err = parseColorLine(line).err;
-    if (err == null || !Number.isFinite(err)) return;
-    if (worst == null || err > worst) worst = err;
-  });
-  return worst;
-}
-
 function renderList(){
   const scrollBox = document.querySelector('.table-scroll');
   const keepScroll = scrollBox ? scrollBox.scrollTop : 0;
@@ -1529,10 +1494,6 @@ function renderList(){
   refs.planRows.innerHTML = state.results.map((r, i) => {
     const rank = i + 1;
     const confirmed = !!state.confirm && state.confirm.rank === rank;
-    const errPct = priorityError(r);
-    const priCell = errPct == null
-      ? '<span class="muted">—</span>'
-      : `<span class="${errPct > PRIORITY_THRESHOLD + 1e-9 ? 'err-bad' : 'err-ok'}">${fmtErr(errPct)}%</span>`;
     const warnings = r.warnings || [];
     const warnCell = warnings.length
       ? `<span class="err-bad" title="${esc(warnings.join('\n'))}">${warnings.length}</span>`
@@ -1543,11 +1504,8 @@ function renderList(){
       <td class="num">${fmt2(r.X1)}</td>
       <td class="num">${fmt2(r.X2)}</td>
       <td class="num">${fmt2(r.X3)}</td>
-      <td class="num">${fmtD(r.total_feed_speed_D)}</td>
-      <td class="num">${fmtErr(r.cum_error_pct)}%</td>
-      <td class="num">${priCell}</td>
       <td class="num">${warnCell}</td>
-      <td class="arrange" title="${esc(arrange.title)}">${arrange.html}</td>
+      <td class="arrange">${arrange.html}</td>
     </tr>`;
   }).join('');
   if (scrollBox) scrollBox.scrollTop = keepScroll;

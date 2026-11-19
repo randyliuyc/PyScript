@@ -199,7 +199,8 @@ h3{font:600 12px/1.4 var(--sans);margin:0;letter-spacing:.03em}
 
 /* ---------- plan detail ---------- */
 .plan{border-top:2px solid var(--ink);padding-top:14px}
-.plan-head{display:flex;align-items:center;justify-content:space-between;gap:12px 18px;flex-wrap:wrap;margin-bottom:18px}
+.plan-head{display:flex;align-items:center;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;margin-bottom:16px}
+.plan-head-main{display:flex;align-items:center;gap:18px;flex-wrap:wrap;min-width:0}
 .plan-id{display:flex;align-items:baseline;gap:7px;font:600 12.5px/1.2 var(--sans);letter-spacing:.06em;color:var(--ink-soft)}
 .plan-id b{font:600 19px/1 var(--mono);color:var(--ink);letter-spacing:0}
 .badges{display:flex;gap:8px;flex-wrap:wrap}
@@ -238,36 +239,30 @@ h3{font:600 12px/1.4 var(--sans);margin:0;letter-spacing:.03em}
 .ring-holder .grp-sector:focus-visible path{stroke:var(--ink);stroke-width:2}
 .ring-holder .seg:focus,.ring-holder .seg:focus-visible,
 .ring-holder .grp-sector:focus,.ring-holder .grp-sector:focus-visible{outline:none}
-.arrange-line{margin:12px 0 0;font:11.5px/1.65 var(--sans);color:var(--ink-soft);letter-spacing:.01em}
+.arrange-line{margin:14px 0 0;font:13px/1.6 var(--sans);color:var(--ink-soft);letter-spacing:.01em}
 .arrange-group{white-space:nowrap}
 .arrange-vals{display:inline-block;margin-left:6px;font-family:var(--mono);font-variant-numeric:tabular-nums}
 
-/* ---------- 方案确认 ---------- */
-.confirm-bar{
-  display:flex;align-items:center;justify-content:space-between;gap:10px 20px;flex-wrap:wrap;
-  margin-top:18px;padding-top:12px;border-top:1px solid var(--rule);
-}
-.confirm-text{flex:1 1 280px;min-width:0;font-size:11.5px;line-height:1.6;color:var(--ink-soft)}
+/* ---------- 方案确认（并入方案头部，不单独占一节） ---------- */
+.plan-confirm{display:flex;align-items:center;gap:12px;flex:none;align-self:center}
+.confirm-text{font-size:11.5px;line-height:1.5;color:var(--ink-soft);max-width:46ch}
 .confirm-text b{color:var(--ink);font-weight:600}
-.confirm-text code{font-family:var(--mono);font-size:10.5px;color:var(--ink);word-break:break-all}
-.confirm-actions{display:flex;align-items:center;gap:16px;flex:none}
+.plan-confirm[data-state="confirmed"] .confirm-text{color:var(--ok)}
+.plan-confirm[data-state="error"] .confirm-text{color:var(--dye)}
 .confirm-go{
   padding:8px 16px;border:1.5px solid var(--ink);border-radius:2px;background:transparent;
   color:var(--ink);font:600 12px/1 var(--sans);letter-spacing:.06em;cursor:pointer;
-  transition:background .15s,color .15s,opacity .15s;
+  transition:background .15s,color .15s,opacity .15s;white-space:nowrap;
 }
 .confirm-go:hover:not(:disabled){background:var(--ink);color:var(--panel)}
 .confirm-go:disabled{opacity:.5;cursor:progress}
-.confirm-bar[data-state="confirmed"]{border-top-color:var(--ok)}
-.confirm-bar[data-state="confirmed"] .confirm-text{color:var(--ok)}
-.confirm-bar[data-state="error"]{border-top-color:var(--dye)}
-.confirm-bar[data-state="error"] .confirm-text{color:var(--dye)}
+.confirm-go.secondary{border-color:var(--rule-strong);font-weight:500}
+.confirm-go.secondary:hover:not(:disabled){background:var(--rule);color:var(--ink)}
 .ring-holder.locked .seg,.ring-holder.locked .grp-sector{cursor:default}
 .ring-holder.locked .seg:hover path{stroke:none;stroke-width:0}
 .ring-holder.locked .grp-sector:hover path{fill:rgba(31,69,104,.07)}
 .ring-holder.locked .grp-sector.picked path{fill:rgba(31,69,104,.07)}
 .row-ok{font-style:normal;color:var(--ok);margin-left:3px;font-size:10px}
-.confirm-bar[data-state="confirmed"] .confirm-actions{color:var(--ok);font-size:11.5px}
 
 .plan-metrics{display:flex;flex-direction:column;gap:16px;min-width:0}
 .check-block{margin-top:0;padding-top:0;border-top:none}
@@ -293,7 +288,7 @@ tbody tr:last-child td{border-bottom:none}
 .pri-mark{font-size:9px;color:var(--indigo);border:1px solid rgba(31,69,104,.4);border-radius:2px;padding:0 3px;margin-left:5px;vertical-align:1px}
 
 /* ---------- plan list ---------- */
-.list-block{margin-top:36px;padding-top:18px;border-top:1px solid var(--rule)}
+.list-block{margin-top:26px;padding-top:16px;border-top:1px solid var(--rule)}
 .list-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:9px}
 .list-head .count{font-size:11.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 .table-scroll{max-height:340px;max-width:100%;overflow:auto;border-bottom:1px solid var(--rule)}
@@ -321,16 +316,6 @@ tbody tr:last-child td{border-bottom:none}
   .empty-ring{max-width:320px}
   .plan-grid{grid-template-columns:1fr;gap:26px}
   .ring-holder{max-width:370px;margin:0 auto}
-}
-@media (max-width:600px){
-  .masthead{padding:13px 18px;flex-wrap:wrap;gap:10px}
-  .titles h1{font-size:18px}
-  .titles p{display:none}
-  .panel-input,.panel-results{padding-left:18px;padding-right:18px}
-  .runinfo{display:none}
-  .row-head{grid-template-columns:78px minmax(0,1fr) 84px 20px;gap:8px}
-  .row-head.ro{grid-template-columns:78px minmax(0,1fr) 84px}
-  .inp{font-size:16px}          /* 避免 iOS 聚焦时自动放大页面 */
 }
 @media (prefers-reduced-motion:reduce){
   .spinner svg{animation:none}
@@ -480,12 +465,12 @@ tbody tr:last-child td{border-bottom:none}
           <table class="plan-table">
             <colgroup>
               <col style="width:50px"><col style="width:56px"><col style="width:56px"><col style="width:56px">
-              <col style="width:60px"><col>
+              <col style="width:88px"><col>
             </colgroup>
             <thead>
               <tr>
                 <th>#</th><th>X1</th><th>X2</th><th>X3</th>
-                <th>警告</th><th class="arrange-h">排布</th>
+                <th>总误差</th><th class="arrange-h">排布</th>
               </tr>
             </thead>
             <tbody id="plan-rows"></tbody>
@@ -1100,13 +1085,16 @@ function renderDetail(){
   refs.detail.innerHTML = `
     <article class="plan">
       <header class="plan-head">
-        <div class="plan-id">方案 <b>${rank}</b></div>
-        <div class="badges">
-          ${priorityBadge}
-          <span class="badge">累计误差 ${fmtErr(r.cum_error_pct)}%</span>
-          ${r._edited ? '<span class="badge">已手动调整</span>' : ''}
-          ${locked ? '<span class="badge ok">已确认</span>' : ''}
+        <div class="plan-head-main">
+          <div class="plan-id">方案 <b>${rank}</b></div>
+          <div class="badges">
+            ${priorityBadge}
+            <span class="badge">累计误差 ${fmtErr(r.cum_error_pct)}%</span>
+            ${r._edited ? '<span class="badge">已手动调整</span>' : ''}
+            ${locked ? '<span class="badge ok">已确认</span>' : ''}
+          </div>
         </div>
+        ${renderConfirmControl(state.selected + 1)}
       </header>
       <div class="plan-grid">
         <div class="ring-holder${locked ? ' locked' : ''}">
@@ -1123,7 +1111,6 @@ function renderDetail(){
           </section>
         </div>
       </div>
-      ${renderConfirmBar(state.selected + 1)}
     </article>`;
 
   bindFocusHover();
@@ -1172,13 +1159,13 @@ function confirmBody(rank){
   };
 }
 
-function renderConfirmBar(rank){
+function renderConfirmControl(rank){
   const blocker = confirmBlocker();
 
   if (state.confirming === rank) {
-    return `<div class="confirm-bar" data-state="pending">
-      <div class="confirm-text">正在把方案 <b>${rank}</b> 提交 TotalLINK…</div>
-      <div class="confirm-actions"><button type="button" class="confirm-go" disabled>提交中…</button></div>
+    return `<div class="plan-confirm" data-state="pending">
+      <span class="confirm-text">正在把方案 <b>${rank}</b> 提交 TotalLINK…</span>
+      <button type="button" class="confirm-go" disabled>提交中…</button>
     </div>`;
   }
 
@@ -1187,26 +1174,45 @@ function renderConfirmBar(rank){
     const time = [c.at.getHours(), c.at.getMinutes()]
       .map(n => String(n).padStart(2, '0')).join(':');
     const rows = Number.isFinite(c.rowsAffected) ? `，影响 ${c.rowsAffected} 行` : '';
-    return `<div class="confirm-bar" data-state="confirmed">
-      <div class="confirm-text">已于 ${time} 提交 TotalLINK（HTTP ${esc(c.status)}）${rows}</div>
-      <div class="confirm-actions">排布已锁定</div>
+    return `<div class="plan-confirm" data-state="confirmed">
+      <span class="confirm-text">已于 ${time} 提交 TotalLINK（HTTP ${esc(c.status)}）${rows}；排布已锁定</span>
     </div>`;
   }
 
   if (state.confirmError && state.confirmError.rank === rank) {
-    return `<div class="confirm-bar" data-state="error">
-      <div class="confirm-text"><b>回传失败：</b>${esc(state.confirmError.message)}</div>
-      <div class="confirm-actions"><button type="button" class="confirm-go" id="confirm-plan"${blocker ? ' disabled' : ''}>重试回传</button></div>
+    return `<div class="plan-confirm" data-state="error">
+      <span class="confirm-text"><b>回传失败：</b>${esc(state.confirmError.message)}</span>
+      <button type="button" class="confirm-go" id="confirm-plan"${blocker ? ' disabled' : ''}>重试回传</button>
+    </div>`;
+  }
+
+  // 本地计算或缺少凭据：不能回传，但可以把方案 JSON 复制出来
+  if (blocker) {
+    return `<div class="plan-confirm" data-state="blocked">
+      <span class="confirm-text"><b>${esc(blocker)}</b></span>
+      <button type="button" class="confirm-go secondary" id="copy-plan">复制回传 JSON</button>
     </div>`;
   }
 
   const label = c ? '改为确认此方案' : `确认方案 ${rank}`;
-  const note = blocker ? `<b>${esc(blocker)}</b>`
-    : (c ? `提交后 TotalLINK 以方案 <b>${rank}</b> 为准` : '确认后提交 TotalLINK');
-  return `<div class="confirm-bar" data-state="idle">
-    <div class="confirm-text">${blocker ? note : `确定采用方案 <b>${rank}</b>？${note}`}</div>
-    <div class="confirm-actions"><button type="button" class="confirm-go" id="confirm-plan"${blocker ? ' disabled' : ''}>${label}</button></div>
+  const note = c ? `提交后 TotalLINK 以方案 <b>${rank}</b> 为准` : '确认后提交 TotalLINK';
+  return `<div class="plan-confirm" data-state="idle">
+    <span class="confirm-text">${note}</span>
+    <button type="button" class="confirm-go" id="confirm-plan">${label}</button>
   </div>`;
+}
+
+/* 无法回传时，把方案 JSON（与回传时 rowData 里填的内容一致）复制到剪贴板 */
+async function copyPlanJSON(btn){
+  const text = JSON.stringify(confirmBody(state.selected + 1).payload, null, 2);
+  const label = btn.textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = '已复制';
+  } catch (_) {
+    btn.textContent = '复制失败';
+  }
+  setTimeout(() => { btn.textContent = label; }, 1600);
 }
 
 async function confirmPlan(){
@@ -1265,6 +1271,8 @@ function renderBanner(){
 function bindConfirm(){
   const go = refs.detail.querySelector('#confirm-plan');
   if (go) go.addEventListener('click', () => confirmPlan());
+  const copy = refs.detail.querySelector('#copy-plan');
+  if (copy) copy.addEventListener('click', () => copyPlanJSON(copy));
 }
 
 /* ---------- 排布互动 ---------- */
@@ -1494,17 +1502,15 @@ function renderList(){
   refs.planRows.innerHTML = state.results.map((r, i) => {
     const rank = i + 1;
     const confirmed = !!state.confirm && state.confirm.rank === rank;
-    const warnings = r.warnings || [];
-    const warnCell = warnings.length
-      ? `<span class="err-bad" title="${esc(warnings.join('\n'))}">${warnings.length}</span>`
-      : '<span class="muted">—</span>';
+    // 总误差 = 累计误差（各颜色实际与目标比例之差的总和），以百分数显示
+    const totalErr = `${fmtErr(r.cum_error_pct)}%`;
     const arrange = arrangementCell(r);
     return `<tr data-i="${i}" tabindex="0" class="${i === state.selected ? 'on' : ''}" aria-selected="${i === state.selected}">
       <td>${String(rank).padStart(2, '0')}${confirmed ? '<i class="row-ok" title="已确认">✓</i>' : ''}</td>
       <td class="num">${fmt2(r.X1)}</td>
       <td class="num">${fmt2(r.X2)}</td>
       <td class="num">${fmt2(r.X3)}</td>
-      <td class="num">${warnCell}</td>
+      <td class="num">${totalErr}</td>
       <td class="arrange">${arrange.html}</td>
     </tr>`;
   }).join('');

@@ -37,6 +37,21 @@ DATA = [
 ]
 PAYLOAD = {"xmin": 1.03, "xmax": 3.5, "data": DATA}
 
+# 5 色样例：与 bt8_page.SAMPLE_PAYLOAD 一致；最好方案单色相对误差约 4.4%，用于测试阈值剔除
+SAMPLE_DATA = [
+    {"MFMLIN": 20, "MFMDES": "FWP 特白条", "MATRATCALC": 28.0,
+     "PRIORITY": 0, "POSITION": ""},
+    {"MFMLIN": 112, "MFMDES": "再生白涤纶", "MATRATCALC": 25.03,
+     "PRIORITY": 0, "POSITION": ""},
+    {"MFMLIN": 120, "MFMDES": "白棉条", "MATRATCALC": 8.49,
+     "PRIORITY": 0, "POSITION": ""},
+    {"MFMLIN": 150, "MFMDES": "FW 特白条", "MATRATCALC": 7.8,
+     "PRIORITY": 0, "POSITION": ""},
+    {"MFMLIN": 99999, "MFMDES": "HY 条子", "MATRATCALC": 5.68,
+     "PRIORITY": 0, "POSITION": ""},
+]
+SAMPLE_PAYLOAD = {"xmin": 1.03, "xmax": 3.5, "maxtime": 5, "data": SAMPLE_DATA}
+
 
 def run(payload):
     """调用 linkrun 并把返回的 JSON 文本解析成对象"""
@@ -44,7 +59,10 @@ def run(payload):
 
 
 def parse_color_line(line):
-    """解析 '名称: 目标 -> 实际 (误差%)'，返回 (名称, 实际, 误差)"""
+    """解析 '名称: 目标 -> 实际 (相对误差%)'，返回 (名称, 实际, 相对误差)
+
+    最后一个括号里的数字是相对误差：|实际 - 目标| / 目标 × 100。
+    """
     left, right = line.split(": ", 1)
     _, rest = right.split(" -> ")
     actual, err = rest.split(" (")
@@ -100,14 +118,47 @@ class Bt8RegressionTests(unittest.TestCase):
                 self.assertLess(abs(expected - entry["speed"]), 1e-4,
                                 f"{entry['bucket']}: x={entry['x']} speed={entry['speed']}")
 
-    def test_cum_error_matches_details(self):
+    def test_cum_error_keeps_absolute_meaning(self):
+        """cum_error 仍是各颜色 |实际-目标| 百分点差之和（写入 MFGMATBTS.CUMVAR）。"""
+        for result in self.out["results"]:
+            detail_sum = 0.0
+            for line in result["colors"]:
+                target = float(line.split(": ", 1)[1].split(" -> ")[0])
+                actual = float(line.split(" -> ")[1].split(" (")[0])
+                detail_sum += abs(actual - target)
+            # 明细里的目标/实际保留 2 位小数，每色最多带来 0.01 的舍入差
+            tolerance = 0.02 * len(result["colors"]) + 0.01
+            self.assertLess(abs(result["cum_error"] * 100 - detail_sum), tolerance)
+            self.assertLess(abs(result["cum_error_pct"] - detail_sum), tolerance)
+            self.assertEqual(result["cum_error"], round(result["cum_error"], 6))
+
+    def test_cum_rel_error_matches_details(self):
+        """cum_rel_error = 各颜色相对误差之和（括号里的数字，2 位小数）。"""
         for result in self.out["results"]:
             detail_sum = sum(
                 float(line.rsplit("(", 1)[1].rstrip("%)")) for line in result["colors"]
             )
-            self.assertLess(abs(result["cum_error"] * 100 - detail_sum), 0.02)
-            self.assertLess(abs(result["cum_error_pct"] - detail_sum), 0.02)
-            self.assertEqual(result["cum_error"], round(result["cum_error"], 6))
+            tolerance = 0.005 * len(result["colors"]) + 0.01
+            self.assertLess(abs(result["cum_rel_error"] * 100 - detail_sum), tolerance)
+            self.assertLess(abs(result["cum_rel_error_pct"] - detail_sum), tolerance)
+            self.assertEqual(result["cum_rel_error"], round(result["cum_rel_error"], 6))
+
+    def test_color_error_is_relative(self):
+        """colors[] 括号里是相对误差，而不是绝对百分点差。"""
+        for result in self.out["results"]:
+            for line in result["colors"]:
+                _, actual, err = parse_color_line(line)
+                target = float(line.split(": ", 1)[1].split(" -> ")[0])
+                if target > 0:
+                    expected = abs(actual - target) / target * 100
+                    self.assertAlmostEqual(err, expected, places=1, msg=line)
+
+    def test_no_plan_exceeds_normal_threshold(self):
+        """普通色相对误差超阈值的方案不会出现在结果里。"""
+        for result in self.out["results"]:
+            for line in result["colors"]:
+                _, _, err = parse_color_line(line)
+                self.assertLessEqual(err, bt8.NORMAL_REL_THRESHOLD * 100 + 0.01, line)
 
     def test_seed_dev_matches_reported_x(self):
         targets = np.array([item["MATRATCALC"] for item in DATA], float)
@@ -157,7 +208,7 @@ class Bt8RegressionTests(unittest.TestCase):
             {"MFMLIN": 20, "MFMDES": "B", "MATRATCALC": 30, "PRIORITY": 0, "POSITION": ""},
             {"MFMLIN": 30, "MFMDES": "C", "MATRATCALC": 40, "PRIORITY": 0, "POSITION": ""},
         ]
-        result = run({"data": data})
+        result = run({"data": data, "maxtime": 5})
         self.assertEqual(result.get("isSuccess"), 1, result.get("message"))
         self.assertTrue(result["results"])
         for plan in result["results"]:
@@ -169,7 +220,7 @@ class Bt8RegressionTests(unittest.TestCase):
                     self.assertIn(bucket, "ACF")
             for line in plan["colors"]:
                 _, _, err = parse_color_line(line)
-                self.assertLessEqual(err, 1.5 + 0.01, line)
+                self.assertLessEqual(err, bt8.NORMAL_REL_THRESHOLD * 100 + 0.01, line)
 
     def test_many_colors_corner_solution(self):
         """8 色等分：解在搜索框角落；累计误差会超过单色容差，但单色都应达标。"""
@@ -184,7 +235,71 @@ class Bt8RegressionTests(unittest.TestCase):
         for plan in result["results"]:
             for line in plan["colors"]:
                 _, _, err = parse_color_line(line)
-                self.assertLessEqual(err, 1.5 + 0.01, line)
+                self.assertLessEqual(err, bt8.NORMAL_REL_THRESHOLD * 100 + 0.01, line)
+
+    def test_small_ratio_color_reports_no_solution(self):
+        """0.71% 这类低于结构最小单桶比例的色比：不应返回方案。
+
+        绝对误差下它只差 0.71 个百分点，会被当成合格；相对误差是 100%。
+        """
+        data = [
+            {"MFMLIN": 20, "MFMDES": "FWP 特白条", "MATRATCALC": 25.68,
+             "PRIORITY": 0, "POSITION": ""},
+            {"MFMLIN": 102, "MFMDES": "EH007", "MATRATCALC": 0.71,
+             "PRIORITY": 0, "POSITION": ""},
+            {"MFMLIN": 112, "MFMDES": "再生白涤纶", "MATRATCALC": 30.0,
+             "PRIORITY": 0, "POSITION": ""},
+            {"MFMLIN": 120, "MFMDES": "白棉条", "MATRATCALC": 10.71,
+             "PRIORITY": 0, "POSITION": ""},
+            {"MFMLIN": 130, "MFMDES": "BHHH", "MATRATCALC": 25.0,
+             "PRIORITY": 0, "POSITION": ""},
+            {"MFMLIN": 150, "MFMDES": "FW 特白条", "MATRATCALC": 7.9,
+             "PRIORITY": 0, "POSITION": ""},
+        ]
+        result = run({"data": data})
+        self.assertEqual(result.get("isSuccess"), 0, result)
+        self.assertEqual(result.get("results"), [])
+        message = result.get("message", "")
+        self.assertIn("EH007", message)
+        self.assertIn("0.71%", message)
+        self.assertIn("低于", message)
+
+    def test_small_ratio_is_never_silently_zero(self):
+        """可实现的色比都必须真的分配到桶位；不会出现「目标 >0、实际 0」的方案。"""
+        for plan in self.out["results"]:
+            for line in plan["colors"]:
+                _, actual, _ = parse_color_line(line)
+                target = float(line.split(": ", 1)[1].split(" -> ")[0])
+                if target > 0:
+                    self.assertGreater(actual, 0.0, line)
+
+    def test_plans_over_normal_threshold_are_rejected_with_reason(self):
+        """普通色相对误差都超标时：不返回方案，并说明最接近通过的那一条。"""
+        original = bt8.NORMAL_REL_THRESHOLD
+        try:
+            bt8.NORMAL_REL_THRESHOLD = 0.0001   # 0.01%，现有方案必然超标
+            result = run(SAMPLE_PAYLOAD)
+        finally:
+            bt8.NORMAL_REL_THRESHOLD = original
+        self.assertEqual(result.get("isSuccess"), 0, result)
+        self.assertEqual(result.get("results"), [])
+        self.assertIn("没有方案满足单色相对误差阈值", result.get("message", ""))
+        self.assertIn("相对误差", result.get("message", ""))
+
+    def test_priority_miss_keeps_plan_but_flags_it(self):
+        """优先色未达标仍保留方案（排在后面），不像普通色那样直接剔除。"""
+        original = bt8.PRIORITY_REL_THRESHOLD
+        try:
+            bt8.PRIORITY_REL_THRESHOLD = 0.0001
+            data = [dict(item, PRIORITY=1) for item in SAMPLE_DATA]
+            result = run({"xmin": 1.03, "xmax": 3.5, "maxtime": 5, "data": data})
+        finally:
+            bt8.PRIORITY_REL_THRESHOLD = original
+        self.assertEqual(result.get("isSuccess"), 1, result.get("message"))
+        self.assertTrue(result["results"])
+        for plan in result["results"]:
+            self.assertFalse(plan["priority_ok"])
+            self.assertTrue(plan["warnings"])
 
     def test_infeasible_position_reports_error(self):
         data = [

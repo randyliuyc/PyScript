@@ -12,14 +12,18 @@ import scipy.optimize
 # 2026年5月29日，相同分布签名去除处理
 # 2026年5月29日，相邻颜色相同时对调，打乱颜色
 # ======================
-TOL = 0.015                  # 种子阶段单色误差容差 1.5%
-PRUNE_MARGIN = 0.03          # 回溯剪枝的上下界余量 3%
+# 单色误差统一按「相对目标色比」计算：|实际比例 - 目标比例| / 目标比例。
+# 小色比用绝对百分点判定会被放过：例如目标 0.71%、实际 0，只差 0.71 个百分点，
+# 绝对阈值下仍算合格；换成相对误差后该色是 100%，必然不合格。
+SEED_REL_TOL = 0.10          # 种子阶段单色相对误差容差 10%（粗筛，需大于验收阈值）
+PRUNE_REL_MARGIN = 0.20      # 回溯剪枝的相对余量 20%，必须大于 SEED_REL_TOL
 TOP_N = 100                   # 结果返回的数量
 MAX_PER_X_SIGNATURE = 5      # 每种 X 区域签名最多保留的种子数
-PRIORITY_ERROR_THRESHOLD = 0.0005   # 0.05%
-NON_PRIORITY_ERROR_THRESHOLD = 0.005 # 0.5%
+PRIORITY_REL_THRESHOLD = 0.02    # 优先色相对误差阈值 2%
+NORMAL_REL_THRESHOLD = 0.05      # 普通色相对误差阈值 5%
+INFEASIBLE_COST = 10.0       # 搜索中「无可行分配」的目标值，必须高于任何可行解
 D_RANGE = (0.5, 10.0)
-MAX_RUNTIME = 60             # 默认最大运行时间（秒），可由输入 maxtime 覆盖
+MAX_RUNTIME = 30             # 默认最大运行时间（秒），可由输入 maxtime 覆盖
 
 # 物理结构定义
 BUCKETS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
@@ -32,9 +36,31 @@ BUCKET_TO_GROUP = np.array([0, 0, 1, 1, 2, 2, 3, 3])
 # 核心计算函数
 # ======================
 
+def relative_error(actual, target):
+    """单色相对误差 = |实际比例 - 目标比例| / 目标比例。
+
+    目标为 0 时：该色不参与分配（实际也为 0）记 0；一旦被放入桶位则视为不可接受。
+    """
+    if target > 0:
+        return abs(actual - target) / target
+    return 0.0 if abs(actual) <= 1e-12 else float('inf')
+
+
+def _min_single_slot_share(xmin, xmax):
+    """当前 8 桶位结构下单色只占 1 个桶位时可能达到的最小占比（0-1）。
+
+    组速度 G0=1/X1、G1=1.0、G2=1/X2、G3=1/X3，D=Σ(组大小×速度)。
+    可变组取 1/xmax、其余组取最大速度 1/xmin 时，单桶占比最小。
+    目标色比低于该值的颜色无法被分配，相对误差必然无法满足。
+    """
+    speed = 1.0 / xmax
+    total = 2.0 * (speed + 1.0 + 2.0 / xmin)
+    return speed / total
+
+
 def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
     """
-    高度优化的回溯算法
+    高度优化的回溯算法（单色误差按相对目标色比判定）
     """
     results = []
     current_sums = [0.0] * num_colors
@@ -46,10 +72,10 @@ def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
             final_pcts = []
             for i in range(num_colors):
                 pct = current_sums[i] / D
-                err = abs(pct - targets[i])
+                err = relative_error(pct, targets[i])
                 total_err += err
                 final_pcts.append(pct)
-                if err > TOL: return  # 种子阶段单色误差阈值
+                if err > SEED_REL_TOL: return  # 种子阶段单色相对误差阈值
             
             # 还原为 8 桶位分配 (存储颜色索引)
             # 每组大小为2，按顺序展开到具体桶位
@@ -88,16 +114,16 @@ def fast_backtrack(targets, weights, D, num_colors, pos_constraints):
             # 更新当前各颜色速度总和
             for c_idx in combo: current_sums[c_idx] += w
 
-            # 剪枝：单色占比不能偏离目标值太远（上限+下限）
+            # 剪枝：单色占比不能偏离目标值太远（相对余量，必须比种子容差更宽）
             pass_check = True
             for i in range(num_colors):
                 pct = current_sums[i] / D
-                if pct > targets[i] + PRUNE_MARGIN:
+                if pct > targets[i] * (1.0 + PRUNE_REL_MARGIN):
                     pass_check = False; break
             if pass_check:
                 for i in range(num_colors):
                     max_possible = (current_sums[i] + remaining) / D
-                    if max_possible < targets[i] - PRUNE_MARGIN:
+                    if max_possible < targets[i] * (1.0 - PRUNE_REL_MARGIN):
                         pass_check = False; break
             
             if pass_check:
@@ -156,14 +182,18 @@ def refine_vectorized(seeds, targets, json_data, bounds=None):
         
         # 各颜色比例 = (颜色组权重 @ 组速度) / D
         final_pcts_matrix = np.dot(c_weights, W) / D_vec # K x N
-        errors_matrix = np.abs(final_pcts_matrix - target_arr[:, None])
-        
-        # 优先级误差过滤
-        valid_mask = np.all(errors_matrix <= np.where(is_priority[:, None], PRIORITY_ERROR_THRESHOLD, NON_PRIORITY_ERROR_THRESHOLD), axis=0)
+        abs_err = np.abs(final_pcts_matrix - target_arr[:, None])
+        safe_target = np.where(target_arr[:, None] > 0, target_arr[:, None], 1.0)
+        # 单色相对误差；目标为 0 却分到桶位时视为不可接受（inf）
+        errors_matrix = np.where((target_arr[:, None] <= 0) & (abs_err > 1e-12),
+                                 np.inf, abs_err / safe_target)
+
+        # 优先级误差过滤（相对误差）
+        valid_mask = np.all(errors_matrix <= np.where(is_priority[:, None], PRIORITY_REL_THRESHOLD, NORMAL_REL_THRESHOLD), axis=0)
         
         if np.any(valid_mask):
             total_errs = np.sum(errors_matrix, axis=0)
-            best_idx = np.argmin(np.where(valid_mask, total_errs, 9.9))
+            best_idx = np.argmin(np.where(valid_mask, total_errs, INFEASIBLE_COST))
             refined_results.append({
                 'X1': mX1[best_idx], 'X2': mX2[best_idx], 'X3': mX3[best_idx],
                 'assign': sol['assign'], 'dev': total_errs[best_idx], 'D': D_vec[best_idx],
@@ -246,9 +276,9 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, rng=None, dea
         if D <= D_RANGE[0]: penalty += (D_RANGE[0] - D) * 0.1
         if D >= D_RANGE[1]: penalty += (D - D_RANGE[1]) * 0.1
 
-        # 连续惩罚 > 0 时，返回惩罚值（始终大于有效解的最大误差 ~0.06）
+        # 连续惩罚 > 0 时，返回惩罚值（必须始终大于任何可行解的相对误差之和）
         if penalty > 0:
-            return 0.1 + penalty
+            return INFEASIBLE_COST + penalty
 
         key = (x1, x2, x3)
         if key in eval_cache:
@@ -256,8 +286,8 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, rng=None, dea
 
         res = fast_backtrack(targets, w, D, num_colors, pos_constraints)
         if not res:
-            eval_cache[key] = (0.5, [], D)
-            return 0.5
+            eval_cache[key] = (INFEASIBLE_COST, [], D)
+            return INFEASIBLE_COST
 
         min_err = min(r[1] for r in res)
         eval_cache[key] = (min_err, res, D)
@@ -315,8 +345,9 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, rng=None, dea
         )
 
     for key, (_err, assignments, D_key) in eval_cache.items():
-        # fast_backtrack 返回的每条分配都已满足单色 TOL；这里只排除"无可行分配"的点。
-        # 注意不能用累计误差与 TOL 比较：颜色多时累计误差天然会超过单色容差。
+        # fast_backtrack 返回的每条分配都已满足单色相对容差 SEED_REL_TOL；
+        # 这里只排除"无可行分配"的点。累计误差不能用它与单色容差比较：
+        # 颜色多时累计误差天然会超过单色容差。
         if not assignments:
             continue
         x1, x2, x3 = key
@@ -470,6 +501,25 @@ def linkrun(json_str):
     targets = raw_targets / raw_targets.sum()
     targets_pct = targets * 100.0
 
+    # 结构下界预检：单色至少占 1 个桶位，占比不可能低于当前结构的单桶最小值。
+    # 低于它的颜色（如 0.71%）无论怎么搜索都放不进去，先给出明确结论，
+    # 避免用绝对误差把它当成「只差 0.71 个百分点」而返回无意义方案。
+    min_share = _min_single_slot_share(xmin, xmax)
+    too_small = [
+        (i, item) for i, item in enumerate(json_data)
+        if targets[i] > 0 and targets[i] < min_share - 1e-12
+    ]
+    if too_small:
+        detail = '、'.join(
+            f"{item.get('MFMDES', '').strip() or item.get('MFMLIN', '')} {targets[i] * 100:.2f}%"
+            for i, item in too_small
+        )
+        return _error_result(
+            f'无法配色：{detail} 的目标色比低于该结构可实现的最小单色比例 '
+            f'{min_share * 100:.2f}%（8 桶位、牵伸 {xmin:g}–{xmax:g}）。'
+            f'这些颜色无法分配到桶位，单色相对误差必然超过 '
+            f'{NORMAL_REL_THRESHOLD * 100:g}%，请调整色比或牵伸范围')
+
     # 预处理位置约束
     # 支持多字符 POSITION，如 "ACF" 表示该颜色需要出现在 A、C、F 三个位置
     pos_constraints = {}
@@ -502,7 +552,7 @@ def linkrun(json_str):
         if time.time() >= deadline:
             reason = f'搜索超时（已达到 maxtime={maxtime:g}s），请放宽 xmin/xmax 或增大 maxtime'
         else:
-            reason = (f'未找到误差<{TOL*100:.1f}%的有效解（搜索 {elapsed:g}s），'
+            reason = (f'未找到单色相对误差<{SEED_REL_TOL * 100:.1f}%的有效解（搜索 {elapsed:g}s），'
                       f'请放宽 xmin/xmax 范围或检查 POSITION 约束是否过严')
         return _error_result(reason, elapsed)
     elif verbose:
@@ -528,6 +578,8 @@ def linkrun(json_str):
     
     final_results = []
     constraint_rejected = 0
+    error_rejected = 0
+    closest_error = None   # (相对误差, 名称, 目标%, 实际%)，取超标最少的一条说明原因
     for s in top_results:
         # 组内顺序：按桶位约束选择满足约束的排列（组内两格速度相同，交换不影响比例）
         ordered_assign = order_in_groups(s['assign'], bucket_constraints)
@@ -547,19 +599,43 @@ def linkrun(json_str):
         w_map = [1.0 / final_x[0], 1.0, 1.0 / final_x[1], 1.0 / final_x[2]]
         D_final = float(np.sum(np.array(w_map) * GROUP_SIZES))
 
-        # 优先色是否达标 + 超出阈值的提示
+        # 单色相对误差判定：
+        # - 普通色超出阈值 → 该方案不可行，直接丢弃（小色比不会被放过）
+        # - 优先色超出阈值 → 保留方案但记为「优先色未达标」，排到后面
         warnings = []
         priority_ok = True
+        normal_over = False
         for i, item in enumerate(json_data):
-            err = abs(s['final_pcts'][i] - targets[i])
-            threshold = PRIORITY_ERROR_THRESHOLD if item.get("PRIORITY") else NON_PRIORITY_ERROR_THRESHOLD
-            if item.get("PRIORITY") and err > PRIORITY_ERROR_THRESHOLD:
+            is_priority = bool(item.get("PRIORITY"))
+            err = relative_error(s['final_pcts'][i], targets[i])
+            threshold = PRIORITY_REL_THRESHOLD if is_priority else NORMAL_REL_THRESHOLD
+            if is_priority and err > PRIORITY_REL_THRESHOLD:
                 priority_ok = False
-            if err > threshold:
+            if err > threshold + 1e-12:
                 warnings.append(
-                    f"{item.get('MFMDES', '')}: 误差 {err * 100:.2f}% 超过阈值 {threshold * 100:.2f}%"
-                    + ("（优先色）" if item.get("PRIORITY") else "")
+                    f"{item.get('MFMDES', '')}: 相对误差 {err * 100:.2f}% 超过阈值 {threshold * 100:.2f}%"
+                    + ("（优先色）" if is_priority else "")
                 )
+                if not is_priority:
+                    normal_over = True
+                    if closest_error is None or err < closest_error[0]:
+                        closest_error = (
+                            err,
+                            item.get('MFMDES', '').strip() or item.get('MFMLIN', ''),
+                            targets[i] * 100.0,
+                            s['final_pcts'][i] * 100.0,
+                        )
+        if normal_over:
+            error_rejected += 1
+            continue
+
+        # cum_error 保持原语义（绝对百分点差之和，写入 MFGMATBTS.CUMVAR）；
+        # 另给出相对误差之和，供排序与页面展示。
+        abs_sum = float(np.sum(np.abs(np.array(s['final_pcts']) - targets)))
+        rel_sum = float(np.sum([
+            relative_error(s['final_pcts'][i], targets[i])
+            for i in range(len(json_data))
+        ]))
 
         assign_list = []
         for i, b_name in enumerate(BUCKETS):
@@ -585,31 +661,43 @@ def linkrun(json_str):
             'X1': round(final_x[0], 2),
             'X2': round(final_x[1], 2),
             'X3': round(final_x[2], 2),
-            # 误差值可能极小（如 4.8e-05），保留 4 位小数后即以普通小数输出，
+            # cum_error 保持旧语义（绝对差之和，供 MFGMATBTS.CUMVAR）；
+            # cum_rel_error 是各颜色相对误差之和，用于排序与页面「累计相对误差」。
+            # 数值可能极小（如 4.8e-05），保留 4 位小数后即以普通小数输出，
             # 不会出现科学计数法（E 字符），下游 SQL 可直接转为数字
-            'cum_error': round(s['dev'], 4),
-            'cum_error_pct': round(s['dev'] * 100.0, 4),
+            'cum_error': round(abs_sum, 4),
+            'cum_error_pct': round(abs_sum * 100.0, 4),
+            'cum_rel_error': round(rel_sum, 4),
+            'cum_rel_error_pct': round(rel_sum * 100.0, 4),
             'total_feed_speed_D': round(D_final, 6),
             'stage_label': s.get('stage_label', 'Unknown'),
             'priority_ok': priority_ok,
             'warnings': warnings,
             'assign': assign_list,
             'colors': [
-                f"{json_data[i].get('MFMDES', '')}: {round(targets_pct[i], 2)} -> {round(s['final_pcts'][i]*100.0, 2)} ({format(abs(s['final_pcts'][i]*100.0 - targets_pct[i]), '.2f')}%)"
+                f"{json_data[i].get('MFMDES', '')}: {round(targets_pct[i], 2)} -> "
+                f"{round(s['final_pcts'][i] * 100.0, 2)} "
+                f"({format(relative_error(s['final_pcts'][i], targets[i]) * 100.0, '.2f')}%)"
                 for i in range(len(json_data))
             ]
         })
 
     if not final_results:
         elapsed = time.time() - start_time
+        if error_rejected and closest_error:
+            err, name, target_pct, actual_pct = closest_error
+            return _error_result(
+                f'没有方案满足单色相对误差阈值 {NORMAL_REL_THRESHOLD * 100:g}%：'
+                f'已过滤 {error_rejected} 个候选方案，最接近通过的方案里 {name} 目标 {target_pct:.2f}%、'
+                f'实际 {actual_pct:.2f}%（相对误差 {err * 100:.2f}%）', elapsed)
         if constraint_rejected:
             return _error_result(
                 f'POSITION 桶位约束无法满足：已过滤 {constraint_rejected} 个违反约束的候选方案，'
                 f'请检查 POSITION 设置是否与目标比例相容', elapsed)
         return _error_result('未找到有效方案', elapsed)
 
-    # 优先色达标的方案排在前面，其次按累计误差排序
-    final_results.sort(key=lambda r: (not r['priority_ok'], r['cum_error']))
+    # 优先色达标的方案排在前面，其次按累计相对误差排序
+    final_results.sort(key=lambda r: (not r['priority_ok'], r['cum_rel_error']))
 
     return json.dumps({'isSuccess': 1, 'results': final_results}, ensure_ascii=False, allow_nan=False)
 

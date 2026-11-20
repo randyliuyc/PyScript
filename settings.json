@@ -1,15 +1,20 @@
 {
   "server": { "host": "127.0.0.1", "port": 8765 },
   "totallink": {
-    "base_url": "https://link.bros.cn",
-    "timeout": 30
+    "base_url": "https://linkdev.bros.cn",
+    "timeout": 120
   },
   "features": {
     "bt8": {
       "api": "/api/DataModel/linkDMGridRowSubmit",
       "dmCode": "TMESMFGPLN10X727X",
       "dmNum": 504,
-      "scriptType": 4
+      "scriptType": 4,
+      "input": {
+        "api": "/api/DataModel/linkDMDatasetResult",
+        "dmCode": "TMESMFGPLN10X727X",
+        "dmNum": 700
+      }
     }
   }
 }

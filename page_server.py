@@ -102,6 +102,57 @@ def confirm_target(settings, name):
     return base + (api if api.startswith('/') else '/' + api), timeout
 
 
+def input_target(settings, name):
+    """输入查询模型的完整地址（linkDMDatasetResult）；未配置时第一项为 None。"""
+    base, timeout = totallink_config(settings)
+    conf = _section(feature_config(settings, name), 'input')
+    api = str(conf.get('api') or '').strip()
+    if not base or not api:
+        return None, timeout
+    return base + (api if api.startswith('/') else '/' + api), timeout
+
+
+def input_status(settings, name):
+    """输入查询能否使用，返回 (可用, 不可用原因)。"""
+    base, _ = totallink_config(settings)
+    if not base:
+        return False, '未配置 TotalLINK 地址'
+    conf = _section(feature_config(settings, name), 'input')
+    if not str(conf.get('api') or '').strip():
+        return False, '未配置输入查询接口'
+    if conf.get('dmCode') in (None, '') or conf.get('dmNum') in (None, ''):
+        return False, '输入查询模型编号配置不完整'
+    return True, ''
+
+
+def build_input_body(feature_conf, login_id, para):
+    """组装 linkDMDatasetResult 的请求体（模型查询）。"""
+    conf = _section(feature_conf, 'input')
+    return {
+        'loginID': login_id,
+        'par': {
+            'dmCode': conf.get('dmCode'),
+            'dmNum': conf.get('dmNum'),
+            'Para': list(para),
+            'SimpleFlag': False,
+        },
+        'RDs': [],
+        'rowData': None,
+    }
+
+
+def extract_rows(response):
+    """从 linkDMDatasetResult 的 data 里取第一张表的行对象列表。"""
+    payload = response.get('data') if isinstance(response, dict) else None
+    if isinstance(payload, dict):
+        for value in payload.values():
+            if isinstance(value, list):
+                return [row for row in value if isinstance(row, dict)]
+    if isinstance(payload, list):
+        return [row for row in payload if isinstance(row, dict)]
+    return []
+
+
 def confirm_status(settings, name=None):
     """确认能否提交，返回 (可用, 不可用原因)。"""
     base, _ = totallink_config(settings)
@@ -240,7 +291,9 @@ def judge_link_result(data, status):
         rows = payload
     elif isinstance(payload, str) and payload.strip().isdigit():
         rows = int(payload.strip())
-    if rows is not None:
+    # TotalLINK 的脚本类动作常回 data=0（实际已写入），0 当作「未报告行数」，
+    # 只有明确大于 0 才在提示里说影响行数，避免页面显示「影响 0 行」误导操作员。
+    if rows:
         result['rowsAffected'] = rows
         result['message'] = f'已提交 TotalLINK，影响 {rows} 行'
     return result
@@ -295,6 +348,8 @@ class Handler(BaseHTTPRequestHandler):
         name, action = self._feature_api(path)
         if name and action == 'calc':
             return self._handle_calc(name)
+        if name and action == 'input':
+            return self._handle_input(name)
         if name and action == 'confirm':
             return self._handle_confirm(name)
         self._not_found()
@@ -360,6 +415,74 @@ class Handler(BaseHTTPRequestHandler):
                     {'isSuccess': 0, 'message': f'计算失败：{type(exc).__name__}: {exc}'},
                     ensure_ascii=False)
         self._send_json_text(result)
+
+    # ---------- 输入查询 ----------
+
+    def _handle_input(self, name):
+        """用 URL 带来的 LinkToken 查询模型（默认 700），返回颜色行。"""
+        origin = self.headers.get('Origin')
+        if origin and not origin_allowed(origin):
+            self.close_connection = True
+            return self._send_json({'isSuccess': 0, 'message': '拒绝来自其他网站的请求'},
+                                   HTTPStatus.FORBIDDEN)
+
+        raw = self._read_body()
+        if raw is None:
+            return
+        try:
+            request = json.loads(raw.decode('utf-8'))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            return self._bad_request(f'输入查询请求不是合法 JSON：{exc}')
+        if not isinstance(request, dict):
+            return self._bad_request('输入查询请求必须是 JSON 对象')
+
+        login_id = str(request.get('loginID') or '').strip()
+        if not login_id:
+            return self._bad_request('缺少登录凭据')
+
+        params = [str(request.get(key) or '').strip() for key in ('MFGNUM', 'MFBLIN', 'YARNGRP')]
+        if not params[0] or not params[1]:
+            return self._bad_request('缺少 MFGNUM 或 MFBLIN')
+
+        settings = self.server.settings
+        available, reason = input_status(settings, name)
+        if not available:
+            return self._send_json({'isSuccess': 0, 'message': reason})
+        target, timeout = input_target(settings, name)
+
+        body_obj = build_input_body(feature_config(settings, name), login_id, params)
+        body = json.dumps(body_obj, ensure_ascii=False).encode('utf-8')
+        started = time.time()
+        try:
+            status, raw_resp = post_json(target, body, timeout,
+                                         headers={'X-%s-Event' % name.capitalize(): 'input.query'})
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            return self._send_json({'isSuccess': 0,
+                                    'message': f'无法连接 TotalLINK：{friendly_net_error(exc)}'})
+
+        text = raw_resp.decode('utf-8', 'replace').strip()
+        try:
+            data = json.loads(text)
+        except ValueError:
+            return self._send_json({'isSuccess': 0, 'status': status,
+                                    'message': f'TotalLINK 返回了非 JSON 内容（HTTP {status}）'})
+        if not isinstance(data, dict):
+            return self._send_json({'isSuccess': 0, 'status': status,
+                                    'message': f'TotalLINK 返回内容无法识别（HTTP {status}）'})
+
+        if str(data.get('isSuccess')).strip().lower() != 'true':
+            code = data.get('data') if isinstance(data.get('data'), str) else ''
+            message = LINK_ERROR_MESSAGES.get(code) or str(data.get('message') or '').strip() \
+                or f'查询任务单失败（HTTP {status}）'
+            return self._send_json({'isSuccess': 0, 'status': status, 'code': code,
+                                    'message': message})
+
+        rows = extract_rows(data)
+        if not rows:
+            return self._send_json({'isSuccess': 0, 'status': status,
+                                    'message': '该任务单没有可计算的配色数据'})
+        self._send_json({'isSuccess': 1, 'status': status, 'rows': rows,
+                         'count': len(rows), 'runtime': round(time.time() - started, 1)})
 
     # ---------- 确认回传 ----------
 

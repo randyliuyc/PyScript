@@ -701,7 +701,10 @@ function applySearch(p){
      data     输入 JSON：{xmin,xmax,seed,maxtime,data:[...]}，或只给颜色数组
      loginID  LinkToken，回传时原样放进请求体，页面不显示
      para     模型参数数组的 JSON（par.dm.Para），没有参数传 []
-     rowData  业务列对象，恰好一个空字符串值由服务端填入方案 JSON
+     rowData  业务列对象，恰好一个空字符串值由服务端填入方案 JSON；
+              省略时默认 {"PLANJSON": ""}（模型 504 的约定）
+     MFGNUM / MFBLIN / YARNGRP
+              模型行直接给的三个业务参数；没有 para 时按此顺序组成 Para
    xmin / xmax / maxtime / seed 不出现在 URL 里，页面固定用默认值。
 */
 function b64decode(s){
@@ -728,36 +731,54 @@ function readUrlContext(){
     dataValid: false,
     paraValid: false,
     rowDataValid: false,
+    inputParams: null,   // [MFGNUM, MFBLIN, YARNGRP]：没有 data 时用它向 TotalLINK 取输入
     errors: []
   };
 
+  /* 模型行给三个业务参数（牵伸结果处理模型 504 的 Para 顺序）；
+     YARNGRP 允许为空，三个参数都出现即可。 */
+  const namedKeys = ['MFGNUM', 'MFBLIN', 'YARNGRP'];
+  const namedPara = namedKeys.map(k => (q.get(k) || '').trim());
+  const hasNamed = namedKeys.every(k => q.has(k)) && !!namedPara[0] && !!namedPara[1];
+
   const rawData = q.get('data');
-  if (!rawData) return ctx;   // 本地调试：不要求回传参数
+  // 本地调试：既没有 data，也没有任务单参数
+  if (rawData == null && !hasNamed) return ctx;
 
-  const parsed = parseParamJSON(rawData);
-  if (Array.isArray(parsed)) {
-    ctx.data = {data: parsed};
-    ctx.dataValid = parsed.length > 0;
-  } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.data) && parsed.data.length) {
-    ctx.data = parsed;
-    ctx.dataValid = true;
-  }
-  if (!ctx.dataValid) {
-    ctx.errors.push('URL 里的 data 参数解析失败，已改用本地保存的输入。');
+  if (hasNamed) ctx.inputParams = namedPara;
+
+  if (rawData != null) {
+    const parsed = parseParamJSON(rawData);
+    if (Array.isArray(parsed)) {
+      ctx.data = {data: parsed};
+      ctx.dataValid = parsed.length > 0;
+    } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.data) && parsed.data.length) {
+      ctx.data = parsed;
+      ctx.dataValid = true;
+    }
+    if (!ctx.dataValid) {
+      ctx.errors.push('URL 里的 data 参数解析失败，已改用本地保存的输入。');
+    }
   }
 
+  /* 没有显式 para 时用三个业务参数组成 Para；显式 para 优先。 */
   const rawPara = q.get('para');
-  if (rawPara == null) {
-    ctx.errors.push('URL 缺少 para 参数，无法回传，只能本地计算。');
-  } else {
+  if (rawPara != null) {
     const para = parseParamJSON(rawPara);
     if (Array.isArray(para)) { ctx.para = para; ctx.paraValid = true; }
     else ctx.errors.push('URL 参数 para 不是 JSON 数组，无法回传，只能本地计算。');
+  } else if (hasNamed) {
+    ctx.para = namedPara;
+    ctx.paraValid = true;
+  } else {
+    ctx.errors.push('URL 缺少 para 参数（或 MFGNUM/MFBLIN/YARNGRP 三个参数），无法回传，只能本地计算。');
   }
 
   const rawRow = q.get('rowData');
   if (rawRow == null) {
-    ctx.errors.push('URL 缺少 rowData 参数，无法回传，只能本地计算。');
+    // 约定：回传 504 时业务列只有 PLANJSON，空值由服务端填入方案 JSON
+    ctx.rowData = {PLANJSON: ''};
+    ctx.rowDataValid = true;
   } else {
     const rowData = parseParamJSON(rawRow);
     if (rowData && typeof rowData === 'object' && !Array.isArray(rowData)) {
@@ -1540,6 +1561,49 @@ refs.planRows.addEventListener('keydown', e => {
   }
 });
 
+/* 没有 data 参数时，用三个业务参数请本地服务查模型 700 取输入 */
+async function loadRemoteInput(){
+  const [mfgnum, mfblin, yarngrp] = state.ctx.inputParams;
+  refs.runmeta.textContent = '正在读取任务单输入…';
+  refs.formError.hidden = true;
+  state.platform = false;
+  try {
+    const res = await fetch('/api/bt8/input', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({loginID: state.ctx.loginID, MFGNUM: mfgnum, MFBLIN: mfblin, YARNGRP: yarngrp})
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch (_) { throw new Error(`输入服务返回了非 JSON 内容（HTTP ${res.status}）`); }
+    if (data.isSuccess !== 1) throw new Error(data.message || `HTTP ${res.status}`);
+    const rows = data.rows || [];
+    if (!rows.length) throw new Error('该任务单没有可计算的配色数据');
+
+    state.ctx.data = {data: rows};
+    state.ctx.dataValid = true;
+    state.platform = state.ctx.paraValid && state.ctx.rowDataValid;
+    applyRows(rows);
+    applySearch(null);
+    renderRows();
+    if (state.ctx.errors.length) showFormError(state.ctx.errors);
+    if (state.platform) run();
+    else showFormError(['任务单已载入，但回传参数不完整，只能本地计算。']);
+  } catch (err) {
+    state.platform = false;
+    state.ctx.dataValid = false;
+    refs.runmeta.textContent = '尚未计算';
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (_) { saved = null; }
+    const base = (saved && Array.isArray(saved.data) && saved.data.length) ? saved : SAMPLE;
+    applyRows(base.data);
+    applySearch(base);
+    renderRows();
+    showFormError([`读取任务单输入失败：${err.message || err}`]);
+  }
+}
+
 /* ===================== 初始化 ===================== */
 (function init(){
   refs.ghostRing.innerHTML = ringSVG(null, true);
@@ -1547,6 +1611,12 @@ refs.planRows.addEventListener('keydown', e => {
   state.ctx = readUrlContext();
   // 只有 data / para / rowData 都合法才进入平台模式（只读 + 可回传）
   state.platform = state.ctx.dataValid && state.ctx.paraValid && state.ctx.rowDataValid;
+
+  // 有任务单参数但没有 data：先向本地服务取输入，取到后再自动计算
+  if (!state.ctx.dataValid && state.ctx.inputParams) {
+    loadRemoteInput();
+    return;
+  }
 
   if (state.ctx.dataValid) {
     // 由 TotalLINK 打开：颜色按传入的来，搜索参数固定用页面默认值

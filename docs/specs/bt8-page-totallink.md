@@ -27,6 +27,7 @@ TotalLINK 的模型行里放一个链接按钮，点开本机 `page_server` 上�
 | GET | `/bt8/` | 同上 |
 | GET | `/api/bt8/sample` | 内置示例输入（本地调试用） |
 | POST | `/api/bt8/calc` | 调用 `bt8.linkrun`，原样返回其 JSON |
+| POST | `/api/bt8/input` | 用 `MFGNUM/MFBLIN/YARNGRP` 查模型 700（`linkDMDatasetResult`），返回颜色行 |
 | POST | `/api/bt8/confirm` | 组装并转发确认报文到 TotalLINK |
 | GET | `/favicon.ico` | 204 |
 | 其他 | — | 404，JSON `{"isSuccess":0,"message":"页面不存在"}` |
@@ -57,7 +58,12 @@ http://127.0.0.1:8765/bt8?data=<URL 编码 JSON>&loginID=<token>&para=<URL 编�
       "api": "/api/DataModel/linkDMGridRowSubmit",
       "dmCode": "TMESMFGPLN10X727X",
       "dmNum": 504,
-      "scriptType": 4
+      "scriptType": 4,
+      "input": {
+        "api": "/api/DataModel/linkDMDatasetResult",
+        "dmCode": "TMESMFGPLN10X727X",
+        "dmNum": 700
+      }
     }
   }
 }
@@ -76,10 +82,15 @@ http://127.0.0.1:8765/bt8?data=<URL 编码 JSON>&loginID=<token>&para=<URL 编�
 
 | 参数 | 必填 | 内容 | 说明 |
 |---|---|---|---|
-| `data` | 是 | 输入 JSON | 结构与本仓库测试用例一致：`{"xmin","xmax","seed","maxtime","data":[{"MFMLIN","MFMDES","MFMSHO","MATRATCALC","PRIORITY","POSITION"}]}`；也接受只给颜色数组 |
+| `data` | 否 | 输入 JSON | 结构与本仓库测试用例一致：`{"xmin","xmax","seed","maxtime","data":[{"MFMLIN","MFMDES","MFMSHO","MATRATCALC","PRIORITY","POSITION"}]}`；也接受只给颜色数组。**不传时**页面用 `MFGNUM/MFBLIN/YARNGRP` 调本地 `/api/bt8/input`，由服务端查模型 700（`linkDMDatasetResult`）取颜色 |
 | `loginID` | 是 | LinkToken | 回传时原样放进请求体顶层同名字段；页面不显示、不写日志 |
 | `para` | 是 | 模型参数数组的 JSON 字符串 | 对应 TotalLINK 的 `par.dm.Para`，没有参数传 `[]` |
-| `rowData` | 是 | 业务列对象的 JSON 字符串 | 例：`{"PLANJSON":""}` |
+| `rowData` | 否 | 业务列对象的 JSON 字符串 | 例：`{"PLANJSON":""}`；省略时页面默认 `{"PLANJSON": ""}`，回传 504 时由服务端填入方案 JSON |
+| `MFGNUM` / `MFBLIN` / `YARNGRP` | 否 | 模型行直接给的三个业务参数 | 牵伸结果处理模型 504 的 Para 顺序；三者齐全且没有 `para` 时组成 `Para = [MFGNUM, MFBLIN, YARNGRP]`，显式 `para` 优先 |
+
+> BROSDEV 环境的 `page_server` 超时配置为 120 秒：`linkDMGridRowSubmit` 在迁移版上实测约 50 秒返回（含配额预检等待），30 秒会超时。
+>
+> `data` / `para` / `rowData` 三个 JSON 参数也接受 **URL-safe Base64**（`-` `_`，可省略 `=` 补位）：先按 JSON 解析，失败再按 Base64 解码。URL 里带中文或 `&`/`#`/`+` 时用 Base64 比百分号转义更短更稳。
 
 `rowData` 的填充约定：**值为空字符串的那个键由程序填入方案 JSON**。空值键必须恰好一个；零个或多个都按配置错误处理，在页面上直接报错，不猜。
 
@@ -270,6 +281,7 @@ python page_server.py --no-open
 | `rowData` 空值键数量 ≠ 1 | 同上 |
 | `data` 解析失败 | 提示并回退到本地保存的输入（现有行为） |
 | 计算服务不可达 | 现有提示不变 |
+| 输入查询失败（网络/无权限/任务单无配色） | 表单区显示原因，回退到本地保存的输入，确认不可用 |
 | 回传网络失败 / 超时 | 「无法连接 TotalLINK：…」+「重试回传」，不锁定 |
 | `InvalidLinkToken` / `AccessFail` / `ModelNotExist` / `NoConnection` | 按 7.4 的文案显示 |
 | `action=confirm/prevent` | 显示 `message`，按失败处理 |

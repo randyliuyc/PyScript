@@ -41,6 +41,11 @@ FEATURE_CONF = {
     'dmCode': 'TMESMFGPLN10X727X',
     'dmNum': 504,
     'scriptType': 4,
+    'input': {
+        'api': '/api/DataModel/linkDMDatasetResult',
+        'dmCode': 'TMESMFGPLN10X727X',
+        'dmNum': 700,
+    },
 }
 
 
@@ -56,6 +61,15 @@ class UpstreamStub(BaseHTTPRequestHandler):
     received = []
     reply = (200, {'isSuccess': 'true', 'message': '', 'action': '',
                    'data': 1, 'dataType': 'Int32'})
+    dataset_reply = (200, {
+        'isSuccess': 'true', 'dataType': 'DataSet',
+        'data': {'Table': [
+            {'MFMLIN': 10, 'MFMDES': 'W白棉 VG065M ', 'MFMSHO': 'W白棉',
+             'MATRATCALC': 33.0, 'PRIORITY': 0, 'POSITION': ''},
+            {'MFMLIN': 20, 'MFMDES': 'TBWP混摊 VE001M-001 ', 'MFMSHO': 'TBWP混摊',
+             'MATRATCALC': 15.5, 'PRIORITY': 0, 'POSITION': ''},
+        ]},
+        'message': 'Data Result from Data Model', 'action': ''})
 
     def do_POST(self):
         length = int(self.headers.get('Content-Length', '0'))
@@ -66,7 +80,10 @@ class UpstreamStub(BaseHTTPRequestHandler):
             'event': self.headers.get('X-Bt8-Event', ''),
             'body': body,
         })
-        code, payload = type(self).reply
+        if 'linkDMDatasetResult' in self.path:
+            code, payload = type(self).dataset_reply
+        else:
+            code, payload = type(self).reply
         raw = payload if isinstance(payload, bytes) else json.dumps(payload).encode('utf-8')
         self.send_response(code)
         self.send_header('Content-Type', 'application/json')
@@ -171,6 +188,11 @@ class PageServerTests(unittest.TestCase):
         status, _, raw = self.request('/api/bt8/confirm', 'POST', body, headers, base=base)
         return status, json.loads(raw.decode('utf-8'))
 
+    def post_input(self, body, base=None):
+        status, _, raw = self.request('/api/bt8/input', 'POST', body,
+                                      {'Content-Type': 'application/json'}, base=base)
+        return status, json.loads(raw.decode('utf-8'))
+
     def post_calc(self, payload, base=None):
         status, _, raw = self.request('/api/bt8/calc', 'POST', payload,
                                       {'Content-Type': 'application/json'}, base=base)
@@ -217,6 +239,19 @@ class PageServerTests(unittest.TestCase):
         self.assertIn("state.platform ? ' readonly' : ''", page)
         self.assertIn('refs.addColor.hidden = state.platform;', page)
         self.assertIn("const del = state.platform ? '' :", page)
+
+    def test_page_accepts_named_para_params(self):
+        """模型行直接给 MFGNUM/MFBLIN/YARNGRP 时，页面按此顺序组成 Para（504 的参数序）。"""
+        page = self.page()
+        for key in ('MFGNUM', 'MFBLIN', 'YARNGRP'):
+            self.assertIn(key, page)
+        self.assertIn('ctx.para = namedPara;', page)
+        # YARNGRP 允许为空，三个参数只要都出现就算有效
+        self.assertIn('namedKeys.every(k => q.has(k))', page)
+
+    def test_page_defaults_row_data(self):
+        """URL 不带 rowData 时按约定用 {"PLANJSON": ""}。"""
+        self.assertIn("ctx.rowData = {PLANJSON: ''};", self.page())
 
     def test_page_reports_confirm_available(self):
         self.assertIn('"confirmEnabled": true', self.page())
@@ -368,6 +403,59 @@ class PageServerTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertIn('payload', data.get('message', ''))
 
+    # ---------- 输入查询 ----------
+
+    def test_input_returns_rows(self):
+        """没有 data 时，页面用三个任务单参数查模型 700 取输入。"""
+        UpstreamStub.received.clear()
+        status, data = self.post_input({'loginID': 'token-42', 'MFGNUM': 'SFAG260300002',
+                                        'MFBLIN': '10', 'YARNGRP': ''})
+        self.assertEqual(status, 200)
+        self.assertEqual(data.get('isSuccess'), 1, data.get('message'))
+        self.assertEqual(len(data['rows']), 2)
+        self.assertEqual(data['rows'][0]['MFMLIN'], 10)
+
+        sent = UpstreamStub.received[-1]
+        self.assertIn('/api/DataModel/linkDMDatasetResult', sent['path'])
+        body = json.loads(sent['body'])
+        self.assertEqual(body['loginID'], 'token-42')
+        self.assertEqual(body['par']['dmCode'], FEATURE_CONF['dmCode'])
+        self.assertEqual(body['par']['dmNum'], FEATURE_CONF['input']['dmNum'])
+        self.assertEqual(body['par']['Para'], ['SFAG260300002', '10', ''])
+        self.assertIs(body['par']['SimpleFlag'], False)
+
+    def test_input_requires_task_params(self):
+        UpstreamStub.received.clear()
+        status, data = self.post_input({'loginID': 'token-42', 'MFGNUM': '',
+                                        'MFBLIN': '10', 'YARNGRP': ''})
+        self.assertEqual(status, 400)
+        self.assertIn('MFGNUM', data.get('message', ''))
+        self.assertEqual(UpstreamStub.received, [])
+
+    def test_input_requires_login_id(self):
+        status, data = self.post_input({'MFGNUM': 'A', 'MFBLIN': '1', 'YARNGRP': ''})
+        self.assertEqual(status, 400)
+        self.assertIn('登录凭据', data.get('message', ''))
+
+    def test_input_empty_rows_is_reported(self):
+        original = UpstreamStub.dataset_reply
+        UpstreamStub.dataset_reply = (200, {'isSuccess': 'true', 'data': {'Table': []}})
+        try:
+            status, data = self.post_input({'loginID': 'token-42', 'MFGNUM': 'A',
+                                            'MFBLIN': '1', 'YARNGRP': ''})
+        finally:
+            UpstreamStub.dataset_reply = original
+        self.assertEqual(status, 200)
+        self.assertEqual(data.get('isSuccess'), 0)
+        self.assertIn('没有可计算的配色数据', data.get('message', ''))
+
+    def test_input_disabled_without_settings(self):
+        _, base = self.start_server({})
+        status, data = self.post_input({'loginID': 'token-42', 'MFGNUM': 'A',
+                                        'MFBLIN': '1', 'YARNGRP': ''}, base=base)
+        self.assertEqual(data.get('isSuccess'), 0)
+        self.assertIn('未配置 TotalLINK 地址', data.get('message', ''))
+
     # ---------- 配置 ----------
 
     def test_missing_settings_disables_confirm_only(self):
@@ -393,8 +481,13 @@ class PageServerTests(unittest.TestCase):
         self.assertEqual(feature['dmNum'], 504)
         self.assertEqual(feature['scriptType'], 4)
         self.assertEqual(feature['api'], '/api/DataModel/linkDMGridRowSubmit')
-        self.assertEqual(settings['totallink']['base_url'], 'https://link.bros.cn')
-        self.assertEqual(settings['totallink']['timeout'], 30)
+        self.assertEqual(feature['input']['api'], '/api/DataModel/linkDMDatasetResult')
+        self.assertEqual(feature['input']['dmNum'], 700)
+        # 生产/开发环境共用这套配置，切换环境只改 base_url（见 settings.json）
+        self.assertIn(settings['totallink']['base_url'],
+                      ('https://link.bros.cn', 'https://linkdev.bros.cn'))
+        # BROSDEV 上 linkDMGridRowSubmit 实测约 50 秒返回，超时必须明显大于它
+        self.assertGreaterEqual(settings['totallink']['timeout'], 60)
 
     def test_sample_payload_is_valid(self):
         """页面「载入示例」与 /api/bt8/sample 依赖的内置输入本身应能算出结果。"""

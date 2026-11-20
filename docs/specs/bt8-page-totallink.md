@@ -57,7 +57,7 @@ http://127.0.0.1:8765/bt8?data=<URL 编码 JSON>&loginID=<token>&para=<URL 编�
     "bt8": {
       "api": "/api/DataModel/linkDMGridRowSubmit",
       "dmCode": "TMESMFGPLN10X727X",
-      "dmNum": 504,
+      "dmNum": 801,
       "scriptType": 4,
       "input": {
         "api": "/api/DataModel/linkDMDatasetResult",
@@ -85,8 +85,8 @@ http://127.0.0.1:8765/bt8?data=<URL 编码 JSON>&loginID=<token>&para=<URL 编�
 | `data` | 否 | 输入 JSON | 结构与本仓库测试用例一致：`{"xmin","xmax","seed","maxtime","data":[{"MFMLIN","MFMDES","MFMSHO","MATRATCALC","PRIORITY","POSITION"}]}`；也接受只给颜色数组。**不传时**页面用 `MFGNUM/MFBLIN/YARNGRP` 调本地 `/api/bt8/input`，由服务端查模型 700（`linkDMDatasetResult`）取颜色 |
 | `loginID` | 是 | LinkToken | 回传时原样放进请求体顶层同名字段；页面不显示、不写日志 |
 | `para` | 是 | 模型参数数组的 JSON 字符串 | 对应 TotalLINK 的 `par.dm.Para`，没有参数传 `[]` |
-| `rowData` | 否 | 业务列对象的 JSON 字符串 | 例：`{"PLANJSON":""}`；省略时页面默认 `{"PLANJSON": ""}`，回传 504 时由服务端填入方案 JSON |
-| `MFGNUM` / `MFBLIN` / `YARNGRP` | 否 | 模型行直接给的三个业务参数 | 牵伸结果处理模型 504 的 Para 顺序；三者齐全且没有 `para` 时组成 `Para = [MFGNUM, MFBLIN, YARNGRP]`，显式 `para` 优先 |
+| `rowData` | 否 | 业务列对象的 JSON 字符串 | 例：`{"PLANJSON":""}`；省略时页面默认 `{"PLANJSON": ""}`，回传 801 时由服务端填入方案 JSON |
+| `MFGNUM` / `MFBLIN` / `YARNGRP` | 否 | 模型行直接给的三个业务参数 | 牵伸结果处理模型 801 的 Para 顺序；三者齐全且没有 `para` 时组成 `Para = [MFGNUM, MFBLIN, YARNGRP]`，显式 `para` 优先 |
 
 > BROSDEV 环境的 `page_server` 超时配置为 120 秒：`linkDMGridRowSubmit` 在迁移版上实测约 50 秒返回（含配额预检等待），30 秒会超时。
 >
@@ -193,7 +193,7 @@ http://127.0.0.1:8765/bt8?data=<URL 编码 JSON>&loginID=<token>&para=<URL 编�
 {
   "loginID": "<token>",
   "par": {
-    "dm": { "dmCode": "TMESMFGPLN10X727X", "dmNum": 504, "Para": ["..."] },
+    "dm": { "dmCode": "TMESMFGPLN10X727X", "dmNum": 801, "Para": ["..."] },
     "scriptType": 4,
     "rowData": { "PLANJSON": "<7.2 的 payload 序列化成字符串>" }
   }

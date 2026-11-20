@@ -8,7 +8,7 @@
     "bt8": {
       "api": "/api/DataModel/linkDMGridRowSubmit",
       "dmCode": "TMESMFGPLN10X727X",
-      "dmNum": 504,
+      "dmNum": 801,
       "scriptType": 4,
       "input": {
         "api": "/api/DataModel/linkDMDatasetResult",

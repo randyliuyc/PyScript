@@ -39,7 +39,7 @@ bt8_page = page_server.FEATURES['bt8']
 FEATURE_CONF = {
     'api': '/api/DataModel/linkDMGridRowSubmit',
     'dmCode': 'TMESMFGPLN10X727X',
-    'dmNum': 504,
+    'dmNum': 801,
     'scriptType': 4,
     'input': {
         'api': '/api/DataModel/linkDMDatasetResult',
@@ -241,7 +241,7 @@ class PageServerTests(unittest.TestCase):
         self.assertIn("const del = state.platform ? '' :", page)
 
     def test_page_accepts_named_para_params(self):
-        """模型行直接给 MFGNUM/MFBLIN/YARNGRP 时，页面按此顺序组成 Para（504 的参数序）。"""
+        """模型行直接给 MFGNUM/MFBLIN/YARNGRP 时，页面按此顺序组成 Para（801 的参数序）。"""
         page = self.page()
         for key in ('MFGNUM', 'MFBLIN', 'YARNGRP'):
             self.assertIn(key, page)
@@ -310,7 +310,7 @@ class PageServerTests(unittest.TestCase):
         sent = json.loads(got['body'].decode('utf-8'))
         self.assertEqual(sent['loginID'], 'token-42')
         self.assertEqual(sent['par']['dm']['dmCode'], 'TMESMFGPLN10X727X')
-        self.assertEqual(sent['par']['dm']['dmNum'], 504)
+        self.assertEqual(sent['par']['dm']['dmNum'], 801)
         self.assertEqual(sent['par']['dm']['Para'], ['p1', 'p2'])
         self.assertEqual(sent['par']['scriptType'], 4)
         # 空值键被填入方案 JSON，其余键原样提交
@@ -478,7 +478,7 @@ class PageServerTests(unittest.TestCase):
         settings = page_server.load_settings()
         feature = settings['features']['bt8']
         self.assertEqual(feature['dmCode'], 'TMESMFGPLN10X727X')
-        self.assertEqual(feature['dmNum'], 504)
+        self.assertEqual(feature['dmNum'], 801)
         self.assertEqual(feature['scriptType'], 4)
         self.assertEqual(feature['api'], '/api/DataModel/linkDMGridRowSubmit')
         self.assertEqual(feature['input']['api'], '/api/DataModel/linkDMDatasetResult')

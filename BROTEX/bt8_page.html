@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="vi-VN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -49,6 +49,15 @@ body{
 }
 .titles h1{font:600 20px/1.2 var(--serif);margin:0;letter-spacing:.02em}
 .titles p{margin:3px 0 0;font-size:12px;color:var(--ink-soft)}
+.masthead-tools{display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:flex-end}
+.lang-switch{display:flex;border:1px solid var(--rule-strong);border-radius:2px;overflow:hidden;flex:none}
+.lang-switch button{
+  border:none;background:transparent;color:var(--ink-soft);
+  font:11.5px/1 var(--sans);padding:6px 10px;cursor:pointer;transition:background .12s,color .12s;
+}
+.lang-switch button+button{border-left:1px solid var(--rule-strong)}
+.lang-switch button:hover{color:var(--ink);background:rgba(31,69,104,.07)}
+.lang-switch button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
 .runinfo{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-soft);white-space:nowrap}
 .status-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(59,106,76,.14);flex:none}
 .runinfo code{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
@@ -329,12 +338,18 @@ tbody tr:last-child td{border-bottom:none}
   <div class="brand">
     <span class="mark">BT8</span>
     <div class="titles">
-      <h1>牵伸配色计算</h1>
-      <p>输入混纺比例，求解 8 个桶位上的牵伸倍数与颜色排布</p>
+      <h1 data-i18n="appTitle">牵伸配色计算</h1>
+      <p data-i18n="appSubtitle">输入混纺比例，求解 8 个桶位上的牵伸倍数与颜色排布</p>
     </div>
   </div>
-  <div class="runinfo">
-    <span class="status-dot"></span><span>本地计算</span><code>bt8.linkrun</code>
+  <div class="masthead-tools">
+    <div class="lang-switch" id="lang-switch" role="group" aria-label="Ngôn ngữ / 语言">
+      <button type="button" data-lang="zh" lang="zh-CN" aria-pressed="false">中文</button>
+      <button type="button" data-lang="vi" lang="vi" aria-pressed="false">Tiếng Việt</button>
+    </div>
+    <div class="runinfo">
+      <span class="status-dot"></span><span data-i18n="localCalc">本地计算</span><code>bt8.linkrun</code>
+    </div>
   </div>
 </header>
 
@@ -342,16 +357,16 @@ tbody tr:last-child td{border-bottom:none}
 
 <main>
   <!-- ========== 输入 ========== -->
-  <section class="panel-input" aria-label="输入参数">
+  <section class="panel-input" aria-label="输入参数" data-i18n-aria="inputAria">
     <form id="calc-form" novalidate>
       <div class="block">
         <div class="block-head">
-          <h2>颜色与色比</h2>
-          <button type="button" class="ghost-btn" id="add-color">添加颜色</button>
+          <h2 data-i18n="colorsTitle">颜色与色比</h2>
+          <button type="button" class="ghost-btn" id="add-color" data-i18n="addColor">添加颜色</button>
         </div>
         <div class="rows" id="rows"></div>
         <div class="sum-row">
-          <span>色比合计</span>
+          <span data-i18n="sumLabel">色比合计</span>
           <strong id="sum-value">0</strong>
           <span id="sum-note" class="muted"></span>
         </div>
@@ -359,56 +374,56 @@ tbody tr:last-child td{border-bottom:none}
 
       <details class="block fold" id="search-settings">
         <summary>
-          <h2>搜索设置</h2>
+          <h2 data-i18n="searchTitle">搜索设置</h2>
           <span class="fold-meta" id="search-meta">1.03–3.5 · 10 秒</span>
         </summary>
         <div class="param-grid">
           <label class="field">
-            <span class="lab">xmin <em>最小牵伸</em></span>
+            <span class="lab">xmin <em data-i18n="hintXmin">最小牵伸</em></span>
             <input class="inp num" id="xmin" type="number" step="0.01" min="1" value="1.03">
           </label>
           <label class="field">
-            <span class="lab">xmax <em>最大牵伸</em></span>
+            <span class="lab">xmax <em data-i18n="hintXmax">最大牵伸</em></span>
             <input class="inp num" id="xmax" type="number" step="0.01" min="1" value="3.5">
           </label>
           <label class="field">
-            <span class="lab">maxtime <em>秒</em></span>
+            <span class="lab">maxtime <em data-i18n="hintMaxtime">秒</em></span>
             <input class="inp num" id="maxtime" type="number" step="1" min="1" value="10">
           </label>
           <label class="field">
-            <span class="lab">seed <em>随机种子</em></span>
+            <span class="lab">seed <em data-i18n="hintSeed">随机种子</em></span>
             <input class="inp num" id="seed" type="number" step="1" value="0">
           </label>
         </div>
       </details>
 
       <details class="help">
-        <summary>参数说明</summary>
+        <summary data-i18n="helpTitle">参数说明</summary>
         <dl>
-          <dt>行号 / 简称 MFMLIN / MFMSHO</dt>
-          <dd>行号标识该颜色（结果里回传为 color），简称用于页面显示与核对。名称 MFMDES 不在此页展示。</dd>
-          <dt>X1 / X2 / X3</dt>
-          <dd>AB、EF、GH 三组的牵伸倍数，由算法求解；CD 组固定为 1.00。同一组内两个桶位同速。</dd>
-          <dt>xmin / xmax</dt>
-          <dd>三个牵伸倍数的搜索边界，需满足 xmin ≥ 1.0 且 xmax &gt; xmin。范围越窄越快，越宽越容易找到解。</dd>
-          <dt>色比 MATRATCALC</dt>
-          <dd>每种颜色希望占的比例。数值本身不重要，只看相对大小；均为 0 时无法计算。</dd>
-          <dt>优先色 PRIORITY</dt>
-          <dd>勾选后该颜色误差需 ≤ 0.05%，普通颜色 ≤ 0.5%。达标的方案排在前面。</dd>
-          <dt>固定桶位 POSITION</dt>
-          <dd>选中后该颜色只能出现在这些桶位，留空表示不限。组内两格同速，具体落位由相邻同色最少的排布决定。</dd>
-          <dt>maxtime</dt>
-          <dd>搜索时间上限（秒）。到时停止，返回已找到的方案；颜色多或范围宽时可调大。</dd>
-          <dt>seed</dt>
-          <dd>随机种子。相同输入与种子会得到相同结果，便于对比和复现。</dd>
+          <dt data-i18n="helpLinDt">行号 / 简称 MFMLIN / MFMSHO</dt>
+          <dd data-i18n="helpLinDd">行号标识该颜色（结果里回传为 color），简称用于页面显示与核对。名称 MFMDES 不在此页展示。</dd>
+          <dt data-i18n="helpXDt">X1 / X2 / X3</dt>
+          <dd data-i18n="helpXDd">AB、EF、GH 三组的牵伸倍数，由算法求解；CD 组固定为 1.00。同一组内两个桶位同速。</dd>
+          <dt data-i18n="helpRangeDt">xmin / xmax</dt>
+          <dd data-i18n="helpRangeDd">三个牵伸倍数的搜索边界，需满足 xmin ≥ 1.0 且 xmax &gt; xmin。范围越窄越快，越宽越容易找到解。</dd>
+          <dt data-i18n="helpRatioDt">色比 MATRATCALC</dt>
+          <dd data-i18n="helpRatioDd">每种颜色希望占的比例。数值本身不重要，只看相对大小；均为 0 时无法计算。</dd>
+          <dt data-i18n="helpPriDt">优先色 PRIORITY</dt>
+          <dd data-i18n="helpPriDd">勾选后该颜色误差需 ≤ 0.05%，普通颜色 ≤ 0.5%。达标的方案排在前面。</dd>
+          <dt data-i18n="helpPosDt">固定桶位 POSITION</dt>
+          <dd data-i18n="helpPosDd">选中后该颜色只能出现在这些桶位，留空表示不限。组内两格同速，具体落位由相邻同色最少的排布决定。</dd>
+          <dt data-i18n="helpTimeDt">maxtime</dt>
+          <dd data-i18n="helpTimeDd">搜索时间上限（秒）。到时停止，返回已找到的方案；颜色多或范围宽时可调大。</dd>
+          <dt data-i18n="helpSeedDt">seed</dt>
+          <dd data-i18n="helpSeedDd">随机种子。相同输入与种子会得到相同结果，便于对比和复现。</dd>
         </dl>
       </details>
 
       <div class="actions">
-        <button class="primary" id="run" type="submit">开始计算</button>
+        <button class="primary" id="run" type="submit" data-i18n="btnRun">开始计算</button>
         <div class="actions-sub">
-          <button class="ghost-btn" id="sample" type="button">载入示例</button>
-          <button class="ghost-btn" id="reset" type="button">重置</button>
+          <button class="ghost-btn" id="sample" type="button" data-i18n="btnSample">载入示例</button>
+          <button class="ghost-btn" id="reset" type="button" data-i18n="btnReset">重置</button>
         </div>
         <div class="form-error" id="form-error" role="alert" hidden></div>
       </div>
@@ -416,21 +431,21 @@ tbody tr:last-child td{border-bottom:none}
   </section>
 
   <!-- ========== 结果 ========== -->
-  <section class="panel-results" aria-label="计算结果">
+  <section class="panel-results" aria-label="计算结果" data-i18n-aria="resultsAria">
     <div class="results-head">
-      <h2>计算结果</h2>
+      <h2 data-i18n="resultsTitle">计算结果</h2>
       <div class="runmeta" id="runmeta">尚未计算</div>
     </div>
 
     <div class="empty" id="empty">
       <div class="empty-ring" id="ghost-ring"></div>
       <div class="empty-copy">
-        <h3>八个桶位，围成一圈</h3>
-        <p>每种颜色占据一个或多个桶位。AB、CD、EF、GH 四组内部同速：CD 固定为 1.00，AB、EF、GH 分别由 X1、X2、X3 控制。圆环上相邻同色的排布会被自动打散。</p>
+        <h3 data-i18n="emptyTitle">八个桶位，围成一圈</h3>
+        <p data-i18n="emptyLead">每种颜色占据一个或多个桶位。AB、CD、EF、GH 四组内部同速：CD 固定为 1.00，AB、EF、GH 分别由 X1、X2、X3 控制。圆环上相邻同色的排布会被自动打散。</p>
         <ul>
-          <li><b>填写行号、简称与色比</b>，需要时勾选优先、指定固定桶位</li>
-          <li><b>开始计算</b>：在 xmin–xmax 之间搜索牵伸倍数，并枚举颜色排布</li>
-          <li><b>查看方案</b>：按优先色达标与累计误差排序，最多返回 100 个</li>
+          <li data-i18n-html="emptyItem1"><b>填写行号、简称与色比</b>，需要时勾选优先、指定固定桶位</li>
+          <li data-i18n-html="emptyItem2"><b>开始计算</b>：在 xmin–xmax 之间搜索牵伸倍数，并枚举颜色排布</li>
+          <li data-i18n-html="emptyItem3"><b>查看方案</b>：按优先色达标与累计误差排序，最多返回 100 个</li>
         </ul>
       </div>
     </div>
@@ -443,13 +458,13 @@ tbody tr:last-child td{border-bottom:none}
         </svg>
       </div>
       <div>
-        <strong>正在搜索可行排布</strong>
+        <strong data-i18n="loadingTitle">正在搜索可行排布</strong>
         <p id="load-line">已用 0.0 秒</p>
       </div>
     </div>
 
     <div class="error" id="error" role="alert" hidden>
-      <h3>未能得出方案</h3>
+      <h3 data-i18n="errorTitle">未能得出方案</h3>
       <p id="error-text"></p>
     </div>
 
@@ -458,7 +473,7 @@ tbody tr:last-child td{border-bottom:none}
 
       <section class="list-block" id="list-block">
         <div class="list-head">
-          <h3>全部方案</h3>
+          <h3 data-i18n="allPlans">全部方案</h3>
           <span class="count" id="list-count"></span>
         </div>
         <div class="table-scroll">
@@ -470,7 +485,7 @@ tbody tr:last-child td{border-bottom:none}
             <thead>
               <tr>
                 <th>#</th><th>X1</th><th>X2</th><th>X3</th>
-                <th>总误差</th><th class="arrange-h">排布</th>
+                <th data-i18n="colTotalErr">总误差</th><th class="arrange-h" data-i18n="colArrange">排布</th>
               </tr>
             </thead>
             <tbody id="plan-rows"></tbody>
@@ -478,7 +493,7 @@ tbody tr:last-child td{border-bottom:none}
         </div>
       </section>
 
-      <p class="foot-note">计算在本机完成。累计误差为各颜色实际比例与目标比例之差的总和；优先色误差阈值取 0.05%，普通颜色取 0.5%。确认后由本机服务把全部方案提交 TotalLINK。</p>
+      <p class="foot-note" data-i18n="footNote">计算在本机完成。累计误差为各颜色实际比例与目标比例之差的总和；优先色误差阈值取 0.05%，普通颜色取 0.5%。确认后由本机服务把全部方案提交 TotalLINK。</p>
     </div>
   </section>
 </main>
@@ -495,6 +510,363 @@ const PALETTE = ['#35507a','#b3442f','#c9872b','#6f8140','#2e6d69','#6c4064','#5
 const PRIORITY_THRESHOLD = 0.05;
 const NORMAL_THRESHOLD = 0.5;
 const STORAGE_KEY = 'bt8-page-state-v1';
+const LANG_KEY = 'bt8-page-lang';
+const LANG_DEFAULT = 'vi';   // 默认越南语；切换后记住选择
+
+/* ===================== 语言 ===================== */
+/* 页面文案字典。zh 与代码里的原有中文保持一致，vi 为现场操作员使用的越南语。
+   动态占位符写作 {name}，由 t() 替换。 */
+const I18N = {
+  zh: {
+    docTitle: 'BT8 · 牵伸配色计算',
+    appTitle: '牵伸配色计算',
+    appSubtitle: '输入混纺比例，求解 8 个桶位上的牵伸倍数与颜色排布',
+    localCalc: '本地计算',
+    langAria: '语言',
+    inputAria: '输入参数',
+    resultsAria: '计算结果',
+    colorsTitle: '颜色与色比',
+    addColor: '添加颜色',
+    addColorMax: '最多 8 种颜色（8 个桶位）',
+    addColorOne: '添加一种颜色',
+    sumLabel: '色比合计',
+    sumNormalized: '按此合计归一化',
+    sumPositive: '需大于 0',
+    searchTitle: '搜索设置',
+    searchMeta: '{xmin}–{xmax} · {maxtime} 秒',
+    hintXmin: '最小牵伸',
+    hintXmax: '最大牵伸',
+    hintMaxtime: '秒',
+    hintSeed: '随机种子',
+    helpTitle: '参数说明',
+    helpLinDt: '行号 / 简称 MFMLIN / MFMSHO',
+    helpLinDd: '行号标识该颜色（结果里回传为 color），简称用于页面显示与核对。名称 MFMDES 不在此页展示。',
+    helpXDt: 'X1 / X2 / X3',
+    helpXDd: 'AB、EF、GH 三组的牵伸倍数，由算法求解；CD 组固定为 1.00。同一组内两个桶位同速。',
+    helpRangeDt: 'xmin / xmax',
+    helpRangeDd: '三个牵伸倍数的搜索边界，需满足 xmin ≥ 1.0 且 xmax > xmin。范围越窄越快，越宽越容易找到解。',
+    helpRatioDt: '色比 MATRATCALC',
+    helpRatioDd: '每种颜色希望占的比例。数值本身不重要，只看相对大小；均为 0 时无法计算。',
+    helpPriDt: '优先色 PRIORITY',
+    helpPriDd: '勾选后该颜色误差需 ≤ 0.05%，普通颜色 ≤ 0.5%。达标的方案排在前面。',
+    helpPosDt: '固定桶位 POSITION',
+    helpPosDd: '选中后该颜色只能出现在这些桶位，留空表示不限。组内两格同速，具体落位由相邻同色最少的排布决定。',
+    helpTimeDt: 'maxtime',
+    helpTimeDd: '搜索时间上限（秒）。到时停止，返回已找到的方案；颜色多或范围宽时可调大。',
+    helpSeedDt: 'seed',
+    helpSeedDd: '随机种子。相同输入与种子会得到相同结果，便于对比和复现。',
+    btnRun: '开始计算',
+    btnRunning: '计算中…',
+    btnSample: '载入示例',
+    btnReset: '重置',
+    resultsTitle: '计算结果',
+    notCalculated: '尚未计算',
+    emptyTitle: '八个桶位，围成一圈',
+    emptyLead: '每种颜色占据一个或多个桶位。AB、CD、EF、GH 四组内部同速：CD 固定为 1.00，AB、EF、GH 分别由 X1、X2、X3 控制。圆环上相邻同色的排布会被自动打散。',
+    emptyItem1: '<b>填写行号、简称与色比</b>，需要时勾选优先、指定固定桶位',
+    emptyItem2: '<b>开始计算</b>：在 xmin–xmax 之间搜索牵伸倍数，并枚举颜色排布',
+    emptyItem3: '<b>查看方案</b>：按优先色达标与累计误差排序，最多返回 100 个',
+    loadingTitle: '正在搜索可行排布',
+    loadElapsed: '已用 {s} 秒',
+    loadElapsedLimit: '已用 {s} 秒 · 时间上限 {maxtime} 秒',
+    errorTitle: '未能得出方案',
+    allPlans: '全部方案',
+    colTotalErr: '总误差',
+    colArrange: '排布',
+    footNote: '计算在本机完成。累计误差为各颜色实际比例与目标比例之差的总和；优先色误差阈值取 0.05%，普通颜色取 0.5%。确认后由本机服务把全部方案提交 TotalLINK。',
+    colColor: '颜色',
+    colTarget: '目标 %',
+    colActual: '实际 %',
+    colErr: '误差',
+    checkTitle: '配色核对',
+    badgeNoPriority: '未设置优先色',
+    badgePriorityOk: '优先色达标',
+    badgePriorityBad: '优先色未达标',
+    badgeCumulative: '累计误差 {v}%',
+    badgeEdited: '已手动调整',
+    badgeConfirmed: '已确认',
+    planLabel: '方案 {rank}',
+    noDetail: '无明细',
+    listCount: '共 {n} 个，按优先色与累计误差排序',
+    runmeta: '{n} 个方案 · {s} 秒 · 牵伸 {xmin}–{xmax}',
+    runmetaError: '计算未完成',
+    runmetaReading: '正在读取任务单输入…',
+    runmetaInputFailed: '未能读取任务单输入',
+    thresholdTitle: '阈值 {v}%',
+    rowLine: '行号',
+    rowShort: '简称',
+    rowRatio: '色比',
+    rowPriority: '优先',
+    rowPriorityTitle: '优先色：误差需 ≤ 0.05%',
+    rowPosition: '固定桶位',
+    rowDelete: '删除该颜色',
+    bucketTitle: '桶位 {bucket}',
+    emptyRows: '还没有颜色，点击右上角「添加颜色」开始。',
+    issuesTitle: '请检查输入',
+    issueNoColor: '至少添加一种颜色。',
+    issueRow: '第 {i} 行',
+    issueLineSign: '{label}：请填写数字行号（MFMLIN）。',
+    issueRatio: '{label}：色比必须是非负数。',
+    issueSum: '色比合计必须大于 0。',
+    issueXmin: 'xmin 必须 ≥ 1.0。',
+    issueXmax: 'xmax 必须大于 xmin。',
+    issueMaxtime: 'maxtime 必须是正数。',
+    issueSeed: 'seed 必须是整数。',
+    unknownError: '未知错误',
+    calcNonJson: '服务返回了非 JSON 内容（HTTP {status}）。',
+    calcUnreachable: '无法连接计算服务：{message}\n请确认页面由 python page_server.py 启动，而不是直接打开 HTML 文件。',
+    confirmNonJson: '确认服务返回了非 JSON 内容（HTTP {status}）',
+    confirmBlockedLocal: '仅本地计算，无法回传 TotalLINK',
+    confirmNoBase: '未配置 TotalLINK 地址',
+    confirmNoApi: '未配置 TotalLINK 提交接口',
+    confirmNoLogin: '缺少登录凭据',
+    confirmPending: '正在把方案 <b>{rank}</b> 提交 TotalLINK…',
+    confirmSubmitting: '提交中…',
+    confirmDone: '已于 {time} 提交 TotalLINK（HTTP {status}）{rows}；排布已锁定',
+    confirmRows: '，影响 {n} 行',
+    confirmFailed: '回传失败：',
+    confirmRetry: '重试回传',
+    confirmCopy: '复制回传 JSON',
+    copyOk: '已复制',
+    copyFail: '复制失败',
+    confirmNote: '确认后提交 TotalLINK',
+    confirmSwitch: '改为确认此方案',
+    confirmLabel: '确认方案 {rank}',
+    confirmSwitchNote: '提交后 TotalLINK 以方案 <b>{rank}</b> 为准',
+    bannerConfirmed: '方案 {rank} 已确认，可以关闭页面',
+    ringGhostTitle: '桶位 {bucket} · {group} 组',
+    ringSwapAria: '桶位 {bucket}，点击与同组另一桶位对换',
+    ringGroupAria: '{group} 组，牵伸 {value}，点击选中',
+    ringSegTitle: '{bucket} · {name} · 牵伸 {x} · 速度 {speed}%',
+    ringBucketCount: '8 个桶位',
+    ringSameSpeed: '4 组同速',
+    ringTotalD: '总牵伸 D',
+    ringAriaGhost: '8 个桶位的分组示意',
+    ringAriaPlan: '8 个桶位的颜色排布',
+    inputNoRows: '该任务单没有可计算的配色数据',
+    inputNonJson: '输入服务返回了非 JSON 内容（HTTP {status}）',
+    inputIncomplete: '任务单已载入，但回传参数不完整，只能本地计算。',
+    inputFailed: '读取任务单输入失败：{message}',
+    retryInput: '重新读取任务单',
+    urlDataBad: 'URL 里的 data 参数解析失败，已改用本地保存的输入。',
+    urlParaBad: 'URL 参数 para 不是 JSON 数组，无法回传，只能本地计算。',
+    urlParaMissing: 'URL 缺少 para 参数（或 MFGNUM/MFBLIN/YARNGRP 三个参数），无法回传，只能本地计算。',
+    urlRowCount: 'URL 参数 rowData 必须恰好有一个空值键，当前 {n} 个，无法回传，只能本地计算。',
+    urlRowBad: 'URL 参数 rowData 不是 JSON 对象，无法回传，只能本地计算。',
+    linkErrInvalidLinkToken: '登录已失效，请让 TotalLINK 重新打开此页面',
+    linkErrAccessFail: '当前用户没有该模型的提交权限',
+    linkErrModelNotExist: '模型 dmCode/dmNum 配置不正确',
+    linkErrNoConnection: 'TotalLINK 服务端连接异常'
+  },
+
+  vi: {
+    docTitle: 'BT8 · Tính phối màu kéo duỗi',
+    appTitle: 'Tính phối màu kéo duỗi',
+    appSubtitle: 'Nhập tỷ lệ pha trộn để tính bội số kéo duỗi và cách bố trí màu trên 8 vị trí',
+    localCalc: 'Tính tại máy',
+    langAria: 'Ngôn ngữ',
+    inputAria: 'Tham số đầu vào',
+    resultsAria: 'Kết quả tính toán',
+    colorsTitle: 'Màu và tỷ lệ màu',
+    addColor: 'Thêm màu',
+    addColorMax: 'Tối đa 8 màu (8 vị trí)',
+    addColorOne: 'Thêm một màu',
+    sumLabel: 'Tổng tỷ lệ màu',
+    sumNormalized: 'Chuẩn hóa theo tổng này',
+    sumPositive: 'Phải lớn hơn 0',
+    searchTitle: 'Cài đặt tìm kiếm',
+    searchMeta: '{xmin}–{xmax} · {maxtime} giây',
+    hintXmin: 'Kéo duỗi nhỏ nhất',
+    hintXmax: 'Kéo duỗi lớn nhất',
+    hintMaxtime: 'giây',
+    hintSeed: 'Seed ngẫu nhiên',
+    helpTitle: 'Giải thích tham số',
+    helpLinDt: 'Số dòng / Tên viết tắt MFMLIN / MFMSHO',
+    helpLinDd: 'Số dòng dùng để nhận diện màu (khi gửi về là color), tên viết tắt dùng để hiển thị và đối chiếu. Tên đầy đủ MFMDES không hiển thị trên trang này.',
+    helpXDt: 'X1 / X2 / X3',
+    helpXDd: 'Bội số kéo duỗi của ba nhóm AB, EF, GH do thuật toán tính ra; nhóm CD cố định 1.00. Hai vị trí trong cùng một nhóm có cùng tốc độ.',
+    helpRangeDt: 'xmin / xmax',
+    helpRangeDd: 'Biên tìm kiếm của ba bội số kéo duỗi, cần xmin ≥ 1.0 và xmax > xmin. Khoảng càng hẹp càng nhanh, càng rộng càng dễ tìm được nghiệm.',
+    helpRatioDt: 'Tỷ lệ màu MATRATCALC',
+    helpRatioDd: 'Tỷ lệ mong muốn của từng màu. Giá trị tuyệt đối không quan trọng, chỉ so sánh tương đối; nếu tất cả đều 0 thì không tính được.',
+    helpPriDt: 'Màu ưu tiên PRIORITY',
+    helpPriDd: 'Khi chọn, sai số của màu này phải ≤ 0.05%, màu thường ≤ 0.5%. Phương án đạt yêu cầu được xếp trước.',
+    helpPosDt: 'Cố định vị trí POSITION',
+    helpPosDd: 'Khi chọn, màu này chỉ xuất hiện ở các vị trí đó; để trống nghĩa là không giới hạn. Hai ô trong nhóm cùng tốc độ, vị trí cụ thể do cách bố trí ít màu trùng cạnh nhau quyết định.',
+    helpTimeDt: 'maxtime',
+    helpTimeDd: 'Giới hạn thời gian tìm kiếm (giây). Hết giờ sẽ dừng và trả về các phương án đã tìm được; nhiều màu hoặc khoảng rộng thì nên tăng.',
+    helpSeedDt: 'seed',
+    helpSeedDd: 'Seed ngẫu nhiên. Cùng đầu vào và cùng seed sẽ cho cùng kết quả, thuận tiện so sánh và tái lập.',
+    btnRun: 'Bắt đầu tính',
+    btnRunning: 'Đang tính…',
+    btnSample: 'Tải ví dụ',
+    btnReset: 'Đặt lại',
+    resultsTitle: 'Kết quả tính toán',
+    notCalculated: 'Chưa tính',
+    emptyTitle: 'Tám vị trí xếp thành một vòng',
+    emptyLead: 'Mỗi màu chiếm một hoặc nhiều vị trí. Bốn nhóm AB, CD, EF, GH có cùng tốc độ bên trong: CD cố định 1.00, AB, EF, GH lần lượt do X1, X2, X3 quyết định. Các vị trí cùng màu nằm cạnh nhau trên vòng sẽ được tự động tách ra.',
+    emptyItem1: '<b>Điền số dòng, tên viết tắt và tỷ lệ màu</b>, nếu cần thì chọn ưu tiên hoặc chỉ định vị trí cố định',
+    emptyItem2: '<b>Bắt đầu tính</b>: tìm bội số kéo duỗi trong khoảng xmin–xmax và liệt kê cách bố trí màu',
+    emptyItem3: '<b>Xem phương án</b>: sắp theo màu ưu tiên đạt chuẩn và sai số tích lũy, trả về tối đa 100',
+    loadingTitle: 'Đang tìm cách bố trí khả thi',
+    loadElapsed: 'Đã dùng {s} giây',
+    loadElapsedLimit: 'Đã dùng {s} giây · Giới hạn {maxtime} giây',
+    errorTitle: 'Không tìm ra phương án',
+    allPlans: 'Tất cả phương án',
+    colTotalErr: 'Tổng sai số',
+    colArrange: 'Bố trí',
+    footNote: 'Tính toán thực hiện tại máy này. Sai số tích lũy là tổng chênh lệch giữa tỷ lệ thực tế và tỷ lệ mục tiêu của các màu; ngưỡng sai số là 0.05% cho màu ưu tiên và 0.5% cho màu thường. Sau khi xác nhận, dịch vụ tại máy gửi toàn bộ phương án về TotalLINK.',
+    colColor: 'Màu',
+    colTarget: 'Mục tiêu %',
+    colActual: 'Thực tế %',
+    colErr: 'Sai số',
+    checkTitle: 'Đối chiếu phối màu',
+    badgeNoPriority: 'Chưa đặt màu ưu tiên',
+    badgePriorityOk: 'Màu ưu tiên đạt',
+    badgePriorityBad: 'Màu ưu tiên chưa đạt',
+    badgeCumulative: 'Sai số tích lũy {v}%',
+    badgeEdited: 'Đã chỉnh tay',
+    badgeConfirmed: 'Đã xác nhận',
+    planLabel: 'Phương án {rank}',
+    noDetail: 'Không có chi tiết',
+    listCount: 'Tổng {n} phương án, sắp theo màu ưu tiên và sai số tích lũy',
+    runmeta: '{n} phương án · {s} giây · Kéo duỗi {xmin}–{xmax}',
+    runmetaError: 'Tính chưa xong',
+    runmetaReading: 'Đang đọc dữ liệu lệnh sản xuất…',
+    runmetaInputFailed: 'Không đọc được dữ liệu lệnh sản xuất',
+    thresholdTitle: 'Ngưỡng {v}%',
+    rowLine: 'Số dòng',
+    rowShort: 'Tên viết tắt',
+    rowRatio: 'Tỷ lệ màu',
+    rowPriority: 'Ưu tiên',
+    rowPriorityTitle: 'Màu ưu tiên: sai số ≤ 0.05%',
+    rowPosition: 'Cố định vị trí',
+    rowDelete: 'Xóa màu này',
+    bucketTitle: 'Vị trí {bucket}',
+    emptyRows: 'Chưa có màu nào, bấm「Thêm màu」ở góc trên bên phải để bắt đầu.',
+    issuesTitle: 'Vui lòng kiểm tra đầu vào',
+    issueNoColor: 'Cần thêm ít nhất một màu.',
+    issueRow: 'Dòng {i}',
+    issueLineSign: '{label}: hãy nhập số dòng (MFMLIN).',
+    issueRatio: '{label}: tỷ lệ màu phải là số không âm.',
+    issueSum: 'Tổng tỷ lệ màu phải lớn hơn 0.',
+    issueXmin: 'xmin phải ≥ 1.0.',
+    issueXmax: 'xmax phải lớn hơn xmin.',
+    issueMaxtime: 'maxtime phải là số dương.',
+    issueSeed: 'seed phải là số nguyên.',
+    unknownError: 'Lỗi không xác định',
+    calcNonJson: 'Dịch vụ tính trả về nội dung không phải JSON (HTTP {status}).',
+    calcUnreachable: 'Không kết nối được dịch vụ tính: {message}\nHãy chắc chắn trang được mở từ python page_server.py, không mở trực tiếp tệp HTML.',
+    confirmNonJson: 'Dịch vụ xác nhận trả về nội dung không phải JSON (HTTP {status})',
+    confirmBlockedLocal: 'Chỉ tính tại máy, không gửi về TotalLINK',
+    confirmNoBase: 'Chưa cấu hình địa chỉ TotalLINK',
+    confirmNoApi: 'Chưa cấu hình giao diện gửi TotalLINK',
+    confirmNoLogin: 'Thiếu thông tin đăng nhập',
+    confirmPending: 'Đang gửi phương án <b>{rank}</b> về TotalLINK…',
+    confirmSubmitting: 'Đang gửi…',
+    confirmDone: 'Đã gửi TotalLINK lúc {time} (HTTP {status}){rows}; bố trí đã khóa',
+    confirmRows: ', ảnh hưởng {n} dòng',
+    confirmFailed: 'Gửi về thất bại: ',
+    confirmRetry: 'Gửi lại',
+    confirmCopy: 'Sao chép JSON gửi về',
+    copyOk: 'Đã sao chép',
+    copyFail: 'Sao chép thất bại',
+    confirmNote: 'Xác nhận để gửi về TotalLINK',
+    confirmSwitch: 'Chuyển sang xác nhận phương án này',
+    confirmLabel: 'Xác nhận phương án {rank}',
+    confirmSwitchNote: 'Sau khi gửi, TotalLINK lấy phương án <b>{rank}</b> làm chuẩn',
+    bannerConfirmed: 'Phương án {rank} đã được xác nhận, có thể đóng trang',
+    ringGhostTitle: 'Vị trí {bucket} · nhóm {group}',
+    ringSwapAria: 'Vị trí {bucket}, bấm để đổi với vị trí còn lại trong nhóm',
+    ringGroupAria: 'Nhóm {group}, kéo duỗi {value}, bấm để chọn',
+    ringSegTitle: '{bucket} · {name} · Kéo duỗi {x} · Tốc độ {speed}%',
+    ringBucketCount: '8 vị trí',
+    ringSameSpeed: '4 nhóm cùng tốc độ',
+    ringTotalD: 'Tổng kéo duỗi D',
+    ringAriaGhost: 'Sơ đồ nhóm của 8 vị trí',
+    ringAriaPlan: 'Cách bố trí màu trên 8 vị trí',
+    inputNoRows: 'Lệnh sản xuất này không có dữ liệu phối màu để tính',
+    inputNonJson: 'Dịch vụ đầu vào trả về nội dung không phải JSON (HTTP {status})',
+    inputIncomplete: 'Đã tải lệnh sản xuất nhưng tham số gửi về không đầy đủ, chỉ có thể tính tại máy.',
+    inputFailed: 'Đọc dữ liệu lệnh sản xuất thất bại: {message}',
+    retryInput: 'Đọc lại lệnh sản xuất',
+    urlDataBad: 'Tham số data trong URL không phân tích được, đã dùng dữ liệu lưu tại máy.',
+    urlParaBad: 'Tham số URL para không phải mảng JSON, không thể gửi về, chỉ tính tại máy.',
+    urlParaMissing: 'URL thiếu tham số para (hoặc ba tham số MFGNUM/MFBLIN/YARNGRP), không thể gửi về, chỉ tính tại máy.',
+    urlRowCount: 'Tham số URL rowData phải có đúng một khóa rỗng, hiện có {n}, không thể gửi về, chỉ tính tại máy.',
+    urlRowBad: 'Tham số URL rowData không phải đối tượng JSON, không thể gửi về, chỉ tính tại máy.',
+    linkErrInvalidLinkToken: 'Phiên đăng nhập đã hết hạn, hãy để TotalLINK mở lại trang này',
+    linkErrAccessFail: 'Người dùng hiện tại không có quyền gửi mô hình này',
+    linkErrModelNotExist: 'Cấu hình dmCode/dmNum của mô hình không đúng',
+    linkErrNoConnection: 'Kết nối máy chủ TotalLINK bất thường'
+  }
+};
+
+/* URL 参数 lan：zh 中文，vie 越南语（也接受 vi / vn / zh-CN 这类写法） */
+function normalizeLang(raw){
+  const s = String(raw || '').trim().toLowerCase();
+  if (s === 'zh' || s === 'cn' || s.startsWith('zh-')) return 'zh';
+  if (s === 'vi' || s === 'vie' || s === 'vn' || s.startsWith('vi-')) return 'vi';
+  return null;
+}
+
+let LANG = (() => {
+  // TotalLINK 打开页面时带的 lan 优先，只影响这一次打开，不覆盖本地记住的选择
+  const fromUrl = normalizeLang(new URLSearchParams(location.search).get('lan'));
+  if (fromUrl) return fromUrl;
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved === 'zh' || saved === 'vi') return saved;
+  } catch (_) { /* 隐私模式下用默认语言 */ }
+  return LANG_DEFAULT;
+})();
+
+function t(key, vars){
+  const table = I18N[LANG] || I18N.zh;
+  let s = table[key];
+  if (s == null) s = I18N.zh[key];
+  if (s == null) s = key;
+  if (vars) for (const k of Object.keys(vars)) s = s.split('{' + k + '}').join(String(vars[k]));
+  return s;
+}
+
+function applyStaticI18n(){
+  document.documentElement.lang = LANG === 'vi' ? 'vi-VN' : 'zh-CN';
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n);
+  for (const el of document.querySelectorAll('[data-i18n-html]')) el.innerHTML = t(el.dataset.i18nHtml);
+  for (const el of document.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  for (const el of document.querySelectorAll('[data-i18n-title]')) el.title = t(el.dataset.i18nTitle);
+  for (const el of document.querySelectorAll('[data-i18n-ph]')) el.placeholder = t(el.dataset.i18nPh);
+  const box = document.getElementById('lang-switch');
+  if (box) {
+    box.setAttribute('aria-label', t('langAria'));
+    for (const btn of box.querySelectorAll('button')) {
+      btn.setAttribute('aria-pressed', String(btn.dataset.lang === LANG));
+    }
+  }
+}
+
+/* 页面自己产生的消息对象：{key, vars} 可随语言重绘，{raw} 用于服务端原文 */
+function msgText(msg){
+  if (!msg) return '';
+  return msg.raw != null ? String(msg.raw) : t(msg.key, msg.vars);
+}
+
+/* 页面自己抛的错，带上消息对象，切语言时错误面板能跟着变 */
+function pageError(key, vars){
+  const err = new Error(t(key, vars));
+  err.i18n = {key, vars};
+  return err;
+}
+
+/* TotalLINK 已知错误码：服务端给 code 时按页面语言显示 */
+const LINK_ERROR_KEYS = {
+  InvalidLinkToken: 'linkErrInvalidLinkToken',
+  AccessFail: 'linkErrAccessFail',
+  ModelNotExist: 'linkErrModelNotExist',
+  NoConnection: 'linkErrNoConnection'
+};
 
 const SAMPLE = {
   xmin: 1.03, xmax: 3.5, seed: 0, maxtime: 10,
@@ -508,7 +880,7 @@ const SAMPLE = {
 };
 
 /* 服务端注入的配置（page_server.py 写在 <body> 开头）；直接打开 HTML 文件时没有 */
-const SERVER = window.SERVER_CONFIG || {confirmEnabled: false, confirmReason: '未配置 TotalLINK 地址'};
+const SERVER = window.SERVER_CONFIG || {confirmEnabled: false, confirmReason: '', confirmReasonCode: 'no_base_url'};
 
 /* ===================== 状态 ===================== */
 const state = {
@@ -524,8 +896,12 @@ const state = {
   ctx: {loginID: '', para: [], rowData: null, data: null,
         dataValid: false, paraValid: false, rowDataValid: false, errors: []},
   confirm: null,       // {rank, at, status, rowsAffected} —— 全页唯一的最终确认
-  confirmError: null,  // {rank, message}
-  confirming: 0        // 正在提交的方案 rank，0 表示没有
+  confirmError: null,  // {rank, message: {key,vars}|{raw}}
+  confirming: 0,       // 正在提交的方案 rank，0 表示没有
+  runmeta: {key: 'notCalculated'},  // 结果区右上角状态，随语言重绘
+  formIssues: [],      // 校验问题 [{key,vars}|{raw}]
+  inputRetry: false,   // 表单错误区是否附带「重新读取任务单」
+  errorInfo: null      // 结果区错误面板的内容
 };
 
 const refs = {
@@ -554,7 +930,8 @@ const refs = {
   detail: document.getElementById('detail'),
   planRows: document.getElementById('plan-rows'),
   listCount: document.getElementById('list-count'),
-  banner: document.getElementById('confirm-banner')
+  banner: document.getElementById('confirm-banner'),
+  langSwitch: document.getElementById('lang-switch')
 };
 
 /* ===================== 工具 ===================== */
@@ -618,35 +995,35 @@ function rowHTML(r, i){
   /* 带 data 打开时行号/简称/色比只读；PRIORITY 与 POSITION 仍可改 */
   const ro = state.platform ? ' readonly' : '';
   const del = state.platform ? '' :
-    '<button type="button" class="del" data-act="del" title="删除该颜色" aria-label="删除该颜色">×</button>';
+    `<button type="button" class="del" data-act="del" title="${esc(t('rowDelete'))}" aria-label="${esc(t('rowDelete'))}">×</button>`;
   const chips = BUCKETS.map(b =>
-    `<button type="button" class="chip${r.POSITION.has(b) ? ' on' : ''}" data-bucket="${b}" aria-pressed="${r.POSITION.has(b)}" title="桶位 ${b}">${b}</button>`
+    `<button type="button" class="chip${r.POSITION.has(b) ? ' on' : ''}" data-bucket="${b}" aria-pressed="${r.POSITION.has(b)}" title="${esc(t('bucketTitle', {bucket: b}))}">${b}</button>`
   ).join('');
   return `
   <article class="color-row" data-uid="${r.uid}">
     <span class="swatch" style="--c:${color}"></span>
     <div class="row-head${state.platform ? ' ro' : ''}">
       <label class="field">
-        <span class="lab">行号</span>
+        <span class="lab">${esc(t('rowLine'))}</span>
         <input class="inp num" data-k="MFMLIN" value="${esc(r.MFMLIN)}" placeholder="20" autocomplete="off"${ro}>
       </label>
       <label class="field">
-        <span class="lab">简称</span>
+        <span class="lab">${esc(t('rowShort'))}</span>
         <input class="inp" data-k="MFMSHO" value="${esc(r.MFMSHO)}" placeholder="B024W" autocomplete="off"${ro}>
       </label>
       <label class="field">
-        <span class="lab">色比 <b class="norm">—</b></span>
+        <span class="lab">${esc(t('rowRatio'))} <b class="norm">—</b></span>
         <input class="inp num" data-k="MATRATCALC" type="number" min="0" step="0.01" value="${esc(r.MATRATCALC)}" placeholder="0"${ro}>
       </label>
       ${del}
     </div>
     <div class="row-opts">
-      <label class="pri" title="优先色：误差需 ≤ 0.05%">
-        <input type="checkbox" data-k="PRIORITY" ${r.PRIORITY ? 'checked' : ''}><span>优先</span>
+      <label class="pri" title="${esc(t('rowPriorityTitle'))}">
+        <input type="checkbox" data-k="PRIORITY" ${r.PRIORITY ? 'checked' : ''}><span>${esc(t('rowPriority'))}</span>
       </label>
       <div class="pos">
-        <span class="lab">固定桶位</span>
-        <div class="chips" role="group" aria-label="固定桶位">${chips}</div>
+        <span class="lab">${esc(t('rowPosition'))}</span>
+        <div class="chips" role="group" aria-label="${esc(t('rowPosition'))}">${chips}</div>
       </div>
     </div>
   </article>`;
@@ -655,13 +1032,13 @@ function rowHTML(r, i){
 function renderRows(){
   refs.rows.innerHTML = state.rows.length
     ? state.rows.map(rowHTML).join('')
-    : '<div class="empty-row">还没有颜色，点击右上角「添加颜色」开始。</div>';
+    : `<div class="empty-row">${esc(t('emptyRows'))}</div>`;
   // 平台模式下颜色行数固定为 TotalLINK 传入的条数
   refs.addColor.hidden = state.platform;
   refs.sample.hidden = state.platform;
   refs.reset.hidden = state.platform;
   refs.addColor.disabled = state.rows.length >= 8;
-  refs.addColor.title = state.rows.length >= 8 ? '最多 8 种颜色（8 个桶位）' : '添加一种颜色';
+  refs.addColor.title = t(state.rows.length >= 8 ? 'addColorMax' : 'addColorOne');
   updateSums();
   updateSearchMeta();
 }
@@ -670,13 +1047,13 @@ function updateSearchMeta(){
   const xmin = refs.xmin.value || '—';
   const xmax = refs.xmax.value || '—';
   const mt = refs.maxtime.value || '—';
-  refs.searchMeta.textContent = `${xmin}–${xmax} · ${mt} 秒`;
+  refs.searchMeta.textContent = t('searchMeta', {xmin, xmax, maxtime: mt});
 }
 
 function updateSums(){
   const total = state.rows.reduce((s, r) => s + Math.max(0, num(r.MATRATCALC)), 0);
   refs.sum.textContent = fmtSum(total);
-  refs.sumNote.textContent = total > 0 ? '按此合计归一化' : '需大于 0';
+  refs.sumNote.textContent = t(total > 0 ? 'sumNormalized' : 'sumPositive');
   for (const el of refs.rows.querySelectorAll('.color-row')) {
     const r = rowByUid(el.dataset.uid);
     const norm = el.querySelector('.norm');
@@ -757,7 +1134,7 @@ function readUrlContext(){
       ctx.dataValid = true;
     }
     if (!ctx.dataValid) {
-      ctx.errors.push('URL 里的 data 参数解析失败，已改用本地保存的输入。');
+      ctx.errors.push({key: 'urlDataBad'});
     }
   }
 
@@ -766,12 +1143,12 @@ function readUrlContext(){
   if (rawPara != null) {
     const para = parseParamJSON(rawPara);
     if (Array.isArray(para)) { ctx.para = para; ctx.paraValid = true; }
-    else ctx.errors.push('URL 参数 para 不是 JSON 数组，无法回传，只能本地计算。');
+    else ctx.errors.push({key: 'urlParaBad'});
   } else if (hasNamed) {
     ctx.para = namedPara;
     ctx.paraValid = true;
   } else {
-    ctx.errors.push('URL 缺少 para 参数（或 MFGNUM/MFBLIN/YARNGRP 三个参数），无法回传，只能本地计算。');
+    ctx.errors.push({key: 'urlParaMissing'});
   }
 
   const rawRow = q.get('rowData');
@@ -785,12 +1162,17 @@ function readUrlContext(){
       ctx.rowData = rowData;
       const empty = Object.keys(rowData).filter(k => rowData[k] === '');
       if (empty.length === 1) ctx.rowDataValid = true;
-      else ctx.errors.push(`URL 参数 rowData 必须恰好有一个空值键，当前 ${empty.length} 个，无法回传，只能本地计算。`);
+      else ctx.errors.push({key: 'urlRowCount', vars: {n: empty.length}});
     } else {
-      ctx.errors.push('URL 参数 rowData 不是 JSON 对象，无法回传，只能本地计算。');
+      ctx.errors.push({key: 'urlRowBad'});
     }
   }
   return ctx;
+}
+
+function setRunmeta(key, vars){
+  state.runmeta = {key, vars};
+  refs.runmeta.textContent = t(key, vars);
 }
 
 function clearResults(){
@@ -798,11 +1180,15 @@ function clearResults(){
   state.sent = null;
   state.selected = 0;
   state.picked = null;
+  state.errorInfo = null;
+  state.formIssues = [];
+  state.inputRetry = false;
   refs.output.hidden = true;
   refs.error.hidden = true;
   refs.empty.hidden = false;
-  refs.runmeta.textContent = '尚未计算';
+  setRunmeta('notCalculated');
   refs.formError.hidden = true;
+  refs.formError.innerHTML = '';
 }
 
 /* ===================== 表单事件 ===================== */
@@ -881,16 +1267,16 @@ refs.form.addEventListener('keydown', e => {
 /* ===================== 计算 ===================== */
 function buildPayload(){
   const issues = [];
-  if (!state.rows.length) issues.push('至少添加一种颜色。');
+  if (!state.rows.length) issues.push({key: 'issueNoColor'});
 
   const data = state.rows.map((r, i) => {
-    const label = r.MFMSHO.trim() || `第 ${i + 1} 行`;
+    const label = r.MFMSHO.trim() || t('issueRow', {i: i + 1});
     const ratio = Number(r.MATRATCALC);
     if (r.MFMLIN === '' || !Number.isFinite(Number(r.MFMLIN))) {
-      issues.push(`${label}：请填写数字行号（MFMLIN）。`);
+      issues.push({key: 'issueLineSign', vars: {label}});
     }
     if (!Number.isFinite(ratio) || ratio < 0) {
-      issues.push(`${label}：色比必须是非负数。`);
+      issues.push({key: 'issueRatio', vars: {label}});
     }
     const lin = String(r.MFMLIN).trim();
     return {
@@ -904,17 +1290,17 @@ function buildPayload(){
   });
 
   const sum = data.reduce((s, d) => s + d.MATRATCALC, 0);
-  if (sum <= 0) issues.push('色比合计必须大于 0。');
+  if (sum <= 0) issues.push({key: 'issueSum'});
 
   const xmin = Number(refs.xmin.value);
   const xmax = Number(refs.xmax.value);
   const maxtime = Number(refs.maxtime.value);
   const seed = Number(refs.seed.value);
 
-  if (!Number.isFinite(xmin) || xmin < 1) issues.push('xmin 必须 ≥ 1.0。');
-  if (!Number.isFinite(xmax) || !(xmax > xmin)) issues.push('xmax 必须大于 xmin。');
-  if (!Number.isFinite(maxtime) || maxtime <= 0) issues.push('maxtime 必须是正数。');
-  if (!Number.isInteger(seed)) issues.push('seed 必须是整数。');
+  if (!Number.isFinite(xmin) || xmin < 1) issues.push({key: 'issueXmin'});
+  if (!Number.isFinite(xmax) || !(xmax > xmin)) issues.push({key: 'issueXmax'});
+  if (!Number.isFinite(maxtime) || maxtime <= 0) issues.push({key: 'issueMaxtime'});
+  if (!Number.isInteger(seed)) issues.push({key: 'issueSeed'});
 
   return {
     payload: {xmin, xmax, maxtime, seed, data},
@@ -922,10 +1308,31 @@ function buildPayload(){
   };
 }
 
-function showFormError(issues){
-  refs.formError.innerHTML = '<strong>请检查输入</strong><ul>' +
-    issues.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>';
+function showFormError(issues, retry){
+  state.formIssues = issues || [];
+  state.inputRetry = !!retry;
+  renderFormError();
+}
+
+/* 校验问题按语言重绘；读取任务单失败时附带重试按钮 */
+function renderFormError(){
+  if (!state.formIssues.length) {
+    refs.formError.hidden = true;
+    refs.formError.innerHTML = '';
+    return;
+  }
+  refs.formError.innerHTML = `<strong>${esc(t('issuesTitle'))}</strong><ul>` +
+    state.formIssues.map(it => `<li>${esc(msgText(it))}</li>`).join('') + '</ul>';
   refs.formError.hidden = false;
+  if (state.inputRetry) {
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'confirm-go secondary';
+    retry.id = 'retry-input';
+    retry.textContent = t('retryInput');
+    retry.addEventListener('click', loadRemoteInput);
+    refs.formError.appendChild(retry);
+  }
 }
 
 async function run(){
@@ -936,7 +1343,7 @@ async function run(){
 
   state.running = true;
   refs.run.disabled = true;
-  refs.run.textContent = '计算中…';
+  refs.run.textContent = t('btnRunning');
   refs.error.hidden = true;
   refs.output.hidden = true;
   refs.empty.hidden = true;
@@ -946,7 +1353,7 @@ async function run(){
   const budget = payload.maxtime;
   const tick = () => {
     const s = (performance.now() - started) / 1000;
-    refs.loadLine.textContent = `已用 ${s.toFixed(1)} 秒 · 时间上限 ${budget} 秒`;
+    refs.loadLine.textContent = t('loadElapsedLimit', {s: s.toFixed(1), maxtime: budget});
   };
   tick();
   const timer = setInterval(tick, 100);
@@ -960,13 +1367,14 @@ async function run(){
     const text = await res.text();
     let data;
     try { data = JSON.parse(text); }
-    catch (_) { throw new Error(`服务返回了非 JSON 内容（HTTP ${res.status}）。`); }
+    catch (_) { throw pageError('calcNonJson', {status: res.status}); }
 
     state.elapsed = (performance.now() - started) / 1000;
     state.params = {xmin: payload.xmin, xmax: payload.xmax, maxtime: budget};
 
     if (data.isSuccess !== 1) {
-      showError(data.message || data.error || '未知错误');
+      // 计算错误来自 bt8 算法或服务，原文显示；缺消息时才用页面文案
+      showError(data.message || data.error ? {raw: data.message || data.error} : {key: 'unknownError'});
       return;
     }
     state.results = data.results || [];
@@ -983,23 +1391,25 @@ async function run(){
     renderBanner();
     if (!state.platform) saveState(payload);
   } catch (err) {
-    showError(`无法连接计算服务：${err.message}\n请确认页面由 python page_server.py 启动，而不是直接打开 HTML 文件。`);
+    showError(err.i18n || {key: 'calcUnreachable', vars: {message: err.message}});
   } finally {
     clearInterval(timer);
     state.running = false;
     refs.run.disabled = false;
-    refs.run.textContent = '开始计算';
+    refs.run.textContent = t('btnRun');
     refs.loading.hidden = true;
   }
 }
 
-function showError(message){
+/* info 是消息对象；非 JSON 之类由页面产生的错误带 i18n 属性，切换语言时能重绘 */
+function showError(info){
+  state.errorInfo = info || null;
   refs.loading.hidden = true;
   refs.output.hidden = true;
   refs.empty.hidden = true;
   refs.error.hidden = false;
-  refs.errorText.textContent = message;
-  refs.runmeta.textContent = '计算未完成';
+  refs.errorText.textContent = msgText(info);
+  setRunmeta('runmetaError');
 }
 
 function saveState(payload){
@@ -1015,8 +1425,7 @@ function renderResults(){
   const n = state.results.length;
   const p = state.params || {};
   const panel = document.querySelector('.panel-results');
-  refs.runmeta.textContent = `${n} 个方案 · ${state.elapsed.toFixed(1)} 秒 · 牵伸 ${p.xmin}–${p.xmax}`;
-  refs.listCount.textContent = n ? `共 ${n} 个，按优先色与累计误差排序` : '';
+  setRunmeta('runmeta', {n, s: state.elapsed.toFixed(1), xmin: p.xmin, xmax: p.xmax});
   state.picked = null;
   renderDetail();
   renderList();
@@ -1073,10 +1482,10 @@ function renderDetail(){
   const locked = isLocked(state.selected);
   const hasPriority = sent.some(d => d.PRIORITY);
   const priorityBadge = !hasPriority
-    ? '<span class="badge">未设置优先色</span>'
+    ? `<span class="badge">${esc(t('badgeNoPriority'))}</span>`
     : (r.priority_ok
-      ? '<span class="badge ok">优先色达标</span>'
-      : '<span class="badge bad">优先色未达标</span>');
+      ? `<span class="badge ok">${esc(t('badgePriorityOk'))}</span>`
+      : `<span class="badge bad">${esc(t('badgePriorityBad'))}</span>`);
 
   const colorRows = (r.colors || []).map((line, i) => {
 
@@ -1092,12 +1501,12 @@ function renderDetail(){
         <span class="color-cell">
           <span class="swatch-dot" style="--c:${color}"></span>
           <span title="${esc(displayName)}">${esc(displayName)}</span>
-          ${meta.PRIORITY ? '<b class="pri-mark">优先</b>' : ''}
+          ${meta.PRIORITY ? `<b class="pri-mark">${esc(t('rowPriority'))}</b>` : ''}
         </span>
       </td>
       <td class="num">${c.target == null ? '—' : fmt2(c.target)}</td>
       <td class="num">${c.actual == null ? '—' : fmt2(c.actual)}</td>
-      <td class="num ${over ? 'err-bad' : 'err-ok'}" title="阈值 ${threshold}%">${fmtErr(err)}%</td>
+      <td class="num ${over ? 'err-bad' : 'err-ok'}" title="${esc(t('thresholdTitle', {v: threshold}))}">${fmtErr(err)}%</td>
     </tr>`;
   }).join('');
 
@@ -1107,12 +1516,12 @@ function renderDetail(){
     <article class="plan">
       <header class="plan-head">
         <div class="plan-head-main">
-          <div class="plan-id">方案 <b>${rank}</b></div>
+          <div class="plan-id">${esc(t('planLabel', {rank: ''}))}<b>${rank}</b></div>
           <div class="badges">
             ${priorityBadge}
-            <span class="badge">累计误差 ${fmtErr(r.cum_error_pct)}%</span>
-            ${r._edited ? '<span class="badge">已手动调整</span>' : ''}
-            ${locked ? '<span class="badge ok">已确认</span>' : ''}
+            <span class="badge">${esc(t('badgeCumulative', {v: fmtErr(r.cum_error_pct)}))}</span>
+            ${r._edited ? `<span class="badge">${esc(t('badgeEdited'))}</span>` : ''}
+            ${locked ? `<span class="badge ok">${esc(t('badgeConfirmed'))}</span>` : ''}
           </div>
         </div>
         ${renderConfirmControl(state.selected + 1)}
@@ -1123,10 +1532,10 @@ function renderDetail(){
         </div>
         <div class="plan-metrics">
           <section class="check-block">
-            <h3>配色核对</h3>
+            <h3>${esc(t('checkTitle'))}</h3>
             <table class="color-check">
-              <thead><tr><th>颜色</th><th>目标 %</th><th>实际 %</th><th>误差</th></tr></thead>
-              <tbody>${colorRows || '<tr><td colspan="4" class="muted">无明细</td></tr>'}</tbody>
+              <thead><tr><th>${esc(t('colColor'))}</th><th>${esc(t('colTarget'))}</th><th>${esc(t('colActual'))}</th><th>${esc(t('colErr'))}</th></tr></thead>
+              <tbody>${colorRows || `<tr><td colspan="4" class="muted">${esc(t('noDetail'))}</td></tr>`}</tbody>
             </table>
             ${arrangeLine ? `<p class="arrange-line">${arrangeLine}</p>` : ''}
           </section>
@@ -1144,11 +1553,16 @@ function isLocked(index){
   return !!(state.confirm && state.confirm.rank === index + 1);
 }
 
+/* 返回阻止确认的消息对象；可以确认时返回 null */
 function confirmBlocker(){
-  if (!state.platform) return '仅本地计算，无法回传 TotalLINK';
-  if (!SERVER.confirmEnabled) return SERVER.confirmReason || '未配置 TotalLINK 地址';
-  if (!state.ctx.loginID) return '缺少登录凭据';
-  return '';
+  if (!state.platform) return {key: 'confirmBlockedLocal'};
+  if (!SERVER.confirmEnabled) {
+    const byCode = {no_base_url: 'confirmNoBase', no_submit_api: 'confirmNoApi'};
+    if (byCode[SERVER.confirmReasonCode]) return {key: byCode[SERVER.confirmReasonCode]};
+    return SERVER.confirmReason ? {raw: SERVER.confirmReason} : {key: 'confirmNoBase'};
+  }
+  if (!state.ctx.loginID) return {key: 'confirmNoLogin'};
+  return null;
 }
 
 /* 发给本地服务的方案对象：bt8.linkrun 原始字段，只额外补 rank（规格 7.2） */
@@ -1185,8 +1599,8 @@ function renderConfirmControl(rank){
 
   if (state.confirming === rank) {
     return `<div class="plan-confirm" data-state="pending">
-      <span class="confirm-text">正在把方案 <b>${rank}</b> 提交 TotalLINK…</span>
-      <button type="button" class="confirm-go" disabled>提交中…</button>
+      <span class="confirm-text">${t('confirmPending', {rank})}</span>
+      <button type="button" class="confirm-go" disabled>${esc(t('confirmSubmitting'))}</button>
     </div>`;
   }
 
@@ -1194,32 +1608,32 @@ function renderConfirmControl(rank){
   if (c && c.rank === rank) {
     const time = [c.at.getHours(), c.at.getMinutes()]
       .map(n => String(n).padStart(2, '0')).join(':');
-    const rows = Number.isFinite(c.rowsAffected) ? `，影响 ${c.rowsAffected} 行` : '';
+    const rows = Number.isFinite(c.rowsAffected) ? t('confirmRows', {n: c.rowsAffected}) : '';
     return `<div class="plan-confirm" data-state="confirmed">
-      <span class="confirm-text">已于 ${time} 提交 TotalLINK（HTTP ${esc(c.status)}）${rows}；排布已锁定</span>
+      <span class="confirm-text">${esc(t('confirmDone', {time, status: c.status, rows}))}</span>
     </div>`;
   }
 
   if (state.confirmError && state.confirmError.rank === rank) {
     return `<div class="plan-confirm" data-state="error">
-      <span class="confirm-text"><b>回传失败：</b>${esc(state.confirmError.message)}</span>
-      <button type="button" class="confirm-go" id="confirm-plan"${blocker ? ' disabled' : ''}>重试回传</button>
+      <span class="confirm-text"><b>${esc(t('confirmFailed'))}</b>${esc(msgText(state.confirmError.message))}</span>
+      <button type="button" class="confirm-go" id="confirm-plan"${blocker ? ' disabled' : ''}>${esc(t('confirmRetry'))}</button>
     </div>`;
   }
 
   // 本地计算或缺少凭据：不能回传，但可以把方案 JSON 复制出来
   if (blocker) {
     return `<div class="plan-confirm" data-state="blocked">
-      <span class="confirm-text"><b>${esc(blocker)}</b></span>
-      <button type="button" class="confirm-go secondary" id="copy-plan">复制回传 JSON</button>
+      <span class="confirm-text"><b>${esc(msgText(blocker))}</b></span>
+      <button type="button" class="confirm-go secondary" id="copy-plan">${esc(t('confirmCopy'))}</button>
     </div>`;
   }
 
-  const label = c ? '改为确认此方案' : `确认方案 ${rank}`;
-  const note = c ? `提交后 TotalLINK 以方案 <b>${rank}</b> 为准` : '确认后提交 TotalLINK';
+  const label = c ? t('confirmSwitch') : t('confirmLabel', {rank});
+  const note = c ? t('confirmSwitchNote', {rank}) : esc(t('confirmNote'));
   return `<div class="plan-confirm" data-state="idle">
     <span class="confirm-text">${note}</span>
-    <button type="button" class="confirm-go" id="confirm-plan">${label}</button>
+    <button type="button" class="confirm-go" id="confirm-plan">${esc(label)}</button>
   </div>`;
 }
 
@@ -1229,9 +1643,9 @@ async function copyPlanJSON(btn){
   const label = btn.textContent;
   try {
     await navigator.clipboard.writeText(text);
-    btn.textContent = '已复制';
+    btn.textContent = t('copyOk');
   } catch (_) {
-    btn.textContent = '复制失败';
+    btn.textContent = t('copyFail');
   }
   setTimeout(() => { btn.textContent = label; }, 1600);
 }
@@ -1259,8 +1673,14 @@ async function confirmPlan(){
     const text = await res.text();
     let data;
     try { data = JSON.parse(text); }
-    catch (_) { throw new Error(`确认服务返回了非 JSON 内容（HTTP ${res.status}）`); }
-    if (data.isSuccess !== 1) throw new Error(data.message || `HTTP ${res.status}`);
+    catch (_) { throw pageError('confirmNonJson', {status: res.status}); }
+    if (data.isSuccess !== 1) {
+      // 已知错误码按页面语言显示，其余用服务端原文
+      const key = LINK_ERROR_KEYS[data.code];
+      const err = new Error(data.message || `HTTP ${res.status}`);
+      err.i18n = key ? {key} : {raw: data.message || `HTTP ${res.status}`};
+      throw err;
+    }
     state.confirm = {
       rank,
       at: new Date(),
@@ -1270,7 +1690,7 @@ async function confirmPlan(){
     state.confirmError = null;
   } catch (err) {
     // 回传失败不锁定方案，可以继续比较其他方案
-    state.confirmError = {rank, message: err.message || String(err)};
+    state.confirmError = {rank, message: err.i18n || {raw: err.message || String(err)}};
   } finally {
     state.confirming = 0;
     renderDetail();
@@ -1285,7 +1705,7 @@ function renderBanner(){
     refs.banner.textContent = '';
     return;
   }
-  refs.banner.textContent = `方案 ${String(state.confirm.rank).padStart(2, '0')} 已确认，可以关闭页面`;
+  refs.banner.textContent = t('bannerConfirmed', {rank: String(state.confirm.rank).padStart(2, '0')});
   refs.banner.hidden = false;
 }
 
@@ -1426,7 +1846,7 @@ function ringSVG(result, ghost){
       letter = BUCKETS[i];
       label = ['X1', '1.00', 'X2', 'X3'][GROUP_OF[i]];
       speed = '';
-      title = `桶位 ${BUCKETS[i]} · ${GROUP_LABEL[GROUP_OF[i]]} 组`;
+      title = t('ringGhostTitle', {bucket: BUCKETS[i], group: GROUP_LABEL[GROUP_OF[i]]});
       key = '';
     } else {
       const e = result.assign[i];
@@ -1436,12 +1856,17 @@ function ringSVG(result, ghost){
       letter = e.bucket;
       label = shortName(e);
       speed = `${fmt2(e.speed)}%`;
-      title = `${e.bucket} · ${(e.colorsho || e.colordes || '').trim()} · 牵伸 ${fmt2(e.x)} · 速度 ${fmt2(e.speed)}%`;
+      title = t('ringSegTitle', {
+        bucket: e.bucket,
+        name: (e.colorsho || e.colordes || '').trim(),
+        x: fmt2(e.x),
+        speed: fmt2(e.speed)
+      });
       key = String(e.color);
     }
 
     const interactive = (ghost || locked) ? '' :
-      ` tabindex="0" role="button" aria-label="桶位 ${BUCKETS[i]}，点击与同组另一桶位对换"`;
+      ` tabindex="0" role="button" aria-label="${esc(t('ringSwapAria', {bucket: BUCKETS[i]}))}"`;
 
     parts.push(`
       <g class="seg" data-color="${esc(key)}" data-slot="${Math.floor(i / 2)}"${interactive}>
@@ -1464,7 +1889,7 @@ function ringSVG(result, ghost){
     const value = ghost ? ['X1', '1.00', 'X2', 'X3'][s] : fmt2(slotX(s));
     const fixed = !ghost && s === CD_GROUP;
     const inter = (ghost || locked || fixed) ? '' :
-      ` data-slot="${s}" tabindex="0" role="button" aria-label="${GROUP_LABEL[s]} 组，牵伸 ${value}，点击选中"`;
+      ` data-slot="${s}" tabindex="0" role="button" aria-label="${esc(t('ringGroupAria', {group: GROUP_LABEL[s], value}))}"`;
     return `<g class="grp-sector${ghost ? ' ghost' : ''}${fixed ? ' fixed' : ''}"${inter}>
       <path d="${arcPath(C, C, 74, 112, a0, a1)}"/>
       <text x="${gx.toFixed(1)}" y="${(gy - 4).toFixed(1)}" text-anchor="middle" class="grp-k">${GROUP_LABEL[s]}</text>
@@ -1473,12 +1898,12 @@ function ringSVG(result, ghost){
   }).join('');
 
   const center = ghost
-    ? `<text x="200" y="176" text-anchor="middle" class="ring-cap">8 个桶位</text>
-       <text x="200" y="204" text-anchor="middle" class="ring-ghost-title">4 组同速</text>`
-    : `<text x="200" y="176" text-anchor="middle" class="ring-cap">总牵伸 D</text>
+    ? `<text x="200" y="176" text-anchor="middle" class="ring-cap">${esc(t('ringBucketCount'))}</text>
+       <text x="200" y="204" text-anchor="middle" class="ring-ghost-title">${esc(t('ringSameSpeed'))}</text>`
+    : `<text x="200" y="176" text-anchor="middle" class="ring-cap">${esc(t('ringTotalD'))}</text>
        <text x="200" y="206" text-anchor="middle" class="ring-d">${fmtD(result.total_feed_speed_D)}</text>`;
 
-  return `<svg viewBox="0 0 400 400" role="img" aria-label="${ghost ? '8 个桶位的分组示意' : '8 个桶位的颜色排布'}" id="ring-svg">
+  return `<svg viewBox="0 0 400 400" role="img" aria-label="${esc(ghost ? t('ringAriaGhost') : t('ringAriaPlan'))}" id="ring-svg">
     <circle cx="200" cy="200" r="182" fill="none" stroke="#93a09a" stroke-width=".7" opacity=".5"/>
     <circle cx="200" cy="200" r="112" fill="none" stroke="#93a09a" stroke-width=".7" opacity=".5"/>
     ${parts.join('')}
@@ -1519,6 +1944,7 @@ function bindFocusHover(){
 function renderList(){
   const scrollBox = document.querySelector('.table-scroll');
   const keepScroll = scrollBox ? scrollBox.scrollTop : 0;
+  refs.listCount.textContent = state.results.length ? t('listCount', {n: state.results.length}) : '';
   if (!state.results.length) { refs.planRows.innerHTML = ''; return; }
   refs.planRows.innerHTML = state.results.map((r, i) => {
     const rank = i + 1;
@@ -1527,7 +1953,7 @@ function renderList(){
     const totalErr = `${fmtErr(r.cum_error_pct)}%`;
     const arrange = arrangementCell(r);
     return `<tr data-i="${i}" tabindex="0" class="${i === state.selected ? 'on' : ''}" aria-selected="${i === state.selected}">
-      <td>${String(rank).padStart(2, '0')}${confirmed ? '<i class="row-ok" title="已确认">✓</i>' : ''}</td>
+      <td>${String(rank).padStart(2, '0')}${confirmed ? `<i class="row-ok" title="${esc(t('badgeConfirmed'))}">✓</i>` : ''}</td>
       <td class="num">${fmt2(r.X1)}</td>
       <td class="num">${fmt2(r.X2)}</td>
       <td class="num">${fmt2(r.X3)}</td>
@@ -1564,7 +1990,7 @@ refs.planRows.addEventListener('keydown', e => {
 /* 没有 data 参数时，用三个业务参数请本地服务查模型 700 取输入 */
 async function loadRemoteInput(){
   const [mfgnum, mfblin, yarngrp] = state.ctx.inputParams;
-  refs.runmeta.textContent = '正在读取任务单输入…';
+  setRunmeta('runmetaReading');
   refs.formError.hidden = true;
   state.platform = false;
   try {
@@ -1576,10 +2002,15 @@ async function loadRemoteInput(){
     const text = await res.text();
     let data;
     try { data = JSON.parse(text); }
-    catch (_) { throw new Error(`输入服务返回了非 JSON 内容（HTTP ${res.status}）`); }
-    if (data.isSuccess !== 1) throw new Error(data.message || `HTTP ${res.status}`);
+    catch (_) { throw pageError('inputNonJson', {status: res.status}); }
+    if (data.isSuccess !== 1) {
+      const err = new Error(data.message || `HTTP ${res.status}`);
+      const key = LINK_ERROR_KEYS[data.code];
+      err.i18n = key ? {key} : {raw: data.message || `HTTP ${res.status}`};
+      throw err;
+    }
     const rows = data.rows || [];
-    if (!rows.length) throw new Error('该任务单没有可计算的配色数据');
+    if (!rows.length) throw pageError('inputNoRows');
 
     state.ctx.data = {data: rows};
     state.ctx.dataValid = true;
@@ -1589,25 +2020,46 @@ async function loadRemoteInput(){
     renderRows();
     if (state.ctx.errors.length) showFormError(state.ctx.errors);
     if (state.platform) run();
-    else showFormError(['任务单已载入，但回传参数不完整，只能本地计算。']);
+    else showFormError([{key: 'inputIncomplete'}]);
   } catch (err) {
     // 回传参数是齐的，只是输入没取到：不要退回本地计算，给一个重试入口
     state.platform = false;
     state.ctx.dataValid = false;
-    refs.runmeta.textContent = '未能读取任务单输入';
-    showFormError([`读取任务单输入失败：${err.message || err}`]);
-    const retry = document.createElement('button');
-    retry.type = 'button';
-    retry.className = 'confirm-go secondary';
-    retry.textContent = '重新读取任务单';
-    retry.addEventListener('click', loadRemoteInput);
-    refs.formError.appendChild(retry);
+    setRunmeta('runmetaInputFailed');
+    showFormError([err.i18n || {key: 'inputFailed', vars: {message: err.message || String(err)}}], true);
   }
 }
 
+/* ===================== 语言切换 ===================== */
+/* 静态文案、输入行、结果、确认区与错误提示一起按新语言重绘 */
+function applyLanguage(lang){
+  if (lang !== 'zh' && lang !== 'vi') return;
+  LANG = lang;
+  try { localStorage.setItem(LANG_KEY, lang); } catch (_) { /* 忽略隐私模式 */ }
+  applyStaticI18n();
+  refs.ghostRing.innerHTML = ringSVG(null, true);
+  renderRows();
+  refs.run.textContent = t(state.running ? 'btnRunning' : 'btnRun');
+  refs.runmeta.textContent = t(state.runmeta.key, state.runmeta.vars);
+  if (state.results.length) {
+    renderDetail();
+    renderList();
+  }
+  renderBanner();
+  if (state.errorInfo) refs.errorText.textContent = msgText(state.errorInfo);
+  if (state.formIssues.length) renderFormError();
+}
+
+refs.langSwitch.addEventListener('click', e => {
+  const btn = e.target.closest('button[data-lang]');
+  if (btn) applyLanguage(btn.dataset.lang);
+});
+
 /* ===================== 初始化 ===================== */
 (function init(){
+  applyStaticI18n();
   refs.ghostRing.innerHTML = ringSVG(null, true);
+  refs.runmeta.textContent = t(state.runmeta.key, state.runmeta.vars);
 
   state.ctx = readUrlContext();
   // 只有 data / para / rowData 都合法才进入平台模式（只读 + 可回传）

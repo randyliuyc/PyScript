@@ -176,9 +176,20 @@ def server_address(settings):
 
 
 def page_config(settings, name):
-    """注入页面的配置：确认按钮是否可用。"""
+    """注入页面的配置：确认按钮是否可用。
+
+    除中文原因外再给一个稳定代号，页面按自己的语言显示。
+    """
     available, reason = confirm_status(settings, name)
-    return {'confirmEnabled': available, 'confirmReason': '' if available else reason}
+    code = ''
+    if not available:
+        base, _ = totallink_config(settings)
+        code = 'no_base_url' if not base else 'no_submit_api'
+    return {
+        'confirmEnabled': available,
+        'confirmReason': '' if available else reason,
+        'confirmReasonCode': code,
+    }
 
 
 def inject_config(html_text, config):

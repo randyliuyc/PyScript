@@ -87,6 +87,7 @@ http://127.0.0.1:8765/bt8?data=<URL 编码 JSON>&loginID=<token>&para=<URL 编�
 | `para` | 是 | 模型参数数组的 JSON 字符串 | 对应 TotalLINK 的 `par.dm.Para`，没有参数传 `[]` |
 | `rowData` | 否 | 业务列对象的 JSON 字符串 | 例：`{"PLANJSON":""}`；省略时页面默认 `{"PLANJSON": ""}`，回传 801 时由服务端填入方案 JSON |
 | `MFGNUM` / `MFBLIN` / `YARNGRP` | 否 | 模型行直接给的三个业务参数 | 牵伸结果处理模型 801 的 Para 顺序；三者齐全且没有 `para` 时组成 `Para = [MFGNUM, MFBLIN, YARNGRP]`，显式 `para` 优先 |
+| `lan` | 否 | 界面语言：`zh` 中文，`vie` 越南语 | 优先级高于浏览器本地记住的选择，只作用于本次打开；不带或无法识别时沿用本地记住的语言，首次打开默认越南语 |
 
 > BROSDEV 环境的 `page_server` 超时配置为 120 秒：`linkDMGridRowSubmit` 在迁移版上实测约 50 秒返回（含配额预检等待），30 秒会超时。
 >

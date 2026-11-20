@@ -18,6 +18,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import socket
 import sys
 import threading
@@ -268,6 +269,23 @@ class PageServerTests(unittest.TestCase):
     def test_page_reports_confirm_available(self):
         self.assertIn('"confirmEnabled": true', self.page())
 
+    def test_page_is_bilingual_with_vietnamese_default(self):
+        """界面中越切换：默认越南语，两份字典键必须一致。"""
+        page = self.page()
+        self.assertIn("const LANG_DEFAULT = 'vi';", page)
+        self.assertIn('id="lang-switch"', page)
+        self.assertIn('data-i18n="appTitle"', page)
+        # URL 参数 lan=zh / lan=vie 指定本次打开的语言
+        self.assertIn("get('lan')", page)
+        self.assertIn("s === 'vie'", page)
+        zh = page[page.index('  zh: {'):page.index('  vi: {')]
+        vi = page[page.index('  vi: {'):page.index('let LANG')]
+        key = re.compile(r'^\s{4}([A-Za-z0-9_]+):', re.M)
+        zh_keys, vi_keys = set(key.findall(zh)), set(key.findall(vi))
+        self.assertGreater(len(zh_keys), 100)
+        self.assertEqual(zh_keys - vi_keys, set())
+        self.assertEqual(vi_keys - zh_keys, set())
+
     def test_login_id_is_not_logged(self):
         """规格 7.5：loginID 不写日志，请求日志只保留路径。"""
         buf = io.StringIO()
@@ -497,7 +515,10 @@ class PageServerTests(unittest.TestCase):
         self.assertEqual(settings, {})
         _, base = self.start_server(settings)
 
-        self.assertIn('"confirmEnabled": false', self.page(base=base))
+        page = self.page(base=base)
+        self.assertIn('"confirmEnabled": false', page)
+        # 页面按自己的语言显示原因，服务端给稳定的代号
+        self.assertIn('"confirmReasonCode": "no_base_url"', page)
 
         payload = dict(bt8_page.SAMPLE_PAYLOAD, maxtime=5)
         _, data = self.post_calc(payload, base=base)

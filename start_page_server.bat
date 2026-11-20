@@ -25,7 +25,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Starting page_server on http://127.0.0.1:8765/bt8
+echo Starting page_server (host/port from settings.json; default 0.0.0.0:8765)
 echo Press Ctrl+C to stop. Extra arguments are passed through, e.g.
 echo     start_page_server.bat --port 8766 --no-open
 echo.

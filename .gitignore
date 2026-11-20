@@ -2,3 +2,5 @@
 mcp-server/server.log
 __pycache__/
 *.pyc
+
+logs/

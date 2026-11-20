@@ -5,6 +5,7 @@ TotalLINK 本地操作页面服务 —— 环境级入口
 启动：
     python page_server.py                  # 127.0.0.1:8765，启动后打开 /bt8
     python page_server.py --port 9000
+    python page_server.py --host 0.0.0.0   # 允许局域网其他电脑访问
     python page_server.py --no-open
 
 职责：
@@ -22,6 +23,7 @@ import html
 import importlib
 import json
 import os
+import socket
 import sys
 import threading
 import time
@@ -251,13 +253,58 @@ def friendly_net_error(exc):
     return text
 
 
-def origin_allowed(origin):
-    """Origin 只放行本机页面，防止别的网站借浏览器转发确认。"""
+def _netloc(url):
+    """把地址拆成 (主机名, 端口)；解析不了返回 None。"""
     try:
-        host = urllib.parse.urlsplit(origin).hostname
+        parts = urllib.parse.urlsplit(url)
+        host = parts.hostname
+        port = parts.port or (443 if parts.scheme == 'https' else 80)
     except ValueError:
+        return None
+    if not host:
+        return None
+    return host.lower(), port
+
+
+def origin_allowed(origin, host_header=None):
+    """Origin 只放行本机页面和本服务自己的地址，防止别的网站借浏览器转发确认。
+
+    服务绑定 0.0.0.0 供局域网访问时，页面地址是 http://<内网 IP>:<端口>，
+    这时 Origin 与请求的 Host（同一个地址）相同，属于同源，应当放行。
+    """
+    if origin is None:
+        return True          # 非浏览器请求不带 Origin
+    origin_net = _netloc(origin)
+    if origin_net is None:
         return False
-    return host in LOCAL_HOSTS
+    if origin_net[0] in LOCAL_HOSTS:
+        return True
+    if not host_header:
+        return False
+    return origin_net == _netloc('//' + host_header)
+
+
+def local_addresses():
+    """列出本机地址，供绑定 0.0.0.0 时提示操作员在浏览器里输入哪一个。"""
+    found = ['127.0.0.1']
+    try:
+        _, _, ips = socket.gethostbyname_ex(socket.gethostname())
+    except OSError:
+        ips = []
+    for ip in ips:
+        if ip not in found and not ip.startswith('127.'):
+            found.append(ip)
+    if len(found) == 1:
+        # 拿不到网卡地址时探测默认出口地址（UDP connect 不发包）
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                sock.connect(('192.0.2.1', 9))
+                ip = sock.getsockname()[0]
+            if ip and not ip.startswith('127.') and ip not in found:
+                found.append(ip)
+        except OSError:
+            pass
+    return found
 
 
 def interpret_response(status, raw):
@@ -435,7 +482,7 @@ class Handler(BaseHTTPRequestHandler):
     def _handle_input(self, name):
         """用 URL 带来的 LinkToken 查询模型（默认 700），返回颜色行。"""
         origin = self.headers.get('Origin')
-        if origin and not origin_allowed(origin):
+        if not origin_allowed(origin, self.headers.get('Host')):
             self.close_connection = True
             return self._send_json({'isSuccess': 0, 'message': '拒绝来自其他网站的请求'},
                                    HTTPStatus.FORBIDDEN)
@@ -502,7 +549,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _handle_confirm(self, name):
         origin = self.headers.get('Origin')
-        if origin and not origin_allowed(origin):
+        if not origin_allowed(origin, self.headers.get('Host')):
             self.close_connection = True   # 未读取请求体，不复用这条连接
             return self._send_json({'isSuccess': 0, 'message': '拒绝来自其他网站的确认请求'},
                                    HTTPStatus.FORBIDDEN)
@@ -657,8 +704,19 @@ def main(argv=None):
         return 1
 
     actual_host, actual_port = server.server_address[:2]
+    wildcard = actual_host in ('0.0.0.0', '::')
     url = f'http://{actual_host}:{actual_port}/bt8'
-    print(f'页面服务已启动：{url}    (Ctrl+C 停止)')
+    print(f'页面服务已启动，监听 {actual_host}:{actual_port}    (Ctrl+C 停止)', flush=True)
+    if wildcard:
+        for ip in local_addresses():
+            label = '本机  ' if ip == '127.0.0.1' else '局域网'
+            print(f'  {label} http://{ip}:{actual_port}/bt8', flush=True)
+        print('  页面没有登录校验，只应在可信内网开放；'
+              '仅本机使用请把 settings.json 的 server.host 改回 127.0.0.1。',
+              file=sys.stderr, flush=True)
+        url = f'http://127.0.0.1:{actual_port}/bt8'
+    else:
+        print(f'  页面  {url}', flush=True)
     if not settings:
         print('提示：未读到 settings.json，计算可用，确认回传已禁用。', file=sys.stderr)
     if not args.no_open:

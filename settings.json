@@ -1,5 +1,5 @@
 {
-  "server": { "host": "127.0.0.1", "port": 8765 },
+  "server": { "host": "0.0.0.0", "port": 8765 },
   "totallink": {
     "base_url": "https://linkdev.bros.cn",
     "timeout": 120

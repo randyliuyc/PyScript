@@ -387,6 +387,17 @@ class PageServerTests(unittest.TestCase):
         self.assertEqual(data.get('isSuccess'), 0)
         self.assertEqual(UpstreamStub.received, [])
 
+    def test_confirm_accepts_lan_origin_of_this_server(self):
+        """绑定 0.0.0.0 后页面从内网 IP 打开，Origin 与本请求 Host 同源应放行。"""
+        headers = {'Content-Type': 'application/json',
+                   'Origin': 'http://192.168.1.20:8765',
+                   'Host': '192.168.1.20:8765'}
+        status, _, raw = self.request('/api/bt8/confirm', 'POST',
+                                      self.confirm_request(), headers)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw.decode('utf-8')).get('isSuccess'), 1)
+        self.assertEqual(len(UpstreamStub.received), 1)
+
     def test_confirm_requires_login_id(self):
         body = self.confirm_request()
         body.pop('loginID')
@@ -499,6 +510,9 @@ class PageServerTests(unittest.TestCase):
 
     def test_shipped_settings(self):
         settings = page_server.load_settings()
+        # 默认对局域网开放（0.0.0.0），只本机使用改回 127.0.0.1
+        self.assertEqual(settings['server']['host'], '0.0.0.0')
+        self.assertEqual(settings['server']['port'], 8765)
         feature = settings['features']['bt8']
         self.assertEqual(feature['dmCode'], 'TMESMFGPLN10X727X')
         self.assertEqual(feature['dmNum'], 801)
@@ -517,6 +531,31 @@ class PageServerTests(unittest.TestCase):
         payload = dict(bt8_page.SAMPLE_PAYLOAD, maxtime=5)
         data = json.loads(bt8_page.calc(json.dumps(payload)))
         self.assertEqual(data.get('isSuccess'), 1, data.get('message'))
+
+
+class OriginTests(unittest.TestCase):
+    """Origin 判定：本机地址、本服务自己的地址放行，其余网站拒绝。"""
+
+    def test_no_origin_is_allowed(self):
+        self.assertTrue(page_server.origin_allowed(None, '192.168.1.20:8765'))
+
+    def test_local_origin_is_allowed(self):
+        for origin in ('http://127.0.0.1:8765', 'http://localhost:8765',
+                       'http://[::1]:8765'):
+            self.assertTrue(page_server.origin_allowed(origin, '192.168.1.20:8765'), origin)
+
+    def test_lan_origin_must_match_request_host(self):
+        self.assertTrue(page_server.origin_allowed('http://192.168.1.20:8765',
+                                                   '192.168.1.20:8765'))
+        self.assertFalse(page_server.origin_allowed('http://192.168.1.20:8765',
+                                                    '192.168.1.21:8765'))
+        self.assertFalse(page_server.origin_allowed('http://192.168.1.20:8765', None))
+        self.assertFalse(page_server.origin_allowed('http://evil.example',
+                                                    '192.168.1.20:8765'))
+
+    def test_garbage_origin_is_rejected(self):
+        for origin in ('null', '', 'http://:8765', 'not a url'):
+            self.assertFalse(page_server.origin_allowed(origin, '192.168.1.20:8765'), origin)
 
 
 if __name__ == '__main__':

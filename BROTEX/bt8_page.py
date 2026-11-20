@@ -30,7 +30,7 @@ SAMPLE_PAYLOAD = {
     'xmin': 1.03,
     'xmax': 3.5,
     'seed': 0,
-    'maxtime': 10,
+    'maxtime': 30,
     'data': [
         {'MFMLIN': 20, 'MFMDES': 'FWP 特白条 UVA009BY', 'MFMSHO': 'FWP 特白条',
          'MATRATCALC': 28.0, 'PRIORITY': 0, 'POSITION': ''},

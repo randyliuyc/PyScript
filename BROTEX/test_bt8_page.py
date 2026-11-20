@@ -269,6 +269,14 @@ class PageServerTests(unittest.TestCase):
     def test_page_reports_confirm_available(self):
         self.assertIn('"confirmEnabled": true', self.page())
 
+    def test_page_uses_relative_error_thresholds(self):
+        """页面判定口径与服务端一致：单色按相对误差，优先色 2%、普通色 5%。"""
+        page = self.page()
+        self.assertIn('const PRIORITY_THRESHOLD = 2;', page)
+        self.assertIn('const NORMAL_THRESHOLD = 5;', page)
+        self.assertIn('相对误差', page)
+        self.assertIn('Sai số tương đối', page)
+
     def test_page_is_bilingual_with_vietnamese_default(self):
         """界面中越切换：默认越南语，两份字典键必须一致。"""
         page = self.page()
@@ -306,8 +314,44 @@ class PageServerTests(unittest.TestCase):
         first = data['results'][0]
         self.assertEqual(len(first['assign']), 8)
         for key in ('X1', 'X2', 'X3', 'cum_error', 'cum_error_pct',
+                    'cum_rel_error', 'cum_rel_error_pct',
                     'total_feed_speed_D', 'priority_ok', 'warnings', 'assign', 'colors'):
             self.assertIn(key, first)
+
+    def test_calc_plans_meet_relative_error_threshold(self):
+        """返回的每个方案，单色相对误差都在普通色阈值以内。"""
+        _, data = self.post_calc(dict(bt8_page.SAMPLE_PAYLOAD, maxtime=5))
+        self.assertEqual(data.get('isSuccess'), 1, data.get('message'))
+        self.assertTrue(data.get('results'))
+        limit = bt8_page.bt8.NORMAL_REL_THRESHOLD * 100 + 0.01
+        for plan in data['results']:
+            for line in plan['colors']:
+                err = float(line.rsplit('(', 1)[1].rstrip('%)'))
+                self.assertLessEqual(err, limit, line)
+
+    def test_calc_small_ratio_returns_no_plan(self):
+        """0.71% 的小色比低于结构最小单桶比例：没有方案，并说明原因。"""
+        payload = {
+            'xmin': 1.03, 'xmax': 3.5, 'maxtime': 5,
+            'data': [
+                {'MFMLIN': 20, 'MFMDES': 'FWP 特白条', 'MATRATCALC': 25.68,
+                 'PRIORITY': 0, 'POSITION': ''},
+                {'MFMLIN': 102, 'MFMDES': 'EH007', 'MATRATCALC': 0.71,
+                 'PRIORITY': 0, 'POSITION': ''},
+                {'MFMLIN': 112, 'MFMDES': '再生白涤纶', 'MATRATCALC': 30.0,
+                 'PRIORITY': 0, 'POSITION': ''},
+                {'MFMLIN': 120, 'MFMDES': '白棉条', 'MATRATCALC': 10.71,
+                 'PRIORITY': 0, 'POSITION': ''},
+                {'MFMLIN': 130, 'MFMDES': 'BHHH', 'MATRATCALC': 25.0,
+                 'PRIORITY': 0, 'POSITION': ''},
+                {'MFMLIN': 150, 'MFMDES': 'FW 特白条', 'MATRATCALC': 7.9,
+                 'PRIORITY': 0, 'POSITION': ''},
+            ],
+        }
+        _, data = self.post_calc(payload)
+        self.assertEqual(data.get('isSuccess'), 0, data)
+        self.assertEqual(data.get('results'), [])
+        self.assertIn('0.71%', data.get('message', ''))
 
     def test_calc_rejects_invalid_input(self):
         _, data = self.post_calc({'data': []})

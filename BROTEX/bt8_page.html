@@ -375,7 +375,7 @@ tbody tr:last-child td{border-bottom:none}
       <details class="block fold" id="search-settings">
         <summary>
           <h2 data-i18n="searchTitle">搜索设置</h2>
-          <span class="fold-meta" id="search-meta">1.03–3.5 · 10 秒</span>
+          <span class="fold-meta" id="search-meta">1.03–3.5 · 30 秒</span>
         </summary>
         <div class="param-grid">
           <label class="field">
@@ -388,7 +388,7 @@ tbody tr:last-child td{border-bottom:none}
           </label>
           <label class="field">
             <span class="lab">maxtime <em data-i18n="hintMaxtime">秒</em></span>
-            <input class="inp num" id="maxtime" type="number" step="1" min="1" value="10">
+            <input class="inp num" id="maxtime" type="number" step="1" min="1" value="30">
           </label>
           <label class="field">
             <span class="lab">seed <em data-i18n="hintSeed">随机种子</em></span>
@@ -409,7 +409,7 @@ tbody tr:last-child td{border-bottom:none}
           <dt data-i18n="helpRatioDt">色比 MATRATCALC</dt>
           <dd data-i18n="helpRatioDd">每种颜色希望占的比例。数值本身不重要，只看相对大小；均为 0 时无法计算。</dd>
           <dt data-i18n="helpPriDt">优先色 PRIORITY</dt>
-          <dd data-i18n="helpPriDd">勾选后该颜色误差需 ≤ 0.05%，普通颜色 ≤ 0.5%。达标的方案排在前面。</dd>
+          <dd data-i18n="helpPriDd">勾选后该颜色的相对误差需 ≤ 2%，普通颜色 ≤ 5%。达标的方案排在前面。</dd>
           <dt data-i18n="helpPosDt">固定桶位 POSITION</dt>
           <dd data-i18n="helpPosDd">选中后该颜色只能出现在这些桶位，留空表示不限。组内两格同速，具体落位由相邻同色最少的排布决定。</dd>
           <dt data-i18n="helpTimeDt">maxtime</dt>
@@ -445,7 +445,7 @@ tbody tr:last-child td{border-bottom:none}
         <ul>
           <li data-i18n-html="emptyItem1"><b>填写行号、简称与色比</b>，需要时勾选优先、指定固定桶位</li>
           <li data-i18n-html="emptyItem2"><b>开始计算</b>：在 xmin–xmax 之间搜索牵伸倍数，并枚举颜色排布</li>
-          <li data-i18n-html="emptyItem3"><b>查看方案</b>：按优先色达标与累计误差排序，最多返回 100 个</li>
+          <li data-i18n-html="emptyItem3"><b>查看方案</b>：按优先色达标与累计相对误差排序，最多返回 100 个</li>
         </ul>
       </div>
     </div>
@@ -485,7 +485,7 @@ tbody tr:last-child td{border-bottom:none}
             <thead>
               <tr>
                 <th>#</th><th>X1</th><th>X2</th><th>X3</th>
-                <th data-i18n="colTotalErr">总误差</th><th class="arrange-h" data-i18n="colArrange">排布</th>
+                <th data-i18n="colTotalErr">累计相对误差</th><th class="arrange-h" data-i18n="colArrange">排布</th>
               </tr>
             </thead>
             <tbody id="plan-rows"></tbody>
@@ -493,7 +493,7 @@ tbody tr:last-child td{border-bottom:none}
         </div>
       </section>
 
-      <p class="foot-note" data-i18n="footNote">计算在本机完成。累计误差为各颜色实际比例与目标比例之差的总和；优先色误差阈值取 0.05%，普通颜色取 0.5%。确认后由本机服务把全部方案提交 TotalLINK。</p>
+      <p class="foot-note" data-i18n="footNote">计算在本机完成。单色误差为相对误差 |实际比例 − 目标比例| ÷ 目标比例；累计相对误差为各颜色相对误差之和。优先色相对误差阈值 2%，普通颜色 5%。确认后由本机服务把全部方案提交 TotalLINK。</p>
     </div>
   </section>
 </main>
@@ -507,8 +507,9 @@ const GROUP_OF = [0,0,1,1,2,2,3,3];
 const GROUP_LABEL = ['AB','CD','EF','GH'];
 const CD_GROUP = 1;   // CD 组牵伸固定为 1.00，不参与整组对换
 const PALETTE = ['#35507a','#b3442f','#c9872b','#6f8140','#2e6d69','#6c4064','#5c6870','#b26975'];
-const PRIORITY_THRESHOLD = 0.05;
-const NORMAL_THRESHOLD = 0.5;
+/* 单色误差按相对目标色比（|实际-目标|/目标）判定，与服务端 bt8.py 保持一致 */
+const PRIORITY_THRESHOLD = 2;
+const NORMAL_THRESHOLD = 5;
 const STORAGE_KEY = 'bt8-page-state-v1';
 const LANG_KEY = 'bt8-page-lang';
 const LANG_DEFAULT = 'vi';   // 默认越南语；切换后记住选择
@@ -548,7 +549,7 @@ const I18N = {
     helpRatioDt: '色比 MATRATCALC',
     helpRatioDd: '每种颜色希望占的比例。数值本身不重要，只看相对大小；均为 0 时无法计算。',
     helpPriDt: '优先色 PRIORITY',
-    helpPriDd: '勾选后该颜色误差需 ≤ 0.05%，普通颜色 ≤ 0.5%。达标的方案排在前面。',
+    helpPriDd: '勾选后该颜色的相对误差需 ≤ 2%，普通颜色 ≤ 5%。达标的方案排在前面。',
     helpPosDt: '固定桶位 POSITION',
     helpPosDd: '选中后该颜色只能出现在这些桶位，留空表示不限。组内两格同速，具体落位由相邻同色最少的排布决定。',
     helpTimeDt: 'maxtime',
@@ -565,39 +566,39 @@ const I18N = {
     emptyLead: '每种颜色占据一个或多个桶位。AB、CD、EF、GH 四组内部同速：CD 固定为 1.00，AB、EF、GH 分别由 X1、X2、X3 控制。圆环上相邻同色的排布会被自动打散。',
     emptyItem1: '<b>填写行号、简称与色比</b>，需要时勾选优先、指定固定桶位',
     emptyItem2: '<b>开始计算</b>：在 xmin–xmax 之间搜索牵伸倍数，并枚举颜色排布',
-    emptyItem3: '<b>查看方案</b>：按优先色达标与累计误差排序，最多返回 100 个',
+    emptyItem3: '<b>查看方案</b>：按优先色达标与累计相对误差排序，最多返回 100 个',
     loadingTitle: '正在搜索可行排布',
     loadElapsed: '已用 {s} 秒',
     loadElapsedLimit: '已用 {s} 秒 · 时间上限 {maxtime} 秒',
     errorTitle: '未能得出方案',
     allPlans: '全部方案',
-    colTotalErr: '总误差',
+    colTotalErr: '累计相对误差',
     colArrange: '排布',
-    footNote: '计算在本机完成。累计误差为各颜色实际比例与目标比例之差的总和；优先色误差阈值取 0.05%，普通颜色取 0.5%。确认后由本机服务把全部方案提交 TotalLINK。',
+    footNote: '计算在本机完成。单色误差为相对误差 |实际比例 − 目标比例| ÷ 目标比例；累计相对误差为各颜色相对误差之和。优先色相对误差阈值 2%，普通颜色 5%。确认后由本机服务把全部方案提交 TotalLINK。',
     colColor: '颜色',
     colTarget: '目标 %',
     colActual: '实际 %',
-    colErr: '误差',
+    colErr: '相对误差',
     checkTitle: '配色核对',
     badgeNoPriority: '未设置优先色',
     badgePriorityOk: '优先色达标',
     badgePriorityBad: '优先色未达标',
-    badgeCumulative: '累计误差 {v}%',
+    badgeCumulative: '累计相对误差 {v}%',
     badgeEdited: '已手动调整',
     badgeConfirmed: '已确认',
     planLabel: '方案 {rank}',
     noDetail: '无明细',
-    listCount: '共 {n} 个，按优先色与累计误差排序',
+    listCount: '共 {n} 个，按优先色与累计相对误差排序',
     runmeta: '{n} 个方案 · {s} 秒 · 牵伸 {xmin}–{xmax}',
     runmetaError: '计算未完成',
     runmetaReading: '正在读取任务单输入…',
     runmetaInputFailed: '未能读取任务单输入',
-    thresholdTitle: '阈值 {v}%',
+    thresholdTitle: '相对误差阈值 {v}%',
     rowLine: '行号',
     rowShort: '简称',
     rowRatio: '色比',
     rowPriority: '优先',
-    rowPriorityTitle: '优先色：误差需 ≤ 0.05%',
+    rowPriorityTitle: '优先色：相对误差需 ≤ 2%',
     rowPosition: '固定桶位',
     rowDelete: '删除该颜色',
     bucketTitle: '桶位 {bucket}',
@@ -690,7 +691,7 @@ const I18N = {
     helpRatioDt: 'Tỷ lệ màu MATRATCALC',
     helpRatioDd: 'Tỷ lệ mong muốn của từng màu. Giá trị tuyệt đối không quan trọng, chỉ so sánh tương đối; nếu tất cả đều 0 thì không tính được.',
     helpPriDt: 'Màu ưu tiên PRIORITY',
-    helpPriDd: 'Khi chọn, sai số của màu này phải ≤ 0.05%, màu thường ≤ 0.5%. Phương án đạt yêu cầu được xếp trước.',
+    helpPriDd: 'Khi chọn, sai số tương đối của màu này phải ≤ 2%, màu thường ≤ 5%. Phương án đạt yêu cầu được xếp trước.',
     helpPosDt: 'Cố định vị trí POSITION',
     helpPosDd: 'Khi chọn, màu này chỉ xuất hiện ở các vị trí đó; để trống nghĩa là không giới hạn. Hai ô trong nhóm cùng tốc độ, vị trí cụ thể do cách bố trí ít màu trùng cạnh nhau quyết định.',
     helpTimeDt: 'maxtime',
@@ -707,39 +708,39 @@ const I18N = {
     emptyLead: 'Mỗi màu chiếm một hoặc nhiều vị trí. Bốn nhóm AB, CD, EF, GH có cùng tốc độ bên trong: CD cố định 1.00, AB, EF, GH lần lượt do X1, X2, X3 quyết định. Các vị trí cùng màu nằm cạnh nhau trên vòng sẽ được tự động tách ra.',
     emptyItem1: '<b>Điền số dòng, tên viết tắt và tỷ lệ màu</b>, nếu cần thì chọn ưu tiên hoặc chỉ định vị trí cố định',
     emptyItem2: '<b>Bắt đầu tính</b>: tìm bội số kéo duỗi trong khoảng xmin–xmax và liệt kê cách bố trí màu',
-    emptyItem3: '<b>Xem phương án</b>: sắp theo màu ưu tiên đạt chuẩn và sai số tích lũy, trả về tối đa 100',
+    emptyItem3: '<b>Xem phương án</b>: sắp theo màu ưu tiên đạt chuẩn và sai số tương đối tích lũy, trả về tối đa 100',
     loadingTitle: 'Đang tìm cách bố trí khả thi',
     loadElapsed: 'Đã dùng {s} giây',
     loadElapsedLimit: 'Đã dùng {s} giây · Giới hạn {maxtime} giây',
     errorTitle: 'Không tìm ra phương án',
     allPlans: 'Tất cả phương án',
-    colTotalErr: 'Tổng sai số',
+    colTotalErr: 'Sai số tương đối tích lũy',
     colArrange: 'Bố trí',
-    footNote: 'Tính toán thực hiện tại máy này. Sai số tích lũy là tổng chênh lệch giữa tỷ lệ thực tế và tỷ lệ mục tiêu của các màu; ngưỡng sai số là 0.05% cho màu ưu tiên và 0.5% cho màu thường. Sau khi xác nhận, dịch vụ tại máy gửi toàn bộ phương án về TotalLINK.',
+    footNote: 'Tính toán thực hiện tại máy này. Sai số của từng màu là sai số tương đối |tỷ lệ thực tế − tỷ lệ mục tiêu| ÷ tỷ lệ mục tiêu; sai số tương đối tích lũy là tổng sai số tương đối của các màu. Ngưỡng sai số tương đối là 2% cho màu ưu tiên và 5% cho màu thường. Sau khi xác nhận, dịch vụ tại máy gửi toàn bộ phương án về TotalLINK.',
     colColor: 'Màu',
     colTarget: 'Mục tiêu %',
     colActual: 'Thực tế %',
-    colErr: 'Sai số',
+    colErr: 'Sai số tương đối',
     checkTitle: 'Đối chiếu phối màu',
     badgeNoPriority: 'Chưa đặt màu ưu tiên',
     badgePriorityOk: 'Màu ưu tiên đạt',
     badgePriorityBad: 'Màu ưu tiên chưa đạt',
-    badgeCumulative: 'Sai số tích lũy {v}%',
+    badgeCumulative: 'Sai số tương đối tích lũy {v}%',
     badgeEdited: 'Đã chỉnh tay',
     badgeConfirmed: 'Đã xác nhận',
     planLabel: 'Phương án {rank}',
     noDetail: 'Không có chi tiết',
-    listCount: 'Tổng {n} phương án, sắp theo màu ưu tiên và sai số tích lũy',
+    listCount: 'Tổng {n} phương án, sắp theo màu ưu tiên và sai số tương đối tích lũy',
     runmeta: '{n} phương án · {s} giây · Kéo duỗi {xmin}–{xmax}',
     runmetaError: 'Tính chưa xong',
     runmetaReading: 'Đang đọc dữ liệu lệnh sản xuất…',
     runmetaInputFailed: 'Không đọc được dữ liệu lệnh sản xuất',
-    thresholdTitle: 'Ngưỡng {v}%',
+    thresholdTitle: 'Ngưỡng sai số tương đối {v}%',
     rowLine: 'Số dòng',
     rowShort: 'Tên viết tắt',
     rowRatio: 'Tỷ lệ màu',
     rowPriority: 'Ưu tiên',
-    rowPriorityTitle: 'Màu ưu tiên: sai số ≤ 0.05%',
+    rowPriorityTitle: 'Màu ưu tiên: sai số tương đối ≤ 2%',
     rowPosition: 'Cố định vị trí',
     rowDelete: 'Xóa màu này',
     bucketTitle: 'Vị trí {bucket}',
@@ -869,7 +870,7 @@ const LINK_ERROR_KEYS = {
 };
 
 const SAMPLE = {
-  xmin: 1.03, xmax: 3.5, seed: 0, maxtime: 10,
+  xmin: 1.03, xmax: 3.5, seed: 0, maxtime: 30,
   data: [
     {MFMLIN: 20, MFMDES: 'FWP 特白条 UVA009BY', MFMSHO: 'FWP 特白条', MATRATCALC: 28, PRIORITY: 0, POSITION: ''},
     {MFMLIN: 112, MFMDES: '再生白涤纶 BROSRPET-24080102-2 1.56DTEX*38MM百隆金和泰', MFMSHO: '再生白涤纶', MATRATCALC: 25.03, PRIORITY: 0, POSITION: ''},
@@ -946,6 +947,8 @@ const fmtErr = v => {
   if (n < 1) return n.toFixed(3);
   return n.toFixed(2);
 };
+/* 累计相对误差：新字段优先，旧数据回退到绝对累计误差 */
+const relCumPct = r => num(r.cum_rel_error_pct ?? r.cum_error_pct);
 const fmtD = v => { const n = Number(v); return Number.isFinite(n) ? String(Number(n.toFixed(6))) : '—'; };
 const fmtSum = v => { const n = Number(v); return Number.isFinite(n) ? String(Number(n.toFixed(2))) : '0'; };
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1069,7 +1072,7 @@ function applyRows(rows){
 function applySearch(p){
   refs.xmin.value = p && p.xmin != null ? p.xmin : 1.03;
   refs.xmax.value = p && p.xmax != null ? p.xmax : 3.5;
-  refs.maxtime.value = p && p.maxtime != null ? p.maxtime : 10;
+  refs.maxtime.value = p && p.maxtime != null ? p.maxtime : 30;
   refs.seed.value = p && p.seed != null ? p.seed : 0;
 }
 
@@ -1519,7 +1522,7 @@ function renderDetail(){
           <div class="plan-id">${esc(t('planLabel', {rank: ''}))}<b>${rank}</b></div>
           <div class="badges">
             ${priorityBadge}
-            <span class="badge">${esc(t('badgeCumulative', {v: fmtErr(r.cum_error_pct)}))}</span>
+            <span class="badge">${esc(t('badgeCumulative', {v: fmtErr(relCumPct(r))}))}</span>
             ${r._edited ? `<span class="badge">${esc(t('badgeEdited'))}</span>` : ''}
             ${locked ? `<span class="badge ok">${esc(t('badgeConfirmed'))}</span>` : ''}
           </div>
@@ -1572,6 +1575,8 @@ function wireResult(r, i){
     X1: r.X1, X2: r.X2, X3: r.X3,
     cum_error: r.cum_error,
     cum_error_pct: r.cum_error_pct,
+    cum_rel_error: r.cum_rel_error,
+    cum_rel_error_pct: r.cum_rel_error_pct,
     total_feed_speed_D: r.total_feed_speed_D,
     stage_label: r.stage_label,
     priority_ok: r.priority_ok,
@@ -1949,8 +1954,8 @@ function renderList(){
   refs.planRows.innerHTML = state.results.map((r, i) => {
     const rank = i + 1;
     const confirmed = !!state.confirm && state.confirm.rank === rank;
-    // 总误差 = 累计误差（各颜色实际与目标比例之差的总和），以百分数显示
-    const totalErr = `${fmtErr(r.cum_error_pct)}%`;
+    // 累计相对误差 = 各颜色相对误差之和（|实际-目标|/目标），以百分数显示
+    const totalErr = `${fmtErr(relCumPct(r))}%`;
     const arrange = arrangementCell(r);
     return `<tr data-i="${i}" tabindex="0" class="${i === state.selected ? 'on' : ''}" aria-selected="${i === state.selected}">
       <td>${String(rank).padStart(2, '0')}${confirmed ? `<i class="row-ok" title="${esc(t('badgeConfirmed'))}">✓</i>` : ''}</td>

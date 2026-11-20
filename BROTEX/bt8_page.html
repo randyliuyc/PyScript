@@ -1591,16 +1591,17 @@ async function loadRemoteInput(){
     if (state.platform) run();
     else showFormError(['任务单已载入，但回传参数不完整，只能本地计算。']);
   } catch (err) {
+    // 回传参数是齐的，只是输入没取到：不要退回本地计算，给一个重试入口
     state.platform = false;
     state.ctx.dataValid = false;
-    refs.runmeta.textContent = '尚未计算';
-    let saved = null;
-    try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (_) { saved = null; }
-    const base = (saved && Array.isArray(saved.data) && saved.data.length) ? saved : SAMPLE;
-    applyRows(base.data);
-    applySearch(base);
-    renderRows();
+    refs.runmeta.textContent = '未能读取任务单输入';
     showFormError([`读取任务单输入失败：${err.message || err}`]);
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'confirm-go secondary';
+    retry.textContent = '重新读取任务单';
+    retry.addEventListener('click', loadRemoteInput);
+    refs.formError.appendChild(retry);
   }
 }
 

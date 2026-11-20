@@ -208,6 +208,7 @@ def post_json(url, body, timeout, headers=None):
     all_headers = {
         'Content-Type': 'application/json; charset=utf-8',
         'User-Agent': 'page-server/1.0',
+        'Connection': 'close',
     }
     all_headers.update(headers or {})
     req = urllib.request.Request(url, data=body, method='POST', headers=all_headers)
@@ -220,6 +221,19 @@ def post_json(url, body, timeout, headers=None):
         except OSError:
             raw = b''
         return exc.code, raw
+
+
+def post_json_retry(url, body, timeout, headers=None, attempts=2):
+    """只读查询用：连接层失败（TLS 断连、reset、超时）时换一条连接重试。"""
+    last = None
+    for i in range(attempts):
+        try:
+            return post_json(url, body, timeout, headers)
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            last = exc
+            if i + 1 < attempts:
+                time.sleep(0.3 * (i + 1))
+    raise last
 
 
 def friendly_net_error(exc):
@@ -454,8 +468,8 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(body_obj, ensure_ascii=False).encode('utf-8')
         started = time.time()
         try:
-            status, raw_resp = post_json(target, body, timeout,
-                                         headers={'X-%s-Event' % name.capitalize(): 'input.query'})
+            status, raw_resp = post_json_retry(target, body, timeout,
+                                               headers={'X-%s-Event' % name.capitalize(): 'input.query'})
         except (urllib.error.URLError, OSError, ValueError) as exc:
             return self._send_json({'isSuccess': 0,
                                     'message': f'无法连接 TotalLINK：{friendly_net_error(exc)}'})

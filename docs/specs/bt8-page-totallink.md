@@ -281,7 +281,7 @@ python page_server.py --no-open
 | `rowData` 空值键数量 ≠ 1 | 同上 |
 | `data` 解析失败 | 提示并回退到本地保存的输入（现有行为） |
 | 计算服务不可达 | 现有提示不变 |
-| 输入查询失败（网络/无权限/任务单无配色） | 表单区显示原因，回退到本地保存的输入，确认不可用 |
+| 输入查询失败（网络/无权限/任务单无配色） | 表单区显示原因与「重新读取任务单」，不退回本地计算；连接层抖动由服务端自动重试一次 |
 | 回传网络失败 / 超时 | 「无法连接 TotalLINK：…」+「重试回传」，不锁定 |
 | `InvalidLinkToken` / `AccessFail` / `ModelNotExist` / `NoConnection` | 按 7.4 的文案显示 |
 | `action=confirm/prevent` | 显示 `message`，按失败处理 |

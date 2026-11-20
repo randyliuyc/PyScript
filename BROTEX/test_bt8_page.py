@@ -59,6 +59,7 @@ class UpstreamStub(BaseHTTPRequestHandler):
 
     protocol_version = 'HTTP/1.1'
     received = []
+    fail_next_input = False
     reply = (200, {'isSuccess': 'true', 'message': '', 'action': '',
                    'data': 1, 'dataType': 'Int32'})
     dataset_reply = (200, {
@@ -80,6 +81,11 @@ class UpstreamStub(BaseHTTPRequestHandler):
             'event': self.headers.get('X-Bt8-Event', ''),
             'body': body,
         })
+        if type(self).fail_next_input and 'linkDMDatasetResult' in self.path:
+            # 模拟 TLS/连接被对端中断：不回任何内容就关闭连接
+            type(self).fail_next_input = False
+            self.close_connection = True
+            return
         if 'linkDMDatasetResult' in self.path:
             code, payload = type(self).dataset_reply
         else:
@@ -248,6 +254,12 @@ class PageServerTests(unittest.TestCase):
         self.assertIn('ctx.para = namedPara;', page)
         # YARNGRP 允许为空，三个参数只要都出现就算有效
         self.assertIn('namedKeys.every(k => q.has(k))', page)
+
+    def test_page_offers_input_retry(self):
+        """输入取不到时给重试入口，不退回本地计算。"""
+        page = self.page()
+        self.assertIn('重新读取任务单', page)
+        self.assertIn('retry.addEventListener', page)
 
     def test_page_defaults_row_data(self):
         """URL 不带 rowData 时按约定用 {"PLANJSON": ""}。"""
@@ -448,6 +460,17 @@ class PageServerTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(data.get('isSuccess'), 0)
         self.assertIn('没有可计算的配色数据', data.get('message', ''))
+
+    def test_input_retries_once_on_connection_error(self):
+        """对端 TLS/连接中断时换一条连接重试，不让页面误判成本地计算。"""
+        UpstreamStub.fail_next_input = True
+        try:
+            status, data = self.post_input({'loginID': 'token-42', 'MFGNUM': 'A',
+                                            'MFBLIN': '1', 'YARNGRP': ''})
+        finally:
+            UpstreamStub.fail_next_input = False
+        self.assertEqual(status, 200)
+        self.assertEqual(data.get('isSuccess'), 1, data.get('message'))
 
     def test_input_disabled_without_settings(self):
         _, base = self.start_server({})

@@ -378,15 +378,23 @@ def find_seeds_scipy(targets, num_colors, pos_constraints, bounds, rng=None, dea
 # 输入校验与结果契约
 # ======================
 
-def _error_result(message, runtime=0.0):
-    """统一的失败返回（与其他 LinkPython 程序的 isSuccess 契约一致）"""
-    return json.dumps({
+def _error_result(message, runtime=0.0, code=None, params=None):
+    """统一的失败返回（与其他 LinkPython 程序的 isSuccess 契约一致）。
+
+    message 保留中文，便于日志与旧调用方；页面用 errorCode/errorParams
+    按当前语言渲染提示。
+    """
+    payload = {
         'isSuccess': 0,
         'error': message,
         'message': message,
         'results': [],
         'runtime': round(runtime, 1),
-    }, ensure_ascii=False, allow_nan=False)
+    }
+    if code:
+        payload['errorCode'] = code
+        payload['errorParams'] = params or {}
+    return json.dumps(payload, ensure_ascii=False, allow_nan=False)
 
 
 def _validate_input(linkargs):
@@ -490,7 +498,8 @@ def linkrun(json_str):
         linkargs = json.loads(json_str)
         json_data, xmin, xmax, seed, maxtime, verbose = _validate_input(linkargs)
     except (json.JSONDecodeError, ValueError) as exc:
-        return _error_result(f'输入错误: {exc}')
+        return _error_result(f'输入错误: {exc}', code='input_invalid',
+                             params={'detail': str(exc)})
 
     start_time = time.time()
     deadline = start_time + maxtime
@@ -510,15 +519,24 @@ def linkrun(json_str):
         if targets[i] > 0 and targets[i] < min_share - 1e-12
     ]
     if too_small:
-        detail = '、'.join(
+        too_small_text = [
             f"{item.get('MFMDES', '').strip() or item.get('MFMLIN', '')} {targets[i] * 100:.2f}%"
             for i, item in too_small
-        )
+        ]
+        detail = '、'.join(too_small_text)
         return _error_result(
             f'无法配色：{detail} 的目标色比低于该结构可实现的最小单色比例 '
             f'{min_share * 100:.2f}%（8 桶位、牵伸 {xmin:g}–{xmax:g}）。'
             f'这些颜色无法分配到桶位，单色相对误差必然超过 '
-            f'{NORMAL_REL_THRESHOLD * 100:g}%，请调整色比或牵伸范围')
+            f'{NORMAL_REL_THRESHOLD * 100:g}%，请调整色比或牵伸范围',
+            code='color_below_structural_min',
+            params={
+                'colors': too_small_text,
+                'min_pct': round(float(min_share) * 100, 2),
+                'xmin': float(xmin),
+                'xmax': float(xmax),
+                'threshold_pct': round(float(NORMAL_REL_THRESHOLD) * 100, 2),
+            })
 
     # 预处理位置约束
     # 支持多字符 POSITION，如 "ACF" 表示该颜色需要出现在 A、C、F 三个位置
@@ -550,11 +568,14 @@ def linkrun(json_str):
     if not seeds:
         elapsed = round(time.time() - start_time, 1)
         if time.time() >= deadline:
-            reason = f'搜索超时（已达到 maxtime={maxtime:g}s），请放宽 xmin/xmax 或增大 maxtime'
-        else:
-            reason = (f'未找到单色相对误差<{SEED_REL_TOL * 100:.1f}%的有效解（搜索 {elapsed:g}s），'
-                      f'请放宽 xmin/xmax 范围或检查 POSITION 约束是否过严')
-        return _error_result(reason, elapsed)
+            return _error_result(
+                f'搜索超时（已达到 maxtime={maxtime:g}s），请放宽 xmin/xmax 或增大 maxtime',
+                elapsed, code='search_timeout', params={'maxtime': maxtime})
+        return _error_result(
+            f'未找到单色相对误差<{SEED_REL_TOL * 100:.1f}%的有效解（搜索 {elapsed:g}s），'
+            f'请放宽 xmin/xmax 范围或检查 POSITION 约束是否过严',
+            elapsed, code='no_seed',
+            params={'tol_pct': round(SEED_REL_TOL * 100, 1), 'seconds': elapsed})
     elif verbose:
         print(f"[bt8] 搜索完成，找到 {len(seeds)} 个种子，运行时间 {time.time() - start_time:.1f} 秒")
 
@@ -686,15 +707,29 @@ def linkrun(json_str):
         elapsed = time.time() - start_time
         if error_rejected and closest_error:
             err, name, target_pct, actual_pct = closest_error
+            rel_pct = round(float(err) * 100, 2)
+            if not np.isfinite(rel_pct):
+                rel_pct = 9999.0
             return _error_result(
                 f'没有方案满足单色相对误差阈值 {NORMAL_REL_THRESHOLD * 100:g}%：'
                 f'已过滤 {error_rejected} 个候选方案，最接近通过的方案里 {name} 目标 {target_pct:.2f}%、'
-                f'实际 {actual_pct:.2f}%（相对误差 {err * 100:.2f}%）', elapsed)
+                f'实际 {actual_pct:.2f}%（相对误差 {err * 100:.2f}%）',
+                elapsed, code='no_plan_meets_threshold',
+                params={
+                    'threshold_pct': round(float(NORMAL_REL_THRESHOLD) * 100, 2),
+                    'rejected': int(error_rejected),
+                    'name': name,
+                    'target_pct': round(float(target_pct), 2),
+                    'actual_pct': round(float(actual_pct), 2),
+                    'rel_pct': rel_pct,
+                })
         if constraint_rejected:
             return _error_result(
                 f'POSITION 桶位约束无法满足：已过滤 {constraint_rejected} 个违反约束的候选方案，'
-                f'请检查 POSITION 设置是否与目标比例相容', elapsed)
-        return _error_result('未找到有效方案', elapsed)
+                f'请检查 POSITION 设置是否与目标比例相容',
+                elapsed, code='position_infeasible',
+                params={'rejected': int(constraint_rejected)})
+        return _error_result('未找到有效方案', elapsed, code='no_valid_plan')
 
     # 优先色达标的方案排在前面，其次按累计相对误差排序
     final_results.sort(key=lambda r: (not r['priority_ok'], r['cum_rel_error']))

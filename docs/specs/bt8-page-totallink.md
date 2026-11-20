@@ -288,6 +288,20 @@ python page_server.py --no-open
 | `InvalidLinkToken` / `AccessFail` / `ModelNotExist` / `NoConnection` | 按 7.4 的文案显示 |
 | `action=confirm/prevent` | 显示 `message`，按失败处理 |
 
+算法自身的无解返回（`/api/bt8/calc` 的 `isSuccess=0`）带 `errorCode` / `errorParams`，页面按当前语言渲染；`message` 仍为中文，供日志与旧调用方：
+
+| `errorCode` | 含义 |
+|---|---|
+| `input_invalid` | 输入校验失败（`detail` 为具体原因） |
+| `color_below_structural_min` | 色比低于结构最小单桶比例（`colors`、`min_pct`、`xmin`、`xmax`、`threshold_pct`） |
+| `search_timeout` | 搜索超过 `maxtime` |
+| `no_seed` | 未找到种子解（`tol_pct`、`seconds`） |
+| `no_plan_meets_threshold` | 所有候选方案都超过相对误差阈值（`threshold_pct`、`rejected`、`name`、`target_pct`、`actual_pct`、`rel_pct`） |
+| `position_infeasible` | POSITION 桶位约束无法满足（`rejected`） |
+| `no_valid_plan` | 其他无有效方案 |
+
+切换语言时错误面板会按 `errorCode` 重绘，不需要重新计算。
+
 ---
 
 ## 10. 测试与验收

@@ -616,6 +616,13 @@ const I18N = {
     unknownError: '未知错误',
     calcNonJson: '服务返回了非 JSON 内容（HTTP {status}）。',
     calcUnreachable: '无法连接计算服务：{message}\n请确认页面由 python page_server.py 启动，而不是直接打开 HTML 文件。',
+    err_input_invalid: '输入错误: {detail}',
+    err_color_below_structural_min: '无法配色：{colors} 的目标色比低于该结构可实现的最小单色比例 {min_pct}%（8 桶位、牵伸 {xmin}–{xmax}）。这些颜色无法分配到桶位，单色相对误差必然超过 {threshold_pct}%，请调整色比或牵伸范围',
+    err_no_plan_meets_threshold: '没有方案满足单色相对误差阈值 {threshold_pct}%：已过滤 {rejected} 个候选方案，最接近通过的方案里 {name} 目标 {target_pct}%、实际 {actual_pct}%（相对误差 {rel_pct}%）',
+    err_position_infeasible: 'POSITION 桶位约束无法满足：已过滤 {rejected} 个违反约束的候选方案，请检查 POSITION 设置是否与目标比例相容',
+    err_no_valid_plan: '未找到有效方案',
+    err_search_timeout: '搜索超时（已达到 maxtime={maxtime}s），请放宽 xmin/xmax 或增大 maxtime',
+    err_no_seed: '未找到单色相对误差<{tol_pct}%的有效解（搜索 {seconds}s），请放宽 xmin/xmax 范围或检查 POSITION 约束是否过严',
     confirmNonJson: '确认服务返回了非 JSON 内容（HTTP {status}）',
     confirmBlockedLocal: '仅本地计算，无法回传 TotalLINK',
     confirmNoBase: '未配置 TotalLINK 地址',
@@ -758,6 +765,13 @@ const I18N = {
     unknownError: 'Lỗi không xác định',
     calcNonJson: 'Dịch vụ tính trả về nội dung không phải JSON (HTTP {status}).',
     calcUnreachable: 'Không kết nối được dịch vụ tính: {message}\nHãy chắc chắn trang được mở từ python page_server.py, không mở trực tiếp tệp HTML.',
+    err_input_invalid: 'Dữ liệu đầu vào không hợp lệ: {detail}',
+    err_color_below_structural_min: 'Không thể phối màu: tỷ lệ của {colors} thấp hơn tỷ lệ tối thiểu một màu có thể đạt được với cấu trúc này là {min_pct}% (8 vị trí, kéo duỗi {xmin}–{xmax}). Các màu này không thể xếp vào vị trí nên sai số tương đối chắc chắn vượt {threshold_pct}%; hãy điều chỉnh tỷ lệ màu hoặc phạm vi kéo duỗi.',
+    err_no_plan_meets_threshold: 'Không có phương án nào đạt ngưỡng sai số tương đối {threshold_pct}%: đã loại {rejected} phương án, phương án gần đạt nhất có {name} mục tiêu {target_pct}%, thực tế {actual_pct}% (sai số tương đối {rel_pct}%)',
+    err_position_infeasible: 'Ràng buộc vị trí POSITION không thể thỏa mãn: đã loại {rejected} phương án vi phạm; hãy kiểm tra thiết lập POSITION có tương thích với tỷ lệ mục tiêu.',
+    err_no_valid_plan: 'Không tìm thấy phương án hợp lệ',
+    err_search_timeout: 'Hết thời gian tìm kiếm (đã đạt maxtime={maxtime}s); hãy mở rộng xmin/xmax hoặc tăng maxtime.',
+    err_no_seed: 'Không tìm được nghiệm có sai số tương đối từng màu < {tol_pct}% (đã tìm {seconds}s); hãy mở rộng khoảng xmin/xmax hoặc kiểm tra ràng buộc POSITION.',
     confirmNonJson: 'Dịch vụ xác nhận trả về nội dung không phải JSON (HTTP {status})',
     confirmBlockedLocal: 'Chỉ tính tại máy, không gửi về TotalLINK',
     confirmNoBase: 'Chưa cấu hình địa chỉ TotalLINK',
@@ -827,7 +841,12 @@ function t(key, vars){
   let s = table[key];
   if (s == null) s = I18N.zh[key];
   if (s == null) s = key;
-  if (vars) for (const k of Object.keys(vars)) s = s.split('{' + k + '}').join(String(vars[k]));
+  if (vars) for (const k of Object.keys(vars)) {
+    const v = vars[k];
+    // 数组（如无解时点名的多个颜色）按当前语言的顿号/逗号连接
+    const text = Array.isArray(v) ? v.join(LANG === 'vi' ? ', ' : '、') : String(v);
+    s = s.split('{' + k + '}').join(text);
+  }
   return s;
 }
 
@@ -1376,8 +1395,14 @@ async function run(){
     state.params = {xmin: payload.xmin, xmax: payload.xmax, maxtime: budget};
 
     if (data.isSuccess !== 1) {
-      // 计算错误来自 bt8 算法或服务，原文显示；缺消息时才用页面文案
-      showError(data.message || data.error ? {raw: data.message || data.error} : {key: 'unknownError'});
+      // 算法带回 errorCode/errorParams 时按当前语言渲染（切语言会重绘）；
+      // 没有 code 的旧服务或页面自身错误才回退到原文
+      const info = data.errorCode
+        ? {key: 'err_' + data.errorCode, vars: data.errorParams || {}}
+        : (data.message || data.error
+          ? {raw: data.message || data.error}
+          : {key: 'unknownError'});
+      showError(info);
       return;
     }
     state.results = data.results || [];

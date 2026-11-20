@@ -352,6 +352,21 @@ class PageServerTests(unittest.TestCase):
         self.assertEqual(data.get('isSuccess'), 0, data)
         self.assertEqual(data.get('results'), [])
         self.assertIn('0.71%', data.get('message', ''))
+        # 页面据此按中/越语言渲染提示
+        self.assertEqual(data.get('errorCode'), 'color_below_structural_min')
+        self.assertTrue(any('EH007' in c for c in data.get('errorParams', {}).get('colors', [])))
+
+    def test_page_localizes_solver_errors(self):
+        """页面按 errorCode 渲染错误，并且中越字典都有对应文案。"""
+        page = self.page()
+        self.assertIn("'err_' + data.errorCode", page)
+        zh = page[page.index('  zh: {'):page.index('  vi: {')]
+        vi = page[page.index('  vi: {'):page.index('let LANG')]
+        for code in ('input_invalid', 'color_below_structural_min',
+                     'no_plan_meets_threshold', 'position_infeasible',
+                     'no_valid_plan', 'search_timeout', 'no_seed'):
+            self.assertIn(f'err_{code}:', zh)
+            self.assertIn(f'err_{code}:', vi)
 
     def test_calc_rejects_invalid_input(self):
         _, data = self.post_calc({'data': []})

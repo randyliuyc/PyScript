@@ -107,6 +107,8 @@ class Bt8RegressionTests(unittest.TestCase):
                 result = run(payload)
                 self.assertEqual(result.get("isSuccess"), 0, f"{name}: {result}")
                 self.assertTrue(result.get("message"))
+                self.assertEqual(result.get("errorCode"), "input_invalid")
+                self.assertIn("detail", result.get("errorParams") or {})
 
     # ---------- 数值自洽 ----------
 
@@ -263,6 +265,12 @@ class Bt8RegressionTests(unittest.TestCase):
         self.assertIn("EH007", message)
         self.assertIn("0.71%", message)
         self.assertIn("低于", message)
+        # 页面按 errorCode/errorParams 渲染中越文案
+        self.assertEqual(result.get("errorCode"), "color_below_structural_min")
+        params = result.get("errorParams") or {}
+        self.assertEqual(params.get("threshold_pct"), 5)
+        self.assertAlmostEqual(params.get("min_pct"), 4.43, places=2)
+        self.assertTrue(any("EH007" in c for c in params.get("colors", [])))
 
     def test_small_ratio_is_never_silently_zero(self):
         """可实现的色比都必须真的分配到桶位；不会出现「目标 >0、实际 0」的方案。"""
@@ -285,6 +293,12 @@ class Bt8RegressionTests(unittest.TestCase):
         self.assertEqual(result.get("results"), [])
         self.assertIn("没有方案满足单色相对误差阈值", result.get("message", ""))
         self.assertIn("相对误差", result.get("message", ""))
+        self.assertEqual(result.get("errorCode"), "no_plan_meets_threshold")
+        params = result.get("errorParams") or {}
+        self.assertEqual(params.get("threshold_pct"), 0.01)
+        self.assertGreater(params.get("rejected", 0), 0)
+        for key in ("name", "target_pct", "actual_pct", "rel_pct"):
+            self.assertIn(key, params)
 
     def test_priority_miss_keeps_plan_but_flags_it(self):
         """优先色未达标仍保留方案（排在后面），不像普通色那样直接剔除。"""
@@ -310,6 +324,8 @@ class Bt8RegressionTests(unittest.TestCase):
         result = run({"data": data})
         self.assertEqual(result.get("isSuccess"), 0)
         self.assertIn("POSITION", result.get("message", ""))
+        self.assertEqual(result.get("errorCode"), "position_infeasible")
+        self.assertGreater((result.get("errorParams") or {}).get("rejected", 0), 0)
 
     def test_order_in_groups(self):
         self.assertEqual(
